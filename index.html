@@ -129,12 +129,34 @@ body.ipad .pb-o button{min-height:44px}
 .bg-thanh .ds{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px;color:#d9d2ca}
 .bg-thanh .tg{font-size:24px;font-weight:800;color:#f0c987;white-space:nowrap}
 .bg-thanh button{padding:12px 26px;font-size:18px;font-weight:700;border-radius:12px;border:0;background:#c9a45c;color:#1c1a17}
-#bg-card.to #dv-picker{margin:18px auto 0;width:fit-content}
-#bg-card.to .pb{grid-template-columns:1fr 1fr;width:640px}
+#bg-card.to #dv-picker{margin:18px auto 0}
+#bg-card.to #dv-picker.dtm{margin:0}
+#bg-card.to .pb{grid-template-columns:1fr 1fr;width:640px;transform-origin:0 0}
+/* ---- bảng giá điện thoại ---- */
+.dt{border-radius:14px;padding:10px 10px 14px;color:#2b1650;font-family:Constantia,'Palatino Linotype',Georgia,serif;
+  background:radial-gradient(circle at 12% 0%,#fbd3ea 0,transparent 45%),radial-gradient(circle at 100% 30%,#e3d3f6 0,transparent 50%),radial-gradient(circle at 20% 100%,#d6eef3 0,transparent 50%),radial-gradient(circle at 90% 100%,#fbf0c9 0,transparent 45%),#f3e6f4}
+#bg-card.to .dt{border-radius:0;min-height:100%}
+.dt-logo{display:block;height:34px;margin:2px auto 8px}
+.dt-nav{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:4px}
+.dt-nav button{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;padding:7px 12px;border-radius:99px;border:1px solid rgba(43,22,80,.25);background:rgba(255,255,255,.65);color:#2b1650}
+.dt-k{scroll-margin-top:84px;break-inside:avoid;-webkit-column-break-inside:avoid;padding-top:4px}
+.dt-k h4{font-family:'Bodoni MT','Didot','Playfair Display',Constantia,Georgia,serif;font-size:25px;font-weight:700;margin:10px 0 4px;display:flex;align-items:center;gap:8px}
+.dt-h,.dt-r{display:grid;grid-template-columns:minmax(0,1fr) 94px 94px;gap:6px;align-items:center}
+.dt-h span{font-family:'Segoe UI',Arial,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;text-align:center;line-height:1.15;color:#5b4a7a;padding-bottom:2px}
+.dt-r{padding:5px 0;border-top:1px solid rgba(43,22,80,.14)}
+.dt-t{font-variant:small-caps;font-size:16px;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
+.dt-g{position:relative;min-height:50px;border-radius:12px;border:1px solid rgba(43,22,80,.22);background:rgba(255,255,255,.6);color:#2b1650;font-family:inherit;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 2px;line-height:1.15;-webkit-tap-highlight-color:transparent}
+.dt-g b{font-size:16px;font-weight:700} .dt-g small{font-size:12.5px;color:#2f7d4f;font-weight:700}
+.dt-g.span{grid-column:span 2}
+.dt-g.on{background:#2b1650;color:#f6dc95;border-color:#2b1650;box-shadow:0 3px 10px rgba(43,22,80,.3)} .dt-g.on small{color:#bfe6c9}
+.dt-g i{position:absolute;top:-7px;left:-6px;width:21px;height:21px;border-radius:50%;background:#d4a94f;color:#2b1650;font-style:normal;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.dt-g sup{position:absolute;top:3px;right:7px;font-size:11px}
+@media (orientation:landscape){.dt-ds{column-count:2;column-gap:22px}}
 body.bg-dangto{overflow:hidden}
 /* ---- điện thoại (chế độ nhân viên, màn hình hẹp) ---- */
 #ip-bar{display:none}
-@media (max-width:700px){
+@media (max-width:700px), (max-height:540px){
   body.ipad header{height:50px;padding:0 8px;gap:2px;padding-top:env(safe-area-inset-top)}
   body.ipad header .logo{margin-right:4px} body.ipad header .logo img{height:34px}
   body.ipad header nav button{padding:0 10px;font-size:15px}
@@ -520,7 +542,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.4.1 (31/10/2026)';
+const APP_VERSION = '2.5 (31/10/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -807,17 +829,43 @@ function ipBar() {
   $('#ip-gui').onclick = guiVeQuay;
   $('#ip-xem').onclick = () => { const c = $('#hd-lines'); if (c) c.closest('.card').scrollIntoView({behavior: 'smooth', block: 'start'}); };
 }
+const laDT = () => IPAD && Math.min(window.innerWidth, window.innerHeight) <= 540; // điện thoại (dọc hoặc ngang)
 function bgPhongTo(mo) {
   const c = $('#bg-card'); c.classList.toggle('to', mo); document.body.classList.toggle('bg-dangto', mo);
-  const pb = $('#dv-picker');
-  if (mo) { // phóng vừa màn hình theo chiều ngang
-    // co/giãn cho bảng (rộng 640) vừa khít bề ngang còn lại – nhỏ hơn 1 trên điện thoại dọc, to hơn khi xoay ngang
-    const rong = c.clientWidth - (window.innerWidth <= 700 ? 12 : 40);
-    const z = Math.min(1.7, rong / 640);
-    pb.style.zoom = z; c.scrollTop = 0; bgThanh();
-  } else { pb.style.zoom = ''; renderPicker(); }
+  c.scrollTop = 0; renderPicker();
+}
+function apZoomBG() { // iPad/PC: phóng tờ bảng giá vừa bề ngang bằng transform (không dùng zoom vì Safari tính sai)
+  const c = $('#bg-card'), w = $('#dv-picker'), pb = w && w.querySelector('.pb'); if (!w) return;
+  w.style.zoom = ''; w.style.width = ''; w.style.height = '';
+  if (pb) { pb.style.transform = ''; }
+  if (!c.classList.contains('to') || !pb) return;
+  const z = Math.min(1.7, (c.clientWidth - 40) / 640);
+  pb.style.transform = `scale(${z})`;
+  w.style.width = Math.floor(640 * z) + 'px'; w.style.height = Math.ceil(pb.offsetHeight * z) + 'px';
+}
+function renderPickerDT() {
+  const groups = {}, order = [];
+  S.settings.dichvu.forEach(d => { if (!groups[d.nhom]) { groups[d.nhom] = []; order.push(d.nhom); } groups[d.nhom].push(d); });
+  order.sort((a, b) => (/combo/i.test(a) ? 1 : 0) - (/combo/i.test(b) ? 1 : 0));
+  const daChon = (d, v) => HD.lines.filter(l => l.dvId === d.id && lineV(l) === v).length;
+  const tieuDe = (S.settings.hangTieuDe || S.settings.hang);
+  const tenNhom = n => /combo/i.test(n) ? 'Combo đặc biệt' : ({'Uốn / ép': 'Uốn/Ép', 'Cắt & chăm sóc': 'Cắt & Chăm sóc'})[n] || n;
+  const nut = (d, v, span) => { const g = num(d.gia[v]), pct = kmPctDv(d), n = daChon(d, v), chu = span && d.hienThi ? d.hienThi : `${group(g)}K`;
+    return `<button class="dt-g ${n ? 'on' : ''} ${span ? 'span' : ''}" data-tick="${d.id}" data-v="${v}">${n ? '<i>✓</i>' : ''}<b>${esc(chu)}</b>${pct ? `<small>KM ${group(Math.round(g * (1 - pct / 100)))}K</small>` : ''}${n > 1 ? `<sup>×${n}</sup>` : ''}</button>`; };
+  const khoi = (nhom, i) => { const list = groups[nhom], c2 = list.find(d => d.gia.filter(x => x !== '' && x != null).length > 1);
+    const nhan = c2 ? (list.every(d => !d.nhan || d === c2) && c2.nhan ? c2.nhan : tieuDe) : null;
+    return `<section class="dt-k" id="dtk-${i}"><h4>${esc(tenNhom(nhom))}${list.some(d => kmPctDv(d)) ? '<span class="pb-km">KM tháng</span>' : ''}</h4>
+      ${list.map(d => { const nG = d.gia.filter(x => x !== '' && x != null).length;
+        const tde = nhan && d === c2 ? `<div class="dt-h"><span></span><span>${esc(nhan[0])}</span><span>${esc(nhan[1])}</span></div>` : ''; // tiêu đề cột ngay trên dòng 2 giá đầu tiên
+        return `${tde}<div class="dt-r"><div class="dt-t">${esc(d.tenBang || d.ten)}</div>${nG > 1 ? nut(d, 0) + nut(d, 1) : nut(d, 0, true)}</div>`; }).join('')}</section>`; };
+  const w = $('#dv-picker'); w.classList.add('dtm');
+  w.innerHTML = `<div class="dt"><img class="dt-logo" src="${BANG_LOGO}" alt="GIANG Hair Salon">
+    <nav class="dt-nav">${order.map((n, i) => `<button data-dtk="${i}">${esc(tenNhom(n))}</button>`).join('')}</nav>
+    <div class="dt-ds">${order.map(khoi).join('')}</div></div>`;
 }
 function renderPicker() {
+  if (laDT()) { renderPickerDT(); bgThanh(); ipBar(); apZoomBG(); return; }
+  $('#dv-picker').classList.remove('dtm');
   const groups = {}, order = [];
   S.settings.dichvu.forEach(d => { if (!groups[d.nhom]) { groups[d.nhom] = []; order.push(d.nhom); } groups[d.nhom].push(d); });
   const daChon = (d, v) => HD.lines.filter(l => l.dvId === d.id && lineV(l) === v).length;
@@ -844,7 +892,7 @@ function renderPicker() {
   $('#dv-picker').innerHTML = `<div class="pb"><span class="pb-sao s1">✦</span><span class="pb-sao s2">✧</span><span class="pb-sao s3">✦</span><span class="pb-sao s4">✧</span>
     <div class="pb-cot"><img class="pb-logo" src="${BANG_LOGO}" alt="GIANG Hair Salon">${trai.map(khoi).join('')}</div>
     <div class="pb-cot">${phai.map(khoi).join('')}</div></div>`;
-  bgThanh(); ipBar();
+  bgThanh(); ipBar(); apZoomBG();
 }
 
 function addLine(dvId, v) {
@@ -1901,7 +1949,8 @@ function bindEvents() {
   $('#hd-ghichu').addEventListener('keydown', e => ghiChuGo(e.target, e));
   $('#bg-mo').onclick = () => bgPhongTo(true);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#bg-card').classList.contains('to')) bgPhongTo(false); });
-  const tinhLaiBG = () => { if ($('#bg-card').classList.contains('to')) bgPhongTo(true); };
+  let _dtCu = laDT();
+  const tinhLaiBG = () => { const d = laDT(); if (d !== _dtCu || $('#bg-card').classList.contains('to')) { _dtCu = d; renderPicker(); } };
   window.addEventListener('resize', tinhLaiBG); window.addEventListener('orientationchange', () => setTimeout(tinhLaiBG, 250));
   $('#btn-giamhd').onclick = () => { capNhatGiamHD($('#hd-giamrow').hidden); if (!$('#hd-giamrow').hidden) $('#hd-giampct').focus(); };
   $('#hd-km').addEventListener('change', async e => {
@@ -1910,7 +1959,9 @@ function bindEvents() {
     const k = kmHienTai(); toast(k ? `Đang áp: ${k.ten}` : 'Đã tắt khuyến mãi');
   });
   $('#hd-tt').onclick = e => { const b = e.target.closest('[data-tt]'); if (b) { HD.tt = b.dataset.tt; updateTotal(); saveDraft(); } };
-  $('#dv-picker').onclick = e => { const b = e.target.closest('[data-tick]'); if (!b) return;
+  $('#dv-picker').onclick = e => {
+    const k = e.target.closest('[data-dtk]'); if (k) { const sec = document.getElementById('dtk-' + k.dataset.dtk); if (sec) sec.scrollIntoView({behavior: 'smooth', block: 'start'}); return; }
+    const b = e.target.closest('[data-tick]'); if (!b) return;
     const id = b.dataset.tick, v = +b.dataset.v;
     if (b.classList.contains('on')) { const idx = HD.lines.map((l, k) => [l, k]).filter(([l]) => l.dvId === id && lineV(l) === v).pop()[1]; HD.lines.splice(idx, 1); renderLines(); saveDraft(); }
     else addLine(id, v); };
