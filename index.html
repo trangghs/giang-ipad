@@ -122,7 +122,8 @@ body.ipad .pb-o button{min-height:44px}
 .bg-nut{display:inline-block;margin-left:6px;padding:3px 10px;border-radius:99px;background:var(--brand-soft);color:var(--brand);font-size:13px;font-weight:700;vertical-align:2px}
 #bg-mo:hover .bg-nut{background:var(--brand);color:#fff}
 .bg-thanh{display:none}
-#bg-card.to{position:fixed;inset:0;z-index:40;margin:0;border-radius:0;overflow:auto;padding:0 0 30px;background:#efe6f3}
+#bg-card.to{position:fixed;inset:0;z-index:40;margin:0;border-radius:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 env(safe-area-inset-right) calc(30px + env(safe-area-inset-bottom)) env(safe-area-inset-left);background:#efe6f3;overscroll-behavior:contain}
+#bg-card.to .bg-thanh{padding-top:max(12px, env(safe-area-inset-top))}
 #bg-card.to #bg-mo{display:none}
 #bg-card.to .bg-thanh{display:flex;position:sticky;top:0;z-index:2;align-items:center;gap:14px;padding:12px 20px;background:#1c1a17;color:#f3ebe0}
 .bg-thanh .ds{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px;color:#d9d2ca}
@@ -145,7 +146,7 @@ body.bg-dangto{overflow:hidden}
   body.ipad .kh-form{grid-template-columns:76px 1fr;gap:8px}
   body.ipad .kh-form label:nth-child(3){grid-column:1 / -1}
   body.ipad input,body.ipad select,body.ipad textarea{font-size:16px}
-  body.ipad #bg-mo .muted,body.ipad #bg-mo .bg-nut{display:none}
+  body.ipad #bg-mo .muted{display:none}
   body.ipad .pb{padding:12px 8px 6px;gap:4px 0}
   body.ipad .pb-logo{max-width:180px}
   body.ipad .pb td.pb-t{font-size:13px;width:34%}
@@ -519,7 +520,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.4 (31/10/2026)';
+const APP_VERSION = '2.4.1 (31/10/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -810,7 +811,9 @@ function bgPhongTo(mo) {
   const c = $('#bg-card'); c.classList.toggle('to', mo); document.body.classList.toggle('bg-dangto', mo);
   const pb = $('#dv-picker');
   if (mo) { // phóng vừa màn hình theo chiều ngang
-    const z = Math.max(1, Math.min(1.7, (window.innerWidth - 40) / 640));
+    // co/giãn cho bảng (rộng 640) vừa khít bề ngang còn lại – nhỏ hơn 1 trên điện thoại dọc, to hơn khi xoay ngang
+    const rong = c.clientWidth - (window.innerWidth <= 700 ? 12 : 40);
+    const z = Math.min(1.7, rong / 640);
     pb.style.zoom = z; c.scrollTop = 0; bgThanh();
   } else { pb.style.zoom = ''; renderPicker(); }
 }
@@ -1898,7 +1901,8 @@ function bindEvents() {
   $('#hd-ghichu').addEventListener('keydown', e => ghiChuGo(e.target, e));
   $('#bg-mo').onclick = () => bgPhongTo(true);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#bg-card').classList.contains('to')) bgPhongTo(false); });
-  window.addEventListener('resize', () => { if ($('#bg-card').classList.contains('to')) bgPhongTo(true); });
+  const tinhLaiBG = () => { if ($('#bg-card').classList.contains('to')) bgPhongTo(true); };
+  window.addEventListener('resize', tinhLaiBG); window.addEventListener('orientationchange', () => setTimeout(tinhLaiBG, 250));
   $('#btn-giamhd').onclick = () => { capNhatGiamHD($('#hd-giamrow').hidden); if (!$('#hd-giamrow').hidden) $('#hd-giampct').focus(); };
   $('#hd-km').addEventListener('change', async e => {
     S.settings.kmChon = e.target.value; await saveSettings();
