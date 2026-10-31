@@ -154,6 +154,10 @@ body.ipad .pb-o button{min-height:44px}
 .dt-g sup{position:absolute;top:3px;right:7px;font-size:11px}
 @media (orientation:landscape){.dt-ds{column-count:2;column-gap:22px}}
 body.bg-dangto{overflow:hidden}
+th button.sx{border:0;background:none;padding:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap}
+th button.sx span{opacity:.45;font-size:11px} th button.sx.on{color:var(--brand)} th button.sx.on span{opacity:1}
+.pin-o{width:100%;box-sizing:border-box;font-size:28px;letter-spacing:12px;text-align:center;padding:12px;border-radius:12px;margin:6px 0}
+.pin-loi{color:var(--bad);min-height:20px;font-size:14px;text-align:center}
 /* ---- điện thoại (chế độ nhân viên, màn hình hẹp) ---- */
 #ip-bar{display:none}
 @media (max-width:700px), (max-height:540px){
@@ -516,6 +520,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 <div id="ip-bar"></div>
 <section class="tab" id="tab-caidat">
   <div class="cd-grid">
+    <div class="card" id="cd-pin"></div>
     <div class="card" id="cd-backup"></div>
     <div class="card" id="cd-salon"></div>
     <div class="card" id="cd-nv"></div>
@@ -542,7 +547,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.5 (31/10/2026)';
+const APP_VERSION = '2.6 (31/10/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -581,6 +586,55 @@ function toast(msg, bad) {
   const t = $('#toast'); t.textContent = msg; t.className = 'on' + (bad ? ' bad' : '');
   clearTimeout(toast._t); toast._t = setTimeout(() => t.className = '', bad ? 4500 : 2600);
 }
+/* ---------- MÃ PIN (khoá xoá hoá đơn, xuất dữ liệu, tab Lương / Cài đặt / Nhân viên) ---------- */
+async function bamPin(pin, salt) {
+  const t = salt + ':' + pin;
+  try { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+  catch (e) { let h = 2166136261; for (const ch of t) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return 'f' + h.toString(16); }
+}
+const PIN_SAI = {n: 0, den: 0};
+function hopPin(tieuDe, moTa, haiO) {
+  return new Promise(res => {
+    const d = dialog(`<h3 style="margin-top:0">🔒 ${tieuDe}</h3>${moTa ? `<p class="muted" style="margin-top:-4px">${moTa}</p>` : ''}
+      <input class="pin-o" id="pin1" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••">
+      ${haiO ? '<input class="pin-o" id="pin2" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="nhập lại">' : ''}
+      <div class="pin-loi" id="pin-loi"></div>
+      <div class="row" style="justify-content:flex-end"><button data-no>Huỷ</button><button class="pri" data-yes>Xác nhận</button></div>`);
+    const xong = v => { d.close(); res(v); };
+    const ok = () => { const a = $('#pin1').value.trim(), b = haiO ? $('#pin2').value.trim() : a;
+      if (!/^\d{4,8}$/.test(a)) { $('#pin-loi').textContent = 'Mã PIN gồm 4–8 chữ số'; return; }
+      if (a !== b) { $('#pin-loi').textContent = 'Hai lần nhập không giống nhau'; return; }
+      xong(a); };
+    d.querySelector('[data-no]').onclick = () => xong(null); d.querySelector('[data-yes]').onclick = ok;
+    d.oncancel = () => res(null);
+    d.querySelectorAll('.pin-o').forEach(i => i.onkeydown = e => { if (e.key === 'Enter') ok(); });
+    setTimeout(() => $('#pin1').focus(), 50);
+  });
+}
+async function datPinMoi(tieuDe) {
+  const pin = await hopPin(tieuDe || 'Tạo mã PIN', 'Mã PIN dùng để mở tab Lương, Cài đặt, Nhân viên, xoá hoá đơn và xuất dữ liệu có SĐT khách. Chỉ anh chủ biết.', true);
+  if (!pin) return false;
+  const salt = uid(); S.settings.pin = {salt, hash: await bamPin(pin, salt)}; await saveSettings();
+  toast('Đã lưu mã PIN'); return true;
+}
+async function xinPin(viec) {
+  if (IPAD) return true;
+  if (!S.settings.pin || !S.settings.pin.hash) return datPinMoi('Tạo mã PIN để ' + viec.toLowerCase());
+  while (true) {
+    if (Date.now() < PIN_SAI.den) { toast(`Nhập sai nhiều lần. Thử lại sau ${Math.ceil((PIN_SAI.den - Date.now()) / 1000)} giây`, true); return false; }
+    const pin = await hopPin('Nhập mã PIN', viec);
+    if (pin == null) return false;
+    if (await bamPin(pin, S.settings.pin.salt) === S.settings.pin.hash) { PIN_SAI.n = 0; return true; }
+    PIN_SAI.n++; if (PIN_SAI.n >= 5) { PIN_SAI.n = 0; PIN_SAI.den = Date.now() + 60000; }
+    toast('Sai mã PIN', true);
+  }
+}
+async function doiPin() {
+  if (S.settings.pin && S.settings.pin.hash && !await xinPin('Nhập mã PIN hiện tại để đổi')) return;
+  await datPinMoi('Mã PIN mới'); renderCaiDat();
+}
+const KHOA_TAB = {luong: 'Mở tab Lương & lãi lỗ', caidat: 'Mở Cài đặt', nhanvien: 'Mở tab Nhân viên'};
+const moKhoa = {}; let _hoatDong = Date.now();
 function dialog(html, onReady) {
   const d = $('#dlg'); d.innerHTML = html; d.showModal();
   d.querySelectorAll('[data-close]').forEach(b => b.onclick = () => d.close());
@@ -778,7 +832,7 @@ function renderDonCho() {
         <div class="d">${esc(h.lines.map(l => (l.tenBang || l.ten) + (l.hang ? ' ' + l.hang : '')).join(', ') || 'Chưa chọn dịch vụ')}</div>
         <div class="t"><b>${fmtD(tongCua(h))}</b><span>vào ${gio(e.tao)}${tho ? ' · ' + esc(tho) : ''}</span></div>
         <div class="cho-pop">
-          <div style="font-weight:700;margin-bottom:6px">${esc(ten)}${h.phone ? ` <span class="muted small">${esc(h.phone)}</span>` : ''}</div>
+          <div style="font-weight:700;margin-bottom:6px">${esc(ten)}${h.phone ? ` <span class="muted small">${esc(maskPhone(h.phone))}</span>` : ''}</div>
           ${h.lines.map(l => `<div class="l"><span>${esc(l.ten)}${l.hang ? ' · ' + esc(l.hang) : ''}<br><span class="muted small">${esc(staffName(l.chinh))}</span></span><b>${fmtK(l.gia)}</b></div>`).join('') || '<div class="muted small">Chưa chọn dịch vụ</div>'}
           <div class="tong"><span>Khách trả</span><span>${fmtD(tongCua(h))}</span></div>
           <div class="acts">${dang ? '<button class="pri" disabled>Đang mở bên dưới</button>' : `<button class="pri" data-cho-mo="${e.id}">Tiếp tục thanh toán</button>`}<button class="ghost danger sm" data-cho-xoa="${e.id}">Xoá</button></div>
@@ -1042,7 +1096,7 @@ function renderSugg() {
       : `<div data-moi-ten="${esc(q)}">➕ Khách mới tên <b>${esc(q)}</b></div>`;
     box.style.display = 'block'; return;
   }
-  box.innerHTML = res.map(c => `<div data-pick="${c.phone}"><b>${esc(c.ten)}</b> <span class="muted">· ${c.phone}${c.maThe ? ' · thẻ ' + esc(c.maThe) : ''}</span></div>`).join('');
+  box.innerHTML = res.map(c => `<div data-pick="${c.phone}"><b>${esc(c.ten)}</b> <span class="muted">· ${esc(maskPhone(c.phone))}${c.maThe ? ' · thẻ ' + esc(c.maThe) : ''}</span></div>`).join('');
   box.style.display = 'block';
 }
 
@@ -1110,7 +1164,7 @@ async function thanhToan(print) {
   }
   const ten = HD.ten.trim();
   if (phone && !ten && !S.customers.get(phone)) { toast('Nhập tên khách giúp em', true); $('#hd-ten').focus(); return; }
-  if (HD.maThe) { const chu = timTheoThe(HD.maThe); if (chu && chu.phone !== phone) { toast(`Thẻ ${HD.maThe} đang thuộc ${chu.ten} (${chu.phone})`, true); return; } }
+  if (HD.maThe) { const chu = timTheoThe(HD.maThe); if (chu && chu.phone !== phone) { toast(`Thẻ ${HD.maThe} đang thuộc ${chu.ten} (${maskPhone(chu.phone)})`, true); return; } }
   if (HD.maThe && !phone) { toast('Khách có thẻ thì cần SĐT để lưu thẻ', true); $('#hd-phone').focus(); return; }
 
   const now = new Date(), date = ymd(now);
@@ -1267,7 +1321,7 @@ function renderNhac() {
     const c = S.customers.get(r.phone) || {}, tre = daysBetween(r.due, t);
     const text = msgDraft[r.id] ?? soanTin(r);
     return `<div class="rem ${tre ? 'qua' : ''}" data-rid="${r.id}">
-      <div class="hd"><div><div class="nm">${esc(cap(c.danhxung || 'chị'))} ${esc(c.ten)} <span class="muted" style="font-weight:400;font-size:15px">· ${esc(r.phone)}</span></div>
+      <div class="hd"><div><div class="nm">${esc(cap(c.danhxung || 'chị'))} ${esc(c.ten)} <span class="muted" style="font-weight:400;font-size:15px">· ${esc(maskPhone(r.phone))}</span></div>
         <div class="small muted">Làm <b>${esc(r.dichvu)}</b> ${thuOf(r.ngayLam)} ${dm(r.ngayLam)} (${daysBetween(r.ngayLam, t)} ngày trước) · còn ${c.hapTang} buổi hấp tặng</div></div>
         <div>${tre ? `<span class="tag bad">Trễ ${tre} ngày</span>` : ''}</div></div>
       <textarea data-msg>${esc(text)}</textarea>
@@ -1287,7 +1341,7 @@ function renderNhac() {
     : '<div class="muted small">Không có</div>';
   const hen = S.reminders.filter(r => r.status === 'hen' && r.henNgay >= t).sort((a, b) => a.henNgay.localeCompare(b.henNgay));
   $('#nh-hen').innerHTML = hen.length ? hen.map(r => { const c = S.customers.get(r.phone) || {};
-    return `<div class="mini"><b>${r.henNgay === t ? 'Hôm nay' : thuOf(r.henNgay) + ' ' + dm(r.henNgay)}</b> · ${esc(c.ten)} <span class="muted small">${esc(r.phone)}</span></div>`; }).join('') : '<div class="muted small">Chưa có</div>';
+    return `<div class="mini"><b>${r.henNgay === t ? 'Hôm nay' : thuOf(r.henNgay) + ' ' + dm(r.henNgay)}</b> · ${esc(c.ten)} <span class="muted small">${esc(maskPhone(r.phone))}</span></div>`; }).join('') : '<div class="muted small">Chưa có</div>';
 
   const sap = S.reminders.filter(r => r.status === 'cho' && r.due > t && r.due <= addDays(t, 3)).sort((a, b) => a.due.localeCompare(b.due));
   $('#nh-sap').innerHTML = sap.length ? sap.map(r => { const c = S.customers.get(r.phone) || {};
@@ -1342,11 +1396,13 @@ function renderKhachList() {
   S.sheetCu.forEach(r => { if (!r.phone) return; const s = stats[r.phone] = stats[r.phone] || {n: 0, tong: 0, last: ''}; s.n++; s.tong += r.tien; if (r.thang + '-00' > s.last) s.last = r.thang + '-00'; });
   let list = [...S.customers.values()];
   if (q) list = list.filter(c => (qd && c.phone.includes(qd)) || bodau(c.ten).includes(qn) || (c.maThe && c.maThe.replace(/^0+/, '') === q.replace(/^0+/, '')));
-  list.sort((a, b) => (stats[b.phone]?.last || '').localeCompare(stats[a.phone]?.last || ''));
+  const sx = S.khSort || {k: 'last', dir: -1}, gt = c => { const t = stats[c.phone] || {}; return sx.k === 'n' ? (t.n || 0) : sx.k === 'tong' ? (t.tong || 0) : (t.last || ''); };
+  list.sort((a, b) => { const x = gt(a), y = gt(b); return (x < y ? -1 : x > y ? 1 : 0) * sx.dir; });
+  const th = (k, ten, num) => `<th class="${num ? 'num' : ''}"><button class="sx ${sx.k === k ? 'on' : ''}" data-sx="${k}" title="Bấm để sắp xếp cao nhất / thấp nhất">${ten} <span>${sx.k === k ? (sx.dir < 0 ? '▼' : '▲') : '⇅'}</span></button></th>`;
   $('#kh-sum').textContent = `${list.length} khách${q ? ' khớp' : ''}`;
-  $('#kh-tbl').innerHTML = `<tr><th>Khách</th><th>SĐT</th><th>Thẻ</th><th class="num">Số lần</th><th>Lần cuối</th><th class="num">Tổng chi</th><th class="num">Hấp tặng</th></tr>` +
+  $('#kh-tbl').innerHTML = `<tr><th>Khách</th><th>SĐT</th><th>Thẻ</th>${th('n', 'Số lần', 1)}${th('last', 'Lần cuối')}${th('tong', 'Tổng chi', 1)}<th class="num">Hấp tặng</th></tr>` +
     list.slice(0, 300).map(c => { const s = stats[c.phone] || {};
-      return `<tr class="click" data-kh="${c.phone}"><td><b>${esc(c.ten)}</b></td><td>${c.phone}</td><td>${esc(c.maThe || '')}${(c.stickers || []).some(x => !x.dung) ? ' 🎟' : ''}</td><td class="num">${s.n || 0}</td><td>${s.last ? (s.last.endsWith('-00') ? thangText(s.last.slice(0, 7)) : dmy(s.last)) : ''}</td><td class="num">${fmtK(s.tong || 0)}</td><td class="num">${c.hapTang || ''}</td></tr>`; }).join('');
+      return `<tr class="click" data-kh="${c.phone}"><td><b>${esc(c.ten)}</b></td><td>${esc(maskPhone(c.phone))}</td><td>${esc(c.maThe || '')}${(c.stickers || []).some(x => !x.dung) ? ' 🎟' : ''}</td><td class="num">${s.n || 0}</td><td>${s.last ? (s.last.endsWith('-00') ? thangText(s.last.slice(0, 7)) : dmy(s.last)) : ''}</td><td class="num">${fmtK(s.tong || 0)}</td><td class="num">${c.hapTang || ''}</td></tr>`; }).join('');
 }
 function renderSoCu() {
   const q = bodau($('#kh-q').value.trim()), box = $('#kh-socu');
@@ -1364,7 +1420,7 @@ function renderKhachDetail(phone) {
     <div class="form-grid">
       <label>Tên</label><input data-kf="ten" value="${esc(c.ten)}">
       <label>Gọi là</label><select data-kf="danhxung">${['chị','anh','bạn','em','cô','chú'].map(x => `<option ${x === c.danhxung ? 'selected' : ''}>${x}</option>`).join('')}</select>
-      <label>SĐT</label><div>${c.phone} <a href="https://zalo.me/${c.phone}" target="_blank" class="small">mở Zalo</a></div>
+      <label>SĐT</label><div>${esc(maskPhone(c.phone))} <a href="https://zalo.me/${c.phone}" target="_blank" class="small">mở Zalo</a></div>
       <label>Mã thẻ thành viên</label><input data-kf="maThe" value="${esc(c.maThe || '')}" placeholder="VD: 0195">
       <label>Ngày sinh</label><input type="date" data-kf="ngaysinh" value="${esc(c.ngaysinh || '')}">
       <label>Ghi chú tóc</label><textarea data-kf="ghichu" rows="2" placeholder="Chất tóc, dị ứng, màu hay làm…">${esc(c.ghichu || '')}</textarea>
@@ -1428,7 +1484,7 @@ function renderHoaDon() {
 
   $('#hd-list').innerHTML = `<tr><th>Số / giờ</th><th>Khách</th><th>Dịch vụ</th><th>Hình thức</th><th class="num">Tổng</th><th></th></tr>` +
     (list.map(i => `<tr><td><b>${i.id.slice(-3)}</b> <span class="muted small">${dmy(i.date)} ${i.time}</span></td>
-      <td>${esc(i.ten)}<div class="muted small">${esc(i.phone)}</div></td>
+      <td>${esc(i.ten)}<div class="muted small">${esc(maskPhone(i.phone))}</div></td>
       <td class="small">${i.lines.map(l => `${esc(l.ten)}${l.hang ? ' ' + esc(l.hang) : ''} <span class="muted">${fmtK(l.gia)} · ${esc(thoText(l))}</span>`).join('<br>')}
         ${i.giamSticker ? `<br><span class="muted">🎟 Sticker −${fmtK(i.giamSticker)}</span>` : ''}${i.stickerNhan ? `<br><span class="muted">🎁 Trúng ${esc(stkText(i.stickerNhan))}</span>` : ''}
         ${i.giamThem ? `<br><span class="muted">Giảm thêm ${i.giamPctHD ? i.giamPctHD + '% = ' : ''}${fmtK(i.giamThem)} ${esc(i.lydo)}</span>` : ''}</td>
@@ -1438,6 +1494,7 @@ function renderHoaDon() {
 }
 
 async function deleteInvoice(id) {
+  if (!await xinPin('Xoá hoá đơn ' + id)) return;
   const inv = S.invoices.find(i => i.id === id); if (!inv) return;
   if (!await confirmBox(`Xoá hoá đơn <b>${id}</b> của ${esc(inv.ten)} (${fmtD(inv.tong)})?<br><span class="muted small">Buổi hấp tặng và lịch nhắc của hoá đơn này cũng được trả lại như cũ.</span>`, 'Xoá hoá đơn')) return;
   const c = inv.phone && S.customers.get(inv.phone);
@@ -1489,7 +1546,8 @@ function xlsx(sheets) { // sheets: [{name, rows:[[...]]}]
 }
 function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
 
-function exportExcel() {
+async function exportExcel() {
+  if (!await xinPin('Xuất Excel hoá đơn (có SĐT khách)')) return;
   const list = rangeInvoices().slice().reverse();
   const a = $('#hd-from').value, b = $('#hd-to').value;
   const rows = [['Số HĐ', 'Ngày', 'Giờ', 'SĐT', 'Khách', 'Dịch vụ', 'Hãng', 'Loại', 'Giá gốc (k)', 'Giảm KM %', 'Giảm thêm dòng', 'Thành tiền (k)', 'Người làm chính', 'Phụ / tư vấn', 'Hấp tặng', 'Hình thức', 'Giảm thêm HĐ (k)', 'Sticker (k)', 'Tổng HĐ (k)', 'Ghi chú']];
@@ -1525,6 +1583,7 @@ async function backupToDir(interactive) {
 }
 let _bkT; function autoBackup() { clearTimeout(_bkT); _bkT = setTimeout(() => backupToDir(false), 800); }
 async function downloadBackup() {
+  if (!await xinPin('Tải file sao lưu (có toàn bộ dữ liệu khách)')) return;
   download(new Blob([JSON.stringify(await snapshot(), null, 1)], {type: 'application/json'}), `giang-saoluu-${today()}.json`);
   S.lastBackup = new Date().toISOString(); await DB.put('kv', S.lastBackup, 'lastBackup'); renderBanners();
 }
@@ -1546,6 +1605,11 @@ async function restoreFrom(file) {
    ========================================================= */
 function renderCaiDat() {
   const st = S.settings;
+  $('#cd-pin').innerHTML = `<h3>🔒 Mã PIN</h3>
+    <p class="small" style="margin-top:0">Cần mã PIN để: mở tab <b>Lương &amp; lãi lỗ</b>, <b>Cài đặt</b>, <b>Nhân viên</b>; <b>xoá hoá đơn</b>; xuất Excel hoá đơn và tải file sao lưu (vì có SĐT khách). Rời tab hoặc để yên 3 phút là tự khoá lại.</p>
+    <div class="row"><button class="pri" id="btn-doipin">${st.pin && st.pin.hash ? 'Đổi mã PIN' : 'Tạo mã PIN'}</button>${st.pin && st.pin.hash ? '<span class="tag ok">Đang bật</span>' : '<span class="tag warn">Chưa có mã PIN</span>'}</div>
+    <p class="small muted">Quên mã PIN: nhắn Claude để đặt lại.</p>`;
+  $('#btn-doipin').onclick = doiPin;
   const lb = S.lastBackup ? new Date(S.lastBackup) : null;
   $('#cd-backup').innerHTML = `<h3>Sao lưu dữ liệu</h3>
     <p class="small" style="margin-top:0">Lần sao lưu gần nhất: <b>${lb ? lb.toLocaleString('vi-VN') : 'chưa có'}</b></p>
@@ -1861,6 +1925,11 @@ function tick() {
 }
 
 function showTab(name) {
+  if (!IPAD && KHOA_TAB[name] && !moKhoa[name]) {
+    xinPin(KHOA_TAB[name]).then(ok => { if (ok) { moKhoa[name] = true; showTab(name); } });
+    return;
+  }
+  Object.keys(moKhoa).forEach(k => { if (k !== name) moKhoa[k] = false; }); // rời tab là khoá lại
   $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
   $$('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + name)); document.body.dataset.tab = name;
   if (name === 'nhachap') renderNhac();
@@ -2030,7 +2099,10 @@ function bindEvents() {
 
   // --- khách ---
   $('#kh-q').addEventListener('input', () => { renderKhachList(); renderSoCu(); });
-  $('#kh-tbl').addEventListener('click', e => { const tr = e.target.closest('[data-kh]'); if (tr) renderKhachDetail(tr.dataset.kh); });
+  $('#kh-tbl').addEventListener('click', e => {
+    const b = e.target.closest('[data-sx]');
+    if (b) { const k = b.dataset.sx, cu = S.khSort || {k: 'last', dir: -1}; S.khSort = {k, dir: cu.k === k ? -cu.dir : -1}; renderKhachList(); return; }
+    const tr = e.target.closest('[data-kh]'); if (tr) renderKhachDetail(tr.dataset.kh); });
   $('#kh-detail').addEventListener('click', async e => {
     const c = S.customers.get(khSel); if (!c) return;
     const h = e.target.closest('[data-hap]');
@@ -2218,6 +2290,9 @@ async function init() {
   window.addEventListener('focus', () => kiemTraCapNhat(false));
   $('#hd-q').focus();
   quayCloudBatDau();
+  ['mousemove', 'keydown', 'mousedown', 'wheel', 'touchstart'].forEach(ev => window.addEventListener(ev, () => { _hoatDong = Date.now(); }, {passive: true}));
+  setInterval(() => { const on = ($$('#nav button.on')[0] || {}).dataset?.tab;
+    if (KHOA_TAB[on] && Date.now() - _hoatDong > 180000) { moKhoa[on] = false; showTab('thanhtoan'); toast('Đã tự khoá sau 3 phút không dùng'); } }, 15000);
 }
 /* =========================================================
    iPAD NHÂN VIÊN – đồng bộ qua Firebase (chỉ hoá đơn chờ, bảng giá/KM, lương riêng từng người)
