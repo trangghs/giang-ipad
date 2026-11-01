@@ -154,6 +154,18 @@ body.ipad .pb-o button{min-height:44px}
 .dt-g sup{position:absolute;top:3px;right:7px;font-size:11px}
 @media (orientation:landscape){.dt-ds{column-count:2;column-gap:22px}}
 body.bg-dangto{overflow:hidden}
+.xh-nguon{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.xh-nguon button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 16px;font-weight:600;color:var(--ink,#26211F)}
+.xh-nguon button.on{background:#26211F;color:#fff;border-color:#26211F}
+.xh-nguon button small{font-weight:400;opacity:.65;margin-left:4px}
+.xh-cs{display:inline-flex;gap:4px;background:#F3EFEA;border-radius:12px;padding:4px;margin:4px 0 12px}
+.xh-cs button{border:0;background:transparent;border-radius:9px;padding:7px 14px;font-weight:500;color:#6B645E}
+.xh-cs button.on{background:#fff;color:#26211F;font-weight:700;box-shadow:0 1px 3px rgba(38,33,31,.08)}
+.xh-so{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px} .xh-so span{background:#F6F3EF;border-radius:99px;padding:5px 12px;font-size:13px}
+.xh-d{display:grid;grid-template-columns:32px minmax(0,1fr) 60px;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.xh-d .h{font-weight:800;color:#A9814A;font-size:15px} .xh-d .t{font-weight:600} .xh-d .n{text-align:right;font-weight:800;font-size:17px}
+.xh-d .bar{grid-column:2 / 4;height:6px;background:#F3EFEA;border-radius:9px} .xh-d .bar i{display:block;height:100%;background:#C9A46A;border-radius:9px}
+.xh-d ul{grid-column:2 / 4;margin:2px 0 0;padding-left:18px;color:#4A4440;font-size:13px} .xh-d li{margin:2px 0}
 th button.sx{border:0;background:none;padding:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap}
 th button.sx span{opacity:.45;font-size:11px} th button.sx.on{color:var(--brand)} th button.sx.on span{opacity:1}
 .pin-o{width:100%;box-sizing:border-box;font-size:28px;letter-spacing:12px;text-align:center;padding:12px;border-radius:12px;margin:6px 0}
@@ -374,6 +386,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <button data-tab="khach">Khách hàng</button>
     <button data-tab="hoadon">Hoá đơn &amp; doanh thu</button>
     <button data-tab="luong">Lương &amp; lãi lỗ</button>
+    <button data-tab="xuhuong">Xu hướng</button>
     <button data-tab="nhanvien">Nhân viên<span class="badge" id="badge-nv" hidden>0</span></button>
     <button data-tab="caidat">Cài đặt</button>
     <button data-tab="luongtoi">Lương của tôi</button>
@@ -515,6 +528,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   <div class="card"><h3>📱 Kết nối iPad nhân viên</h3><div id="nv-ketnoi"></div></div>
   <div class="card" style="margin-top:16px"><h3>Tài khoản nhân viên</h3><div id="nv-ds"></div></div>
 </section>
+<section class="tab" id="tab-xuhuong"><div class="card" id="xh-box"></div></section>
 <section class="tab" id="tab-luongtoi"><div class="card" id="lt-box"></div></section>
 <div id="ipad-man" hidden></div>
 <div id="ip-bar"></div>
@@ -547,7 +561,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.6 (31/10/2026)';
+const APP_VERSION = '2.7 (01/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -585,6 +599,37 @@ const TT = {tienmat:'Tiền mặt', ck:'Chuyển khoản'};
 function toast(msg, bad) {
   const t = $('#toast'); t.textContent = msg; t.className = 'on' + (bad ? ' bad' : '');
   clearTimeout(toast._t); toast._t = setTimeout(() => t.className = '', bad ? 4500 : 2600);
+}
+/* ---------- XU HƯỚNG (dữ liệu từ các script đọc mạng xã hội, cùng thư mục app) ---------- */
+const XH_NGUON = [['tiktok', 'TikTok', 'doc-tiktok/du-lieu/tong-hop.json'], ['instagram', 'Instagram', null], ['facebook', 'Facebook', null], ['threads', 'Threads', null]];
+const XH = {nguon: 'tiktok', cs: 0, data: {}, loi: {}};
+function docJsonFile(url) {
+  return new Promise((ok, loi) => { const x = new XMLHttpRequest(); x.open('GET', url + '?t=' + Date.now());
+    x.onload = () => { try { ok(JSON.parse(x.responseText)); } catch (e) { loi(e); } }; x.onerror = () => loi(new Error('không đọc được')); x.send(); });
+}
+async function taiXuHuong() {
+  for (const [k, , f] of XH_NGUON) if (f) { try { XH.data[k] = await docJsonFile(f); XH.loi[k] = ''; } catch (e) { XH.loi[k] = 'chua'; } }
+  renderXuHuong();
+}
+function renderXuHuong() {
+  const box = $('#xh-box'); if (!box) return;
+  const [k, ten, file] = XH_NGUON.find(x => x[0] === XH.nguon), d = XH.data[k];
+  let than;
+  if (!file) than = `<p class="muted" style="font-size:15px">Chưa kết nối <b>${ten}</b>. Sẽ làm sau khi chạy ổn TikTok.</p>`;
+  else if (XH.loi[k] || !d) than = `<p style="font-size:15px">Chưa có dữ liệu ${ten}.</p>
+    <p class="muted">Mở thư mục <b>GiangQuay\doc-tiktok</b> → bấm đúp <b>Chay doc TikTok.bat</b> (lần đầu bấm <b>Cai dat (1 lan).bat</b> trước, và thêm tài khoản vào <b>danh-sach.txt</b>). Có dữ liệu là tab này tự hiện.</p>`;
+  else {
+    const c = d.cuaSo[XH.cs] || d.cuaSo[0], luc = new Date(d.capNhat * 1000), mx = c.top.length ? c.top[0].n : 1;
+    than = `<p class="muted" style="margin-top:0">Cập nhật ${pad(luc.getHours())}:${pad(luc.getMinutes())} ${pad(luc.getDate())}/${pad(luc.getMonth() + 1)} · hôm nay đã xem ${d.soVideoHomNay} video · theo dõi ${d.soTaiKhoan} tài khoản · đã lưu ${d.tongBL} bình luận</p>
+      ${d.dungDen ? `<p class="tag warn" style="display:inline-block">Đang tạm dừng (gặp mã xác minh) tới ${esc(d.dungDen)}h</p>` : ''}
+      <div class="xh-cs">${d.cuaSo.map((x, i) => `<button data-xhc="${i}" class="${i === XH.cs ? 'on' : ''}">${esc(x.ten)}</button>`).join('')}</div>
+      <div class="xh-so"><span><b>${c.soBL}</b> bình luận</span><span><b>${c.soToc}</b> nhắc tới tóc</span><span><b>${c.soHoi}</b> câu hỏi về tóc</span></div>
+      ${c.top.length ? c.top.map((t, i) => `<div class="xh-d"><span class="h">${i + 1}</span><span class="t">${esc(t.cd)}</span><span class="n">${t.n}</span>
+        <div class="bar"><i style="width:${Math.round(100 * t.n / mx)}%"></i></div>
+        <ul>${t.viDu.map(v => `<li>${esc(v)}</li>`).join('')}</ul></div>`).join('') : '<p class="muted">Chưa có bình luận nào trong mốc này.</p>'}`;
+  }
+  box.innerHTML = `<h3 style="margin-top:0">Khách đang quan tâm gì về tóc</h3>
+    <div class="xh-nguon">${XH_NGUON.map(([kk, tt, ff]) => `<button data-xhn="${kk}" class="${kk === XH.nguon ? 'on' : ''}">${tt}${ff ? '' : '<small>chưa kết nối</small>'}</button>`).join('')}</div>${than}`;
 }
 /* ---------- MÃ PIN (khoá xoá hoá đơn, xuất dữ liệu, tab Lương / Cài đặt / Nhân viên) ---------- */
 async function bamPin(pin, salt) {
@@ -1938,6 +1983,7 @@ function showTab(name) {
   if (name === 'caidat') renderCaiDat();
   if (name === 'luong') renderLuong();
   if (name === 'nhanvien') renderNhanVien();
+  if (name === 'xuhuong') taiXuHuong();
   if (name === 'luongtoi') renderLuongToi();
   if (name === 'thanhtoan') { renderPicker(); renderLines(); }
   window.scrollTo(0, 0);
@@ -2099,6 +2145,11 @@ function bindEvents() {
 
   // --- khách ---
   $('#kh-q').addEventListener('input', () => { renderKhachList(); renderSoCu(); });
+  $('#xh-box').addEventListener('click', e => {
+    const n = e.target.closest('[data-xhn]'); if (n) { XH.nguon = n.dataset.xhn; renderXuHuong(); return; }
+    const c = e.target.closest('[data-xhc]'); if (c) { XH.cs = +c.dataset.xhc; renderXuHuong(); }
+  });
+  setInterval(() => { if (($$('#nav button.on')[0] || {}).dataset?.tab === 'xuhuong') taiXuHuong(); }, 120000);
   $('#kh-tbl').addEventListener('click', e => {
     const b = e.target.closest('[data-sx]');
     if (b) { const k = b.dataset.sx, cu = S.khSort || {k: 'last', dir: -1}; S.khSort = {k, dir: cu.k === k ? -cu.dir : -1}; renderKhachList(); return; }
