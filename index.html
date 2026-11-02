@@ -215,7 +215,7 @@ th button.sx span{opacity:.45;font-size:11px} th button.sx.on{color:var(--brand)
 .pb-sao.s1{top:14px;right:44%}.pb-sao.s2{top:46%;left:48%;font-size:40px;color:#e7c9f6}.pb-sao.s3{bottom:10px;left:30%}.pb-sao.s4{top:20px;right:12px;font-size:18px}
 .pb-k{margin-bottom:10px;position:relative}
 .pb-k h4{font-family:'Bodoni MT','Didot','Playfair Display',Constantia,Georgia,serif;font-size:30px;font-weight:600;color:#2b1650;margin:6px 0 2px;letter-spacing:-.3px;line-height:1.1}
-.pb-km{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;color:#fff;background:#8e4fc4;border-radius:99px;padding:2px 8px;vertical-align:middle;letter-spacing:0}
+.pb-km{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;color:#fff;background:#8e4fc4;border-radius:99px;padding:2px 8px;vertical-align:middle;letter-spacing:0;white-space:nowrap}
 .pb table{width:100%;border-collapse:collapse}
 .pb tr{border-bottom:1px solid rgba(43,22,80,.18)}
 .pb .pb-h{border-bottom:1px solid rgba(43,22,80,.35)}
@@ -431,6 +431,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
           <h3 style="margin:0">3. Hoá đơn</h3>
           <select id="hd-km" title="Chương trình khuyến mãi đang áp dụng" style="max-width:260px;padding:6px 8px;font-size:14px"></select>
         </div>
+        <div id="hd-bonus" class="row" style="gap:8px;margin:-4px 0 10px;flex-wrap:wrap"></div>
         <div id="hd-lines"></div>
         <div id="hd-sticker"></div>
         <div class="row" style="margin-top:8px;align-items:flex-start">
@@ -561,7 +562,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.7 (01/11/2026)';
+const APP_VERSION = '2.8 (02/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -772,7 +773,7 @@ const STICKER_GOC = [{id: 's5', ten: '', kieu: 'pct', giaTri: 5}, {id: 's10', te
   {id: 'ruby', ten: 'Ruby', kieu: 'k', giaTri: 150}, {id: 's200', ten: '', kieu: 'k', giaTri: 200}];
 const stkVal = x => x.kieu === 'pct' ? num(x.giaTri) + '%' : fmtK(num(x.giaTri));
 const stkText = x => (x.ten ? x.ten + ' ' : '') + stkVal(x);
-const KM_NHOM = {lon: 'Dịch vụ lớn', nho: 'Dịch vụ nhỏ', khac: 'Khác', khong: 'Không giảm'};
+const KM_NHOM = {lon: 'Dịch vụ lớn', nho: 'Dịch vụ nhỏ', khac: 'Khác', combo: 'Combo (chỉ giảm thêm)', khong: 'Không giảm'};
 
 const MAU1 = 'Dạ em chào {danhxung} {ten} ạ. Hôm {thu} {danhxung} làm {dichvu} ở Giang, mai là tròn 3 ngày, đúng lúc tóc hồi lại tốt nhất nên hấp vào hôm đó là hiệu quả nhất ạ. {Danhxung} đang còn {sobuoi} buổi hấp tặng, mai {danhxung} tiện qua giờ nào để em giữ chỗ cho mình ạ?';
 const MAU_THEM = 'Dạ nếu mai {danhxung} chưa sắp xếp được thời gian qua salon thì {danhxung} tự ủ tóc ở nhà cũng được ạ. {Danhxung} nhớ ủ tối thiểu 15 phút để tóc hấp thụ dưỡng chất tốt nhất nha. {Danhxung} cần em hướng dẫn cách ủ thì cứ nhắn em ạ.';
@@ -820,7 +821,7 @@ const activeStaff = () => S.settings.nhanvien.filter(n => n.active);
    THANH TOÁN
    ========================================================= */
 let HD = blankHD();
-function blankHD() { return {phone: '', ten: '', danhxung: 'chị', lines: [], choId: '', giamThem: 0, giamPctHD: 0, maThe: '', ngaysinh: '', stkDung: [], stkMoi: '', stkMoiDungLuon: false, lydo: '', ghichu: '', tt: 'tienmat'}; }
+function blankHD() { return {bonus: {}, phone: '', ten: '', danhxung: 'chị', lines: [], choId: '', giamThem: 0, giamPctHD: 0, maThe: '', ngaysinh: '', stkDung: [], stkMoi: '', stkMoiDungLuon: false, lydo: '', ghichu: '', tt: 'tienmat'}; }
 const saveDraft = () => { try { localStorage.setItem('giang-draft', JSON.stringify(HD)); } catch (e) {} capNhatChoDangMo(); };
 
 /* ---------- ĐƠN CHỜ THANH TOÁN ---------- */
@@ -942,9 +943,10 @@ function apZoomBG() { // iPad/PC: phóng tờ bảng giá vừa bề ngang bằn
   pb.style.transform = `scale(${z})`;
   w.style.width = Math.floor(640 * z) + 'px'; w.style.height = Math.ceil(pb.offsetHeight * z) + 'px';
 }
+const dvHien = () => S.settings.dichvu.filter(d => !d.kmId || d.kmId === S.settings.kmChon);
 function renderPickerDT() {
   const groups = {}, order = [];
-  S.settings.dichvu.forEach(d => { if (!groups[d.nhom]) { groups[d.nhom] = []; order.push(d.nhom); } groups[d.nhom].push(d); });
+  dvHien().forEach(d => { if (!groups[d.nhom]) { groups[d.nhom] = []; order.push(d.nhom); } groups[d.nhom].push(d); });
   order.sort((a, b) => (/combo/i.test(a) ? 1 : 0) - (/combo/i.test(b) ? 1 : 0));
   const daChon = (d, v) => HD.lines.filter(l => l.dvId === d.id && lineV(l) === v).length;
   const tieuDe = (S.settings.hangTieuDe || S.settings.hang);
@@ -953,7 +955,7 @@ function renderPickerDT() {
     return `<button class="dt-g ${n ? 'on' : ''} ${span ? 'span' : ''}" data-tick="${d.id}" data-v="${v}">${n ? '<i>✓</i>' : ''}<b>${esc(chu)}</b>${pct ? `<small>KM ${group(Math.round(g * (1 - pct / 100)))}K</small>` : ''}${n > 1 ? `<sup>×${n}</sup>` : ''}</button>`; };
   const khoi = (nhom, i) => { const list = groups[nhom], c2 = list.find(d => d.gia.filter(x => x !== '' && x != null).length > 1);
     const nhan = c2 ? (list.every(d => !d.nhan || d === c2) && c2.nhan ? c2.nhan : tieuDe) : null;
-    return `<section class="dt-k" id="dtk-${i}"><h4>${esc(tenNhom(nhom))}${list.some(d => kmPctDv(d)) ? '<span class="pb-km">KM tháng</span>' : ''}</h4>
+    return `<section class="dt-k" id="dtk-${i}"><h4>${esc(tenNhom(nhom))}${list.some(d => kmPctDv(d)) ? `<span class="pb-km">−${Math.max(...list.map(d => kmPctDv(d)))}%</span>` : ''}</h4>
       ${list.map(d => { const nG = d.gia.filter(x => x !== '' && x != null).length;
         const tde = nhan && d === c2 ? `<div class="dt-h"><span></span><span>${esc(nhan[0])}</span><span>${esc(nhan[1])}</span></div>` : ''; // tiêu đề cột ngay trên dòng 2 giá đầu tiên
         return `${tde}<div class="dt-r"><div class="dt-t">${esc(d.tenBang || d.ten)}</div>${nG > 1 ? nut(d, 0) + nut(d, 1) : nut(d, 0, true)}</div>`; }).join('')}</section>`; };
@@ -966,7 +968,7 @@ function renderPicker() {
   if (laDT()) { renderPickerDT(); bgThanh(); ipBar(); apZoomBG(); return; }
   $('#dv-picker').classList.remove('dtm');
   const groups = {}, order = [];
-  S.settings.dichvu.forEach(d => { if (!groups[d.nhom]) { groups[d.nhom] = []; order.push(d.nhom); } groups[d.nhom].push(d); });
+  dvHien().forEach(d => { if (!groups[d.nhom]) { groups[d.nhom] = []; order.push(d.nhom); } groups[d.nhom].push(d); });
   const daChon = (d, v) => HD.lines.filter(l => l.dvId === d.id && lineV(l) === v).length;
   const tieuDe = (S.settings.hangTieuDe || S.settings.hang);
   const o = (d, v, span) => {
@@ -978,7 +980,7 @@ function renderPicker() {
     const list = groups[nhom], c2 = list.find(d => d.gia.filter(x => x !== '' && x != null).length > 1);
     const nhan = c2 ? (list.every(d => !d.nhan || d === c2) && c2.nhan ? c2.nhan : tieuDe) : null;
     const ten = /combo/i.test(nhom) ? 'Combo đặc biệt' : ({'Uốn / ép': 'Uốn/Ép', 'Cắt & chăm sóc': 'Cắt & Chăm sóc'})[nhom] || nhom;
-    return `<section class="pb-k"><h4>${esc(ten)}${list.some(d => kmPctDv(d)) ? ` <span class="pb-km">KM tháng</span>` : ''}</h4><table>
+    return `<section class="pb-k"><h4>${esc(ten)}${list.some(d => kmPctDv(d)) ? ` <span class="pb-km">−${Math.max(...list.map(d => kmPctDv(d)))}%</span>` : ''}</h4><table>
       ${nhan ? `<tr class="pb-h"><th></th><th>${esc(nhan[0])}</th><th>${esc(nhan[1])}</th></tr>` : ''}
       ${list.map(d => { const nGia = d.gia.filter(x => x !== '' && x != null).length;
         return `<tr><td class="pb-t">${esc(d.tenBang || d.ten)}</td>${nGia > 1 ? o(d, 0) + o(d, 1) : o(d, 0, true)}</tr>`; }).join('')}
@@ -1025,20 +1027,42 @@ function tuChonKmTheoThang(baoTin) { // sang tháng mới: chương trình đang
   if (baoTin) toast(`Đã tự chuyển sang "${moi.ten}"`);
   return true;
 }
+const bonusDangChon = k => { // các mục giảm thêm đang tích (đi nhóm, thẻ thành viên...)
+  if (!k || !k.bonus) return [];
+  const b = HD.bonus || {};
+  return k.bonus.filter(x => x.id === 'the' ? (b.the ?? !!(HD.maThe || '').trim()) : !!b[x.id]);
+};
 function apLaiKm() { // áp lại KM cho các dòng đang nhập (trừ dòng đã sửa giá tay / hấp tặng)
+  const k = kmHienTai(), bon = bonusDangChon(k).reduce((a, x) => a + num(x.pct), 0);
+  const dvOf = l => S.settings.dichvu.find(x => x.id === l.dvId);
+  const coUonEpNhuom = HD.lines.some(x => ['lon', 'combo'].includes((dvOf(x) || {}).kmNhom));
   HD.lines.forEach(l => { if (l.dungTang || l.kmAuto === false) return;
-    const d = S.settings.dichvu.find(x => x.id === l.dvId); const pct = kmPctDv(d);
-    l.giamPct = pct; l.gia = giaDong(l); l.kmTen = pct ? (kmHienTai() || {}).ten : ''; });
+    const d = dvOf(l); let pct = kmPctDv(d), b = 0, ghi = '';
+    if (k && d && d.kmNhom !== 'khong' && bon) b = Math.min(bon, num(d.bonusToiDa ?? k.bonusToiDa ?? 0));
+    if (k && k.freeCat && l.loai === 'cat' && coUonEpNhuom) { pct = 100; b = 0; ghi = 'Free cắt'; }
+    else { ghi = [pct ? `KM ${pct}%` : '', b ? `thêm ${b}%` : ''].filter(Boolean).join(' + '); }
+    l.giamPct = Math.round((1 - (1 - pct / 100) * (1 - b / 100)) * 1000) / 10;
+    l.kmGhi = ghi; l.gia = giaDong(l);
+    l.kmTen = l.giamPct ? (ghi === 'Free cắt' ? 'Free cắt – ' + k.ten : k.ten + (b ? ` + giảm thêm ${b}%` : '')) : ''; });
+}
+function renderBonus() {
+  const box = $('#hd-bonus'); if (!box) return;
+  const k = kmHienTai();
+  if (!k || !k.bonus || !k.bonus.length || IPAD) { box.innerHTML = ''; return; }
+  const chon = bonusDangChon(k).map(x => x.id);
+  box.innerHTML = `<span class="muted small">Giảm thêm:</span>` + k.bonus.map(x => `<label class="tick ${chon.includes(x.id) ? '' : 'off'}"><input type="checkbox" data-bonus="${x.id}" ${chon.includes(x.id) ? 'checked' : ''}> ${esc(x.ten)} −${x.pct}%</label>`).join('')
+    + `<span class="muted small">tối đa ${num(k.bonusToiDa)}%${S.settings.dichvu.some(d => d.kmNhom === 'combo' && (!d.kmId || d.kmId === k.id)) ? ' (combo tối đa ' + Math.max(...S.settings.dichvu.filter(d => d.kmNhom === 'combo').map(d => num(d.bonusToiDa))) + '%)' : ''}${k.freeCat ? ' · Free cắt khi có uốn/ép/nhuộm' : ''}</span>`;
 }
 
 const moRong = new Set(); // các dòng đang mở phần "Giảm thêm ⋯"
 function renderLines() {
+  apLaiKm(); renderBonus();
   const staffOpts = sel => activeStaff().map(n => `<option value="${n.id}" ${n.id === sel ? 'selected' : ''}>${esc(n.ten)}</option>`).join('');
   $('#hd-lines').innerHTML = HD.lines.length ? HD.lines.map(l => `
     <div class="line" data-key="${l.key}">
       <div class="top">
         <div><div class="ten">${esc(l.ten)}${l.hang ? ` <span class="muted" style="font-weight:400">· ${esc(l.hang)}</span>` : ''}</div>
-          ${(l.giamPct || l.giamTayPct || l.giamTayK) && !l.dungTang ? `<div class="small"><span class="goc">${fmtK(l.giaGoc)}</span>${l.giamPct ? ` <span class="tag ok">${l.kmAuto === false ? 'Giảm' : 'KM'} ${l.giamPct}%</span>` : ''}${l.giamTayPct || l.giamTayK ? ` <span class="tag warn">Giảm thêm ${[l.giamTayPct ? l.giamTayPct + '%' : '', l.giamTayK ? l.giamTayK + 'k' : ''].filter(Boolean).join(' + ')}</span>` : ''}</div>` : ''}
+          ${(l.giamPct || l.giamTayPct || l.giamTayK) && !l.dungTang ? `<div class="small"><span class="goc">${fmtK(l.giaGoc)}</span>${l.giamPct ? ` <span class="tag ok">${l.kmAuto !== false && l.kmGhi ? esc(l.kmGhi) : (l.kmAuto === false ? 'Giảm' : 'KM') + ' ' + l.giamPct + '%'}</span>` : ''}${l.giamTayPct || l.giamTayK ? ` <span class="tag warn">Giảm thêm ${[l.giamTayPct ? l.giamTayPct + '%' : '', l.giamTayK ? l.giamTayK + 'k' : ''].filter(Boolean).join(' + ')}</span>` : ''}</div>` : ''}
           ${l.dungTang ? `<div class="small"><span class="goc">${fmtK(l.giaGoc)}</span> <span class="tag ok">Buổi hấp tặng</span></div>` : ''}
         </div>
         <div class="gia"><input type="number" min="0" data-f="gia" value="${l.gia}" ${l.dungTang ? 'disabled' : ''}><span class="muted">k</span><button class="x" data-del title="Bỏ dịch vụ này">×</button></div>
@@ -1939,6 +1963,9 @@ async function apDungLenh() {
       if (b.loai === 'nhapSheetCu') { const t = await docFileCanh(b.file); if (!t) { ketQua.push('Không đọc được ' + b.file); continue; } ketQua.push('Đã nhập ' + await importSheetCuData(JSON.parse(t), true)); }
       if (b.loai === 'themKM') { const ct = b.ct; S.settings.kmList = (S.settings.kmList || []).filter(k => k.id !== ct.id); S.settings.kmList.push(ct);
         if (b.chon) S.settings.kmChon = ct.id; tuChonKmTheoThang(false); await saveSettings(); renderKmChon(); ketQua.push(`Đã thêm chương trình "${ct.ten}"${b.chon ? ' và chọn dùng' : ''}`); }
+      if (b.loai === 'themDV') { for (const x of b.ds || []) { const cu = S.settings.dichvu.find(d => d.ten === x.ten);
+          if (cu) Object.assign(cu, x); else S.settings.dichvu.push(Object.assign({id: uid(), gia: [], tangHap: false, tenTin: '', ghichu: '', kmNhom: 'khac'}, x)); }
+        await saveSettings(); renderPicker(); ketQua.push(`Đã thêm/cập nhật ${(b.ds || []).length} dịch vụ`); }
       if (b.loai === 'inThu') { setTimeout(() => caiDatAction('testprint'), 1500); ketQua.push('Đã gửi 1 bill mẫu ra máy in mặc định'); }
       if (b.loai === 'caidat') { Object.entries(b.dat).forEach(([k, v]) => setPath(S.settings, k, v)); await saveSettings(); ketQua.push('Đã chỉnh cài đặt'); }
     } catch (e) { ketQua.push('Lỗi: ' + e.message); }
@@ -2145,6 +2172,8 @@ function bindEvents() {
 
   // --- khách ---
   $('#kh-q').addEventListener('input', () => { renderKhachList(); renderSoCu(); });
+  $('#hd-bonus').addEventListener('change', e => { const c = e.target.closest('[data-bonus]'); if (!c) return;
+    HD.bonus = Object.assign({}, HD.bonus, {[c.dataset.bonus]: c.checked}); renderLines(); saveDraft(); });
   $('#xh-box').addEventListener('click', e => {
     const n = e.target.closest('[data-xhn]'); if (n) { XH.nguon = n.dataset.xhn; renderXuHuong(); return; }
     const c = e.target.closest('[data-xhc]'); if (c) { XH.cs = +c.dataset.xhc; renderXuHuong(); }
