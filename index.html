@@ -152,6 +152,9 @@ body.ipad .pb-o button{min-height:44px}
 .dt-g.on{background:#2b1650;color:#f6dc95;border-color:#2b1650;box-shadow:0 3px 10px rgba(43,22,80,.3)} .dt-g.on small{color:#bfe6c9}
 .dt-g i{position:absolute;top:-7px;left:-6px;width:21px;height:21px;border-radius:50%;background:#d4a94f;color:#2b1650;font-style:normal;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .dt-g sup{position:absolute;top:3px;right:7px;font-size:11px}
+.pb-them{position:absolute;top:-9px;right:-9px;width:24px;height:24px;border-radius:50%;background:#2f7d4f;color:#fff;font:800 17px/24px 'Segoe UI',Arial,sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer;font-variant:normal;letter-spacing:0}
+.pb-them:hover{background:#25643f} body.ipad .pb-them{width:30px;height:30px;line-height:30px;top:-11px;right:-11px;font-size:20px}
+.pb .pb-o button{position:relative}
 @media (orientation:landscape){.dt-ds{column-count:2;column-gap:22px}}
 body.bg-dangto{overflow:hidden}
 .xh-nguon{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
@@ -420,7 +423,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
         <div id="hd-khach"></div>
       </div>
       <div class="card" id="bg-card">
-        <h3 id="bg-mo" title="Bấm để phóng to bảng giá">2. Bảng giá <span class="muted small" style="font-weight:400">– bấm vào số tiền để chọn, bấm lại để bỏ</span> <span class="bg-nut">⛶ Phóng to</span></h3>
+        <h3 id="bg-mo" title="Bấm để phóng to bảng giá">2. Bảng giá <span class="muted small" style="font-weight:400">– bấm vào số tiền để chọn, bấm lại để bỏ, bấm <b style="color:#2f7d4f">+</b> để thêm lần nữa</span> <span class="bg-nut">⛶ Phóng to</span></h3>
         <div class="bg-thanh" id="bg-thanh"></div>
         <div id="dv-picker"></div>
       </div>
@@ -562,7 +565,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.8 (02/11/2026)';
+const APP_VERSION = '2.8.1 (04/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -952,7 +955,7 @@ function renderPickerDT() {
   const tieuDe = (S.settings.hangTieuDe || S.settings.hang);
   const tenNhom = n => /combo/i.test(n) ? 'Combo đặc biệt' : ({'Uốn / ép': 'Uốn/Ép', 'Cắt & chăm sóc': 'Cắt & Chăm sóc'})[n] || n;
   const nut = (d, v, span) => { const g = num(d.gia[v]), pct = kmPctDv(d), n = daChon(d, v), chu = span && d.hienThi ? d.hienThi : `${group(g)}K`;
-    return `<button class="dt-g ${n ? 'on' : ''} ${span ? 'span' : ''}" data-tick="${d.id}" data-v="${v}">${n ? '<i>✓</i>' : ''}<b>${esc(chu)}</b>${pct ? `<small>KM ${group(Math.round(g * (1 - pct / 100)))}K</small>` : ''}${n > 1 ? `<sup>×${n}</sup>` : ''}</button>`; };
+    return `<button class="dt-g ${n ? 'on' : ''} ${span ? 'span' : ''}" data-tick="${d.id}" data-v="${v}">${n ? `<i>${n > 1 ? n : '✓'}</i>` : ''}<b>${esc(chu)}</b>${pct ? `<small>KM ${group(Math.round(g * (1 - pct / 100)))}K</small>` : ''}${n ? '<span class="pb-them" data-them title="Thêm 1 lần nữa">+</span>' : ''}</button>`; };
   const khoi = (nhom, i) => { const list = groups[nhom], c2 = list.find(d => d.gia.filter(x => x !== '' && x != null).length > 1);
     const nhan = c2 ? (list.every(d => !d.nhan || d === c2) && c2.nhan ? c2.nhan : tieuDe) : null;
     return `<section class="dt-k" id="dtk-${i}"><h4>${esc(tenNhom(nhom))}${list.some(d => kmPctDv(d)) ? `<span class="pb-km">−${Math.max(...list.map(d => kmPctDv(d)))}%</span>` : ''}</h4>
@@ -974,7 +977,7 @@ function renderPicker() {
   const o = (d, v, span) => {
     const g = num(d.gia[v]), pct = kmPctDv(d), n = daChon(d, v), chu = span && d.hienThi ? d.hienThi : `${group(g)}K`;
     return `<td class="pb-o"${span ? ' colspan="2"' : ''}><button class="${n ? 'on' : ''}" data-tick="${d.id}" data-v="${v}" title="${esc(d.ten)}${d.ghichu ? ' – ' + esc(d.ghichu) : ''}">
-      ${n ? '<i>✓</i>' : ''}${esc(chu)}${pct ? `<small>→ ${group(Math.round(g * (1 - pct / 100)))}K</small>` : ''}${n > 1 ? `<sup>×${n}</sup>` : ''}</button></td>`;
+      ${n ? `<i>${n > 1 ? n : '✓'}</i>` : ''}${esc(chu)}${pct ? `<small>→ ${group(Math.round(g * (1 - pct / 100)))}K</small>` : ''}${n ? '<span class="pb-them" data-them title="Thêm 1 lần nữa">+</span>' : ''}</button></td>`;
   };
   const khoi = nhom => {
     const list = groups[nhom], c2 = list.find(d => d.gia.filter(x => x !== '' && x != null).length > 1);
@@ -2105,6 +2108,7 @@ function bindEvents() {
     const k = e.target.closest('[data-dtk]'); if (k) { const sec = document.getElementById('dtk-' + k.dataset.dtk); if (sec) sec.scrollIntoView({behavior: 'smooth', block: 'start'}); return; }
     const b = e.target.closest('[data-tick]'); if (!b) return;
     const id = b.dataset.tick, v = +b.dataset.v;
+    if (e.target.closest('[data-them]')) { addLine(id, v); return; }
     if (b.classList.contains('on')) { const idx = HD.lines.map((l, k) => [l, k]).filter(([l]) => l.dvId === id && lineV(l) === v).pop()[1]; HD.lines.splice(idx, 1); renderLines(); saveDraft(); }
     else addLine(id, v); };
   const lines = $('#hd-lines');
