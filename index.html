@@ -86,6 +86,7 @@ main{padding:18px}
 #btn-guiquay{display:none;width:100%;padding:16px;font-size:19px;margin-top:4px}
 body:not(.ipad) #nav button[data-tab=luongtoi]{display:none}
 #nav button[data-tab=khachchu]{display:none} body.ipad[data-tab=khachchu] #ip-bar{display:none!important} body.ipad.la-chu #nav button[data-tab=khachchu]{display:inline-flex!important}
+select.q-chu{border-color:#b4506a;color:#b4506a;font-weight:700}
 .kc-ds{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .kc-it{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
 .kc-it .sdt{font-size:17px;font-weight:700;letter-spacing:.3px} .kc-it a{margin-left:10px;font-size:14px}
@@ -593,7 +594,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.9.4 (07/11/2026)';
+const APP_VERSION = '2.9.7 (07/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -626,6 +627,8 @@ const bodau = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').repl
 const maskPhone = p => p && p.length >= 8 && !((window._moSdt || 0) > Date.now()) ? p.slice(0, 4) + '***' + p.slice(-3) : (p || '');
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const LOAI = {hoachat:'Hoá chất', cat:'Cắt', catnam:'Cắt nam', phuchoi:'Phục hồi', goi:'Gội', hap:'Hấp', khac:'Khác'};
+const HH_LOAI = Object.assign({}, LOAI, {goi: 'Gội dầu thường', goicap: 'Gội dầu cặp'}); // bảng hoa hồng: gội tách 2 loại dầu
+const hhKey = l => l.loai === 'goi' && (l.v ?? (l.hang && S.settings.hang && l.hang === S.settings.hang[1] ? 1 : 0)) === 1 ? 'goicap' : l.loai;
 const TT = {tienmat:'Tiền mặt', ck:'Chuyển khoản'};
 
 function toast(msg, bad) {
@@ -828,8 +831,8 @@ function defaultSettings() {
     inbill: {kho: 80, qr: true, nganhang: '970407', tenNH: 'Techcombank', stk: '19033436834019', tentk: 'NGUYEN XUAN YEN'},
     luong: {nghiCoLuong: 2, gioNgay: 11, anNgay: 30, heSoLamThem: 2, goiHC: 10, hapTheoGiaGoc: false, phatMuon: 0,
       // hoa hồng theo loại: % hoặc nghìn/lần, cho người làm chính và người phụ (với hấp: người tư vấn)
-      hh: {hoachat: {cP: 10, cK: 0, pP: 5, pK: 0}, cat: {cP: 10, cK: 0, pP: 0, pK: 0}, catnam: {cP: 10, cK: 0, pP: 0, pK: 10},
-           phuchoi: {cP: 10, cK: 0, pP: 0, pK: 10}, goi: {cP: 0, cK: 7, pP: 0, pK: 0}, hap: {cP: 10, cK: 0, pP: 10, pK: 0}, khac: {cP: 0, cK: 0, pP: 0, pK: 0}}},
+      hh: {hoachat: {cP: 10, cK: 0, pP: 5, pK: 0}, cat: {cP: 10, cK: 0, pP: 0, pK: 0}, catnam: {cP: 20, cK: 0, pP: 0, pK: 0},
+           phuchoi: {cP: 10, cK: 0, pP: 0, pK: 0}, goi: {cP: 0, cK: 7, pP: 0, pK: 0}, goicap: {cP: 0, cK: 10, pP: 0, pK: 0}, hap: {cP: 10, cK: 0, pP: 10, pK: 0}, khac: {cP: 0, cK: 0, pP: 0, pK: 0}}},
     chiphi: {nha: 0, hoachatPct: 0, quangcao: 0},
   };
 }
@@ -1783,7 +1786,7 @@ function renderCaiDat() {
     </div><div class="row" style="margin-top:10px"><button data-cd="testprint">In thử 1 bill mẫu</button></div>
     <p class="small muted">Mã QR cần máy có mạng lúc in. Mất mạng thì bill vẫn in, chỉ thiếu QR.</p>`;
 
-  const L = st.luong, hhIn = (k, f) => `<input type="number" data-s="luong.hh.${k}.${f}" data-num value="${L.hh[k][f] || ''}" placeholder="0" style="width:64px;padding:5px 6px;text-align:right">`;
+  const L = st.luong, hhIn = (k, f) => `<input type="number" data-s="luong.hh.${k}.${f}" data-num value="${(L.hh[k] || {})[f] || ''}" placeholder="0" style="width:64px;padding:5px 6px;text-align:right">`;
   $('#cd-luong').innerHTML = `<h3>Cách tính lương &amp; chi phí</h3><div class="form-grid">
     <label>Nghỉ có lương</label><div class="row"><input type="number" data-s="luong.nghiCoLuong" data-num value="${L.nghiCoLuong}" style="width:60px"> ngày/tháng <span class="muted small">(tháng 30 ngày → 28 công, 31 ngày → 29 công)</span></div>
     <label>Giờ làm</label><div class="row"><input type="number" data-s="luong.gioNgay" data-num value="${L.gioNgay}" style="width:60px"> giờ/ngày</div>
@@ -1794,7 +1797,7 @@ function renderCaiDat() {
     <label>Hấp tặng</label><label class="small"><input type="checkbox" data-s="luong.hapTheoGiaGoc" data-bool ${L.hapTheoGiaGoc ? 'checked' : ''}> vẫn tính hoa hồng theo giá gốc (hiện: không tính)</label>
     </div>
     <table style="margin-top:10px"><tr><th>Loại</th><th class="num">Làm chính %</th><th class="num">+ k/lần</th><th class="num">Phụ / tư vấn %</th><th class="num">+ k/lần</th></tr>
-    ${Object.keys(LOAI).map(k => `<tr><td>${LOAI[k]}</td><td class="num">${hhIn(k, 'cP')}</td><td class="num">${hhIn(k, 'cK')}</td><td class="num">${hhIn(k, 'pP')}</td><td class="num">${hhIn(k, 'pK')}</td></tr>`).join('')}</table>
+    ${Object.keys(HH_LOAI).map(k => `<tr><td>${HH_LOAI[k]}</td><td class="num">${hhIn(k, 'cP')}</td><td class="num">${hhIn(k, 'cK')}</td><td class="num">${hhIn(k, 'pP')}</td><td class="num">${hhIn(k, 'pK')}</td></tr>`).join('')}</table>
     <p class="small muted">Tính trên doanh số mỗi dịch vụ người đó làm. Với hấp: cột "phụ" là người tư vấn.</p>
     <div class="form-grid" style="margin-top:10px">
     <label>Tiền nhà</label><div class="row"><input type="number" data-s="chiphi.nha" data-num value="${st.chiphi.nha}" style="width:100px"> k/tháng (cố định)</div>
@@ -1865,12 +1868,12 @@ function tinhLuong(thang) {
       const giamHD = (i.giamThem || 0) + (i.giamSticker || 0);
       const thuc = l.gia - (giamHD ? giamHD * l.gia / lineSum : 0);
       const base = l.loai === 'hap' && l.dungTang && L.hapTheoGiaGoc ? num(l.giaGoc) : thuc;
-      const r = L.hh[l.loai] || {};
+      const lk = hhKey(l), r = L.hh[lk] || (lk === 'goicap' ? L.hh.goi : null) || {};
       l.tho.forEach((t, idx) => {
         const o = res[t]; if (!o) return;
         const v = base * num(idx === 0 ? r.cP : r.pP) / 100 + num(idx === 0 ? r.cK : r.pK);
-        o.hh[l.loai] = (o.hh[l.loai] || 0) + v; o.hhTong += v;
-        o.ds[l.loai] = (o.ds[l.loai] || 0) + thuc; o.dem[l.loai] = (o.dem[l.loai] || 0) + 1;
+        o.hh[lk] = (o.hh[lk] || 0) + v; o.hhTong += v;
+        o.ds[lk] = (o.ds[lk] || 0) + thuc; o.dem[lk] = (o.dem[lk] || 0) + 1;
       });
     });
   });
@@ -1943,8 +1946,8 @@ function renderLuong() {
     const row = (l, v, note, neg) => `<tr><td>${l}${note ? `<div class="muted small">${note}</div>` : ''}</td><td class="num">${v ? (neg ? '−' : '') + fmtK(Math.round(v * 10) / 10) : '–'}</td></tr>`;
     return `<div class="card"><h3>${esc(o.n.ten)}</h3><table>
       ${row('Lương cứng', o.cung, `${num(o.c.cong)} công × ${fmtK(Math.round(o.luongNgay * 10) / 10)}/ngày (lương tháng ÷ ${congChuanThang(t)} công chuẩn)`)}
-      ${Object.keys(LOAI).filter(k => o.dem[k]).map(k => { const r = L.hh[k] || {};
-        return row('Hoa hồng ' + LOAI[k].toLowerCase(), o.hh[k], `${o.dem[k]} lần · doanh số ${fmtK(Math.round(o.ds[k]))}`); }).join('')}
+      ${Object.keys(HH_LOAI).filter(k => o.dem[k]).map(k => { const r = L.hh[k] || {};
+        return row('Hoa hồng ' + HH_LOAI[k].toLowerCase(), o.hh[k], `${o.dem[k]} lần · doanh số ${fmtK(Math.round(o.ds[k]))}`); }).join('')}
       ${row('Thưởng gội hoá chất', o.goiHC, o.n.chiaGoiHC ? `${K.dauHC} đầu hoá chất lớn × ${L.goiHC}k ÷ ${K.nhanGoi.length || 1} người` : 'không nhận')}
       ${row('Tiền ăn', o.an, `${num(o.c.cong)} ngày × ${L.anNgay}k`)}
       ${row('Phụ cấp', o.phucap)}
@@ -1971,11 +1974,11 @@ function renderLuong() {
 
 function exportLuong() {
   const t = curThang(), K = tinhLuong(t);
-  const head = ['Nhân viên', 'Ngày công', 'Lương tháng', 'Lương cứng', ...Object.keys(LOAI).map(k => 'HH ' + LOAI[k].toLowerCase()), 'Thưởng gội HC', 'Tiền ăn', 'Phụ cấp', 'Làm thêm', 'Tổng thu nhập', 'Trừ đi muộn', 'Phạt', 'Ứng', 'Giữ lương', 'Còn lại'];
+  const head = ['Nhân viên', 'Ngày công', 'Lương tháng', 'Lương cứng', ...Object.keys(HH_LOAI).map(k => 'HH ' + HH_LOAI[k].toLowerCase()), 'Thưởng gội HC', 'Tiền ăn', 'Phụ cấp', 'Làm thêm', 'Tổng thu nhập', 'Trừ đi muộn', 'Phạt', 'Ứng', 'Giữ lương', 'Còn lại'];
   const r1 = x => Math.round(x * 10) / 10;
-  const rows = [head, ...Object.values(K.res).map(o => [o.n.ten, num(o.c.cong), num(o.n.luongThang), r1(o.cung), ...Object.keys(LOAI).map(k => r1(o.hh[k] || 0)), r1(o.goiHC), r1(o.an), r1(o.phucap), r1(o.lamThem), r1(o.thuNhap), r1(o.diMuon), o.phat, o.ung, o.giu, r1(o.conLai)])];
-  const ds = [['Nhân viên', ...Object.keys(LOAI).map(k => 'Doanh số ' + LOAI[k].toLowerCase()), 'Số lần']];
-  Object.values(K.res).forEach(o => ds.push([o.n.ten, ...Object.keys(LOAI).map(k => r1(o.ds[k] || 0)), Object.values(o.dem).reduce((a, b) => a + b, 0)]));
+  const rows = [head, ...Object.values(K.res).map(o => [o.n.ten, num(o.c.cong), num(o.n.luongThang), r1(o.cung), ...Object.keys(HH_LOAI).map(k => r1(o.hh[k] || 0)), r1(o.goiHC), r1(o.an), r1(o.phucap), r1(o.lamThem), r1(o.thuNhap), r1(o.diMuon), o.phat, o.ung, o.giu, r1(o.conLai)])];
+  const ds = [['Nhân viên', ...Object.keys(HH_LOAI).map(k => 'Doanh số ' + HH_LOAI[k].toLowerCase()), 'Số lần']];
+  Object.values(K.res).forEach(o => ds.push([o.n.ten, ...Object.keys(HH_LOAI).map(k => r1(o.ds[k] || 0)), Object.values(o.dem).reduce((a, b) => a + b, 0)]));
   const ll = [['Khoản', 'Số tiền (k)'], ['Doanh thu', K.doanhThu], ['Lương', r1(K.chi.luong)], ['Tiền nhà', K.chi.nha], ['Điện nước', K.chi.diennuoc], ['Hoá chất', r1(K.chi.hoachat)], ['Quảng cáo', K.chi.quangcao], ['Chi khác', K.chi.khac], ['Tổng chi', r1(K.tongChi)], ['Lãi / lỗ', r1(K.lai)]];
   download(xlsx([{name: 'Bảng lương', rows}, {name: 'Doanh số', rows: ds}, {name: 'Lãi lỗ', rows: ll}]), `GiangHair_luong_${t}.xlsx`);
 }
@@ -2458,6 +2461,7 @@ async function init() {
     Object.assign(S.settings.luong, {nghiCoLuong: 2, hapTheoGiaGoc: false, phatMuon: S.settings.luong.phatMuon || 0});
     delete S.settings.luong.congChuan; S.settings.mig12 = true;
   }
+  if (S.settings.luong && S.settings.luong.hh && !S.settings.luong.hh.goicap) S.settings.luong.hh.goicap = {cP: 0, cK: 10, pP: 0, pK: 0}; // 2.9.6
   S.settings.nhanvien.forEach(n => { if (n.tinhLuong === undefined) n.tinhLuong = true; if (n.luongThang === undefined) n.luongThang = 0; if (n.chiaGoiHC === undefined) n.chiaGoiHC = false; });
   await saveSettings();
   try { S.backupDir = await DB.get('kv', 'backupDir') || null; } catch (e) { S.backupDir = null; }
@@ -2696,13 +2700,13 @@ function luongCuaNV(thang, nvId) {
       const idx = (l.tho || []).indexOf(nvId); if (idx < 0) return;
       const thuc = l.gia - (giamHD ? giamHD * l.gia / lineSum : 0);
       const base = l.loai === 'hap' && l.dungTang && L.hapTheoGiaGoc ? num(l.giaGoc) : thuc;
-      const r = L.hh[l.loai] || {}, v = base * num(idx === 0 ? r.cP : r.pP) / 100 + num(idx === 0 ? r.cK : r.pK);
+      const lk = hhKey(l), r = L.hh[lk] || (lk === 'goicap' ? L.hh.goi : null) || {}, v = base * num(idx === 0 ? r.cP : r.pP) / 100 + num(idx === 0 ? r.cK : r.pK);
       don.push({ngay: i.date, khach: i.ten || 'Khách lẻ', dv: l.ten + (l.hang ? ' · ' + l.hang : ''),
         vai: idx === 0 ? (l.loai === 'hap' ? 'Làm' : 'Chính') : (l.loai === 'hap' ? 'Tư vấn' : 'Phụ'), tien: Math.round(thuc), hh: Math.round(v * 10) / 10});
     });
   });
   don.sort((a, b) => b.ngay < a.ngay ? -1 : b.ngay > a.ngay ? 1 : 0);
-  const hh = Object.entries(o.hh).map(([k, v]) => ({loai: LOAI[k] || k, tien: Math.round(v), so: o.dem[k] || 0}));
+  const hh = Object.entries(o.hh).map(([k, v]) => ({loai: HH_LOAI[k] || k, tien: Math.round(v), so: o.dem[k] || 0}));
   const R1 = x => Math.round(x);
   return {thang, ten: o.n.ten, cong: num(o.c.cong), congChuan: congChuanThang(thang), luongThang: num(o.n.luongThang),
     cung: R1(o.cung), an: R1(o.an), hh, hhTong: R1(o.hhTong), goiHC: R1(o.goiHC), phucap: R1(o.phucap), lamThem: R1(o.lamThem),
@@ -2766,20 +2770,24 @@ function renderNhanVien() {
   const ds = Cloud.ds.filter(u => (u.email || '').toLowerCase() !== CHU_EMAIL.toLowerCase())
     .sort((a, b) => (a.trangThai === 'cho' ? 0 : 1) - (b.trangThai === 'cho' ? 0 : 1) || num(b.taoLuc) - num(a.taoLuc));
   dsBox.innerHTML = !ds.length ? '<p class="muted">Chưa có ai đăng ký. Nhân viên mở trang iPad, bấm <b>Đăng ký</b>, rồi vào đây duyệt.</p>' : `
-    <table class="nv-tbl" style="width:100%;border-collapse:collapse"><tr><th>Người đăng ký</th><th>Trạng thái</th><th>Là ai</th><th>Được xem lương</th><th></th></tr>
+    <table class="nv-tbl" style="width:100%;border-collapse:collapse"><tr><th>Người đăng ký</th><th>Trạng thái</th><th>Là ai</th><th>Quyền</th><th>Được xem lương</th><th></th></tr>
     ${ds.map(u => `<tr data-u="${u.uid}">
       <td><b>${esc(u.ten || '')}</b><br><span class="muted small">${esc(u.email || '')}</span></td>
       <td>${TT[u.trangThai] || esc(u.trangThai || '')}</td>
       <td><select data-nv>${nvOpt(u.nvId)}</select></td>
+      <td><select data-quyen class="${u.quyen === 'chu' ? 'q-chu' : ''}"><option value="nv">Nhân viên</option><option value="chu" ${u.quyen === 'chu' ? 'selected' : ''}>Chủ salon</option></select></td>
       <td><label class="tick ${u.xemLuong ? '' : 'off'}" style="cursor:pointer"><input type="checkbox" data-xl ${u.xemLuong ? 'checked' : ''}> ${u.xemLuong ? 'Có' : 'Không'}</label></td>
       <td style="white-space:nowrap;text-align:right">${u.trangThai === 'duyet' ? '<button class="ghost sm danger" data-act="khoa">Khoá</button>' : '<button class="pri sm" data-act="duyet">Duyệt</button>'}
         <button class="x" data-act="xoa" title="Xoá tài khoản khỏi danh sách">×</button></td></tr>`).join('')}</table>
-    <p class="muted small">Tắt "Được xem lương" là điện thoại/iPad của người đó hết xem được lương ngay. Lương trên iPad tự cập nhật khoảng 1 phút một lần.</p>`;
+    <p class="muted small"><b>Chủ salon</b>: thêm tab <b>Khách</b> trên điện thoại (xem SĐT đầy đủ, gọi, Zalo). <b>Nhân viên</b>: chỉ Tư vấn và Lương (nếu được bật).<br>Tắt "Được xem lương" là điện thoại/iPad của người đó hết xem được lương ngay. Lương trên iPad tự cập nhật khoảng 1 phút một lần.</p>`;
   const sua = (u, obj) => Cloud.db.collection('nguoidung').doc(u).update(obj).catch(e => toast(loiVN(e), true));
   $$('#nv-ds tr[data-u]').forEach(tr => {
     const u = tr.dataset.u, info = Cloud.ds.find(x => x.uid === u);
     tr.querySelector('[data-nv]').onchange = e => { const nv = S.settings.nhanvien.find(n => n.id === e.target.value); sua(u, {nvId: e.target.value, tenNV: nv ? nv.ten : ''}); };
     tr.querySelector('[data-xl]').onchange = e => sua(u, {xemLuong: e.target.checked});
+    tr.querySelector('[data-quyen]').onchange = async e => { const v = e.target.value;
+      if (v === 'chu' && !await confirmBox(`Cho <b>${esc(info.ten || info.email)}</b> quyền <b>Chủ salon</b>? Tài khoản này sẽ xem được tên và SĐT đầy đủ của toàn bộ khách.`, 'Cho quyền chủ')) { e.target.value = 'nv'; return; }
+      sua(u, {quyen: v}); };
     tr.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => {
       const a = b.dataset.act;
       if (a === 'duyet') { if (!info.nvId) { toast('Chọn "Là ai" trước khi duyệt', true); return; } sua(u, {trangThai: 'duyet'}); }
@@ -2807,7 +2815,7 @@ async function ipadBatDau() {
   try { if (!await cloudNap()) { ipadMan('<h2>Chưa cài đặt</h2><p>Trang iPad chưa được kết nối. Báo anh chủ.</p>'); return; } }
   catch (e) { ipadMan('<h2>Không có mạng</h2><p>Kiểm tra Wi-Fi rồi thử lại.</p><button class="pri" onclick="location.reload()">Thử lại</button>'); return; }
   Cloud.auth.onAuthStateChanged(u => {
-    Cloud.user = u; huyNghe(); Cloud.nd = null; Cloud.cfgOk = false; Cloud.xemLuong = null; Cloud.chu = false; KC.ds = null; document.body.classList.remove('la-chu');
+    Cloud.user = u; huyNghe(); Cloud.nd = null; Cloud.cfgOk = false; Cloud.xemLuong = null; Cloud.chu = false; Cloud._qk = ''; KC.ds = null; document.body.classList.remove('la-chu');
     if (!u) { $('#nv-chip').innerHTML = ''; manDangNhap(); return; }
     thuChu(u);
     $('#nv-chip').innerHTML = `<span>👤 ${esc(u.email)}</span><button id="ip-dx">${window.innerWidth <= 700 ? 'Thoát' : 'Đăng xuất'}</button>`;
@@ -2842,7 +2850,7 @@ async function taoHoSo(ten) {
 const KC = {ds: null, luc: 0};
 async function thuChu(u) { // đọc được khachchu/meta = là tài khoản chủ (do Firestore rules quyết định)
   try { const m = await Cloud.db.collection('khachchu').doc('meta').get(); if (Cloud.user !== u) return; Cloud.chu = true; KC.meta = m.exists ? m.data() : null; }
-  catch (e) { Cloud.chu = false; }
+  catch (e) { Cloud.chu = false; KC.ds = null; if (document.body.dataset.tab === 'khachchu') showTab('thanhtoan'); }
   document.body.classList.toggle('la-chu', !!Cloud.chu); ipadTrangThai();
 }
 async function taiKhachChu() {
@@ -2869,7 +2877,8 @@ function renderKhachChu() {
     + (l.length > 150 ? `<div class="muted small">Còn ${l.length - 150} khách nữa, gõ tên hoặc SĐT để tìm.</div>` : '');
 }
 function ipadTrangThai() {
-  if (Cloud.chu && (!Cloud.nd || Cloud.nd.trangThai !== 'duyet')) Cloud.nd = Object.assign({ten: 'Chủ', xemLuong: false}, Cloud.nd, {trangThai: 'duyet'});
+  if (Cloud.chu && !Cloud.nd) Cloud.nd = {ten: 'Chủ', xemLuong: false, trangThai: 'duyet', chuGoc: true};
+  if (Cloud.nd && !Cloud.nd.chuGoc) { const k = (Cloud.nd.trangThai || '') + '|' + (Cloud.nd.quyen || ''); if (Cloud._qk !== k) { Cloud._qk = k; if (Cloud.user) thuChu(Cloud.user); } }
   const nd = Cloud.nd, dx = '<button class="link2" onclick="Cloud.auth.signOut()">Đăng xuất</button>';
   if (!nd) {
     if (Cloud._tenDK) { const t = Cloud._tenDK; Cloud._tenDK = ''; taoHoSo(t).catch(e => ipadMan(`<h2>Lỗi</h2><p>${esc(loiVN(e))}</p>${dx}`)); return; }
@@ -2879,7 +2888,7 @@ function ipadTrangThai() {
   }
   if (nd.trangThai === 'cho') { ipadMan(`<h2>Chờ duyệt</h2><p>Đã gửi đăng ký của <b>${esc(nd.ten)}</b>.<br>Nhờ anh chủ vào máy quầy → tab <b>Nhân viên</b> → <b>Duyệt</b>.<br>Duyệt xong trang này tự mở.</p>${dx}`); return; }
   if (nd.trangThai !== 'duyet') { ipadMan(`<h2>Tài khoản đã bị khoá</h2><p>Liên hệ anh chủ nếu cần dùng lại.</p>${dx}`); return; }
-  $('#nv-chip span').textContent = '👤 ' + (nd.tenNV || nd.ten);
+  $('#nv-chip span').textContent = '👤 ' + (nd.tenNV || nd.ten) + (Cloud.chu ? ' · Chủ' : '');
   if (!Cloud.cfgOk && !Cloud._cfgNghe) {
     Cloud._cfgNghe = true;
     Cloud.unsub.push(Cloud.db.collection('cauhinh').doc('chung').onSnapshot(sn => {
