@@ -85,7 +85,15 @@ main{padding:18px}
 /* ---- iPad nhân viên ---- */
 #btn-guiquay{display:none;width:100%;padding:16px;font-size:19px;margin-top:4px}
 body:not(.ipad) #nav button[data-tab=luongtoi]{display:none}
-#nav button[data-tab=khachchu]{display:none} body.ipad[data-tab=khachchu] #ip-bar{display:none!important} body.ipad.la-chu #nav button[data-tab=khachchu]{display:inline-flex!important}
+#nav button[data-tab=khachchu],#nav button[data-tab=doanhthu]{display:none} body.ipad[data-tab=khachchu] #ip-bar{display:none!important} body.ipad.la-chu #nav button[data-tab=khachchu],body.ipad.la-chu #nav button[data-tab=doanhthu]{display:inline-block!important}
+body.ipad[data-tab=doanhthu] #ip-bar{display:none!important}
+@media (max-width:700px){body.ipad.la-chu .logo{display:none} body.ipad.la-chu #nav button{padding-left:7px!important;padding-right:7px!important;font-size:15px!important;white-space:nowrap}}
+.dt-top{display:grid;grid-template-columns:1fr 1fr;gap:10px} .dt-o{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.dt-o .so{font-size:24px;font-weight:800;letter-spacing:-.5px} .dt-o .nh{font-size:13px;color:var(--muted)}
+.dt-cot{display:flex;align-items:flex-end;gap:3px;height:120px;margin:12px 0 4px;padding-bottom:18px;position:relative}
+.dt-cot button{flex:1;min-width:0;border:0;border-radius:4px 4px 0 0;background:#d9cbe6;padding:0;position:relative;cursor:pointer}
+.dt-cot button.on{background:#2b1d3a} .dt-cot button span{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--muted)}
+.dt-hd{display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px} .dt-hd b{margin-left:auto;white-space:nowrap}
 select.q-chu{border-color:#b4506a;color:#b4506a;font-weight:700}
 .kc-ds{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .kc-it{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
@@ -412,6 +420,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <button data-tab="caidat">Cài đặt</button>
     <button data-tab="luongtoi">Lương của tôi</button>
     <button data-tab="khachchu">Khách</button>
+    <button data-tab="doanhthu">Doanh thu</button>
   </nav>
   <div id="nv-chip"></div>
   <button id="btn-capnhat" hidden title="Có bản mới hoặc chỉnh sửa mới từ Claude">⟳ Cập nhật</button>
@@ -560,6 +569,8 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   <div class="card" style="margin-top:16px"><h3>Tài khoản nhân viên</h3><div id="nv-ds"></div></div>
 </section>
 <section class="tab" id="tab-xuhuong"><div class="card" id="xh-box"></div></section>
+<section class="tab" id="tab-doanhthu"><div class="card"><div class="row" style="justify-content:space-between"><b id="dtc-ngay" style="font-size:18px"></b>
+  <span><button class="sm" id="dtc-lui">‹</button> <button class="sm" id="dtc-toi">›</button></span></div><div id="dtc-box" style="margin-top:10px"></div></div></section>
 <section class="tab" id="tab-khachchu"><div class="card"><div class="row"><input id="kc-q" class="grow big-input" placeholder="Tìm tên hoặc SĐT" autocomplete="off"></div>
   <div class="muted small" id="kc-tt" style="margin-top:6px"></div><div class="kc-ds" id="kc-ds"></div></div></section>
 <section class="tab" id="tab-luongtoi"><div class="card" id="lt-box"></div></section>
@@ -594,7 +605,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.9.7 (07/11/2026)';
+const APP_VERSION = '2.9.8 (07/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -628,7 +639,10 @@ const maskPhone = p => p && p.length >= 8 && !((window._moSdt || 0) > Date.now()
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const LOAI = {hoachat:'Hoá chất', cat:'Cắt', catnam:'Cắt nam', phuchoi:'Phục hồi', goi:'Gội', hap:'Hấp', khac:'Khác'};
 const HH_LOAI = Object.assign({}, LOAI, {goi: 'Gội dầu thường', goicap: 'Gội dầu cặp'}); // bảng hoa hồng: gội tách 2 loại dầu
-const hhKey = l => l.loai === 'goi' && (l.v ?? (l.hang && S.settings.hang && l.hang === S.settings.hang[1] ? 1 : 0)) === 1 ? 'goicap' : l.loai;
+const hhKey = l => { if (l.loai !== 'goi') return l.loai;
+  let v = l.v; if (v == null) { const d = S.settings.dichvu.find(x => x.id === l.dvId) || {};
+    v = (d.nhan && l.hang && d.nhan.indexOf(l.hang) > 0) || (l.hang && S.settings.hang && l.hang === S.settings.hang[1]) || /cặp/i.test(l.hang || '') ? 1 : 0; }
+  return v === 1 ? 'goicap' : 'goi'; };
 const TT = {tienmat:'Tiền mặt', ck:'Chuyển khoản'};
 
 function toast(msg, bad) {
@@ -832,7 +846,7 @@ function defaultSettings() {
     luong: {nghiCoLuong: 2, gioNgay: 11, anNgay: 30, heSoLamThem: 2, goiHC: 10, hapTheoGiaGoc: false, phatMuon: 0,
       // hoa hồng theo loại: % hoặc nghìn/lần, cho người làm chính và người phụ (với hấp: người tư vấn)
       hh: {hoachat: {cP: 10, cK: 0, pP: 5, pK: 0}, cat: {cP: 10, cK: 0, pP: 0, pK: 0}, catnam: {cP: 20, cK: 0, pP: 0, pK: 0},
-           phuchoi: {cP: 10, cK: 0, pP: 0, pK: 0}, goi: {cP: 0, cK: 7, pP: 0, pK: 0}, goicap: {cP: 0, cK: 10, pP: 0, pK: 0}, hap: {cP: 10, cK: 0, pP: 10, pK: 0}, khac: {cP: 0, cK: 0, pP: 0, pK: 0}}},
+           phuchoi: {cP: 10, cK: 0, pP: 10, pK: 0}, goi: {cP: 0, cK: 7, pP: 0, pK: 0}, goicap: {cP: 0, cK: 10, pP: 0, pK: 0}, hap: {cP: 10, cK: 0, pP: 10, pK: 0}, khac: {cP: 0, cK: 0, pP: 0, pK: 0}}},
     chiphi: {nha: 0, hoachatPct: 0, quangcao: 0},
   };
 }
@@ -2101,6 +2115,7 @@ function showTab(name) {
   if (name === 'xuhuong') taiXuHuong();
   if (name === 'luongtoi') renderLuongToi();
   if (name === 'khachchu') taiKhachChu();
+  if (name === 'doanhthu') taiDoanhThu();
   if (name === 'thanhtoan') { renderPicker(); renderLines(); }
   window.scrollTo(0, 0);
 }
@@ -2630,7 +2645,7 @@ async function quayCloudBatDau() {
     if (laChu()) quayNghe();
     renderNhanVien(); renderBadgeNV();
   });
-  if (!quayCloudBatDau._t) quayCloudBatDau._t = setInterval(() => { if (laChu()) { dayLuongHet(); dayKhachChu(); } }, 60000);
+  if (!quayCloudBatDau._t) quayCloudBatDau._t = setInterval(() => { if (laChu()) { dayLuongHet(); dayKhachChu(); dayThongKe(); } }, 60000);
 }
 let _kcCu = '', _kcSo = 0;
 async function dayKhachChu() { // chỉ tài khoản chủ đọc được (Firestore rules: khachchu)
@@ -2651,6 +2666,25 @@ async function dayKhachChu() { // chỉ tài khoản chủ đọc được (Fire
     await b.commit(); _kcCu = js; _kcSo = so;
   } catch (e) { console.warn('dayKhachChu', e.code || e); }
 }
+let _tkCu = '';
+function thongKeNgay(soNgay) {
+  const tu = addDays(today(), -(soNgay - 1)), ngay = {};
+  S.invoices.filter(i => i.date >= tu).forEach(i => {
+    const n = ngay[i.date] = ngay[i.date] || {tong: 0, so: 0, tm: 0, ck: 0, loai: {}, hd: []};
+    n.tong += num(i.tong); n.so++; n[i.tt === 'ck' ? 'ck' : 'tm'] += num(i.tong);
+    const ls = i.lines.reduce((a, l) => a + num(l.gia), 0) || 1, giam = num(i.giamThem) + num(i.giamSticker);
+    i.lines.forEach(l => { const k = l.loai || 'khac'; n.loai[k] = Math.round(((n.loai[k] || 0) + num(l.gia) - (giam ? giam * num(l.gia) / ls : 0)) * 10) / 10; });
+    n.hd.push([i.time || '', (i.ten && i.ten !== 'Khách lẻ' ? cap(i.danhxung || '') + ' ' + i.ten : 'Khách lẻ'), i.lines.map(l => l.ten + (l.hang ? ' ' + l.hang : '')).join(', '),
+      num(i.tong), i.tt === 'ck' ? 'CK' : 'TM', (i.lines[0] && i.lines[0].tho || []).map(t => (S.settings.nhanvien.find(n => n.id === t) || {}).ten || '').filter(Boolean).join('+')]);
+  });
+  return ngay;
+}
+async function dayThongKe() { // chủ salon xem trên điện thoại (Firestore rules: thongke)
+  if (IPAD || !laChu() || !Cloud.db) return;
+  const ngay = thongKeNgay(62), js = JSON.stringify(ngay); if (js === _tkCu) return;
+  try { await Cloud.db.collection('thongke').doc('ngay').set({ds: js, luc: Date.now(), loai: JSON.stringify(LOAI)}); _tkCu = js; }
+  catch (e) { console.warn('dayThongKe', e.code || e); }
+}
 function quayNghe() {
   Cloud.unsub.push(Cloud.db.collection('nguoidung').onSnapshot(sn => {
     Cloud.ds = sn.docs.map(d => Object.assign({uid: d.id}, d.data())); Cloud.loi = '';
@@ -2659,7 +2693,7 @@ function quayNghe() {
   Cloud.unsub.push(Cloud.db.collection('doncho').onSnapshot(sn => {
     sn.docChanges().forEach(c => { if (c.type === 'added') nhanDonIpad(c.doc); });
   }, loiCloud));
-  dayCauHinh(true); setTimeout(dayKhachChu, 5000);
+  dayCauHinh(true); setTimeout(dayKhachChu, 5000); setTimeout(dayThongKe, 7000);
 }
 const sachDong = l => ({key: l.key || uid(), dvId: l.dvId || '', ten: String(l.ten || ''), hang: String(l.hang || ''), loai: l.loai || 'khac',
   giaGoc: num(l.giaGoc), giamPct: num(l.giamPct), gia: num(l.gia), v: num(l.v), chinh: l.chinh || '', phu: Array.isArray(l.phu) ? l.phu.slice(0, 5) : [],
@@ -2811,6 +2845,9 @@ async function ipadBatDau() {
   $('#hd-km').disabled = true;
   $('#btn-guiquay').onclick = guiVeQuay;
   $('#kc-q').oninput = renderKhachChu;
+  $('#dtc-lui').onclick = () => { DTC.ngay = addDays(DTC.ngay || today(), -1); renderDoanhThu(); };
+  $('#dtc-toi').onclick = () => { if ((DTC.ngay || today()) < today()) { DTC.ngay = addDays(DTC.ngay, 1); renderDoanhThu(); } };
+  $('#dtc-box').onclick = e => { const b = e.target.closest('[data-ngay]'); if (b) { DTC.ngay = b.dataset.ngay; renderDoanhThu(); } };
   ipadMan('<h2>Đang kết nối…</h2>');
   try { if (!await cloudNap()) { ipadMan('<h2>Chưa cài đặt</h2><p>Trang iPad chưa được kết nối. Báo anh chủ.</p>'); return; } }
   catch (e) { ipadMan('<h2>Không có mạng</h2><p>Kiểm tra Wi-Fi rồi thử lại.</p><button class="pri" onclick="location.reload()">Thử lại</button>'); return; }
@@ -2864,6 +2901,37 @@ async function taiKhachChu() {
     } catch (e) { tt.textContent = 'Lỗi: ' + loiVN(e); return; }
   }
   renderKhachChu();
+}
+const DTC = {ds: null, ngay: '', unsub: null, loai: {}};
+function taiDoanhThu() {
+  if (!Cloud.chu) return; if (!DTC.ngay) DTC.ngay = today();
+  if (!DTC.unsub) DTC.unsub = Cloud.db.collection('thongke').doc('ngay').onSnapshot(sn => { const d = sn.exists ? sn.data() : null;
+    DTC.ds = d ? JSON.parse(d.ds || '{}') : {}; DTC.luc = d && d.luc; try { DTC.loai = JSON.parse(d.loai || '{}'); } catch (e) {} renderDoanhThu(); },
+    e => { $('#dtc-box').innerHTML = `<p class="muted">Lỗi: ${esc(loiVN(e))}</p>`; DTC.unsub = null; });
+  Cloud.unsub.push(() => { if (DTC.unsub) { DTC.unsub(); DTC.unsub = null; } });
+  renderDoanhThu();
+}
+function renderDoanhThu() {
+  const box = $('#dtc-box'); if (!box) return;
+  const ng = DTC.ngay || today(); $('#dtc-ngay').textContent = (ng === today() ? 'Hôm nay · ' : thuOf(ng) + ' · ') + dmy(ng);
+  if (!DTC.ds) { box.innerHTML = '<p class="muted">Đang tải…</p>'; return; }
+  const D = DTC.ds, n = D[ng] || {tong: 0, so: 0, tm: 0, ck: 0, loai: {}, hd: []}, hq = D[addDays(ng, -1)] || {tong: 0};
+  const thang = ng.slice(0, 7), ngT = Object.keys(D).filter(k => k.startsWith(thang) && k <= ng), tongT = ngT.reduce((a, k) => a + D[k].tong, 0), soT = ngT.reduce((a, k) => a + D[k].so, 0);
+  const ch = n.tong - hq.tong, pct = hq.tong ? Math.round(ch / hq.tong * 100) : null;
+  const days = Array.from({length: 14}, (_, i) => addDays(ng, i - 13)), mx = Math.max(1, ...days.map(d => (D[d] || {}).tong || 0));
+  const LO = Object.assign({}, LOAI, DTC.loai);
+  box.innerHTML = `<div class="dt-top">
+      <div class="dt-o" style="grid-column:span 2"><div class="nh">Doanh thu ngày</div><div class="so">${fmtD(n.tong)}</div>
+        <div class="nh">${n.so} hoá đơn${hq.tong || n.tong ? ` · ${ch >= 0 ? '▲' : '▼'} ${fmtK(Math.abs(ch))}${pct != null ? ` (${ch >= 0 ? '+' : ''}${pct}%)` : ''} so với hôm trước` : ''}</div></div>
+      <div class="dt-o"><div class="nh">Tiền mặt</div><div class="so" style="font-size:18px">${fmtK(n.tm)}</div></div>
+      <div class="dt-o"><div class="nh">Chuyển khoản</div><div class="so" style="font-size:18px">${fmtK(n.ck)}</div></div>
+      <div class="dt-o" style="grid-column:span 2"><div class="nh">Tháng ${thang.slice(5)}/${thang.slice(0, 4)} đến ${dmy(ng).slice(0, 5)}</div><div class="so" style="font-size:20px">${fmtD(tongT)}</div>
+        <div class="nh">${soT} hoá đơn · ${ngT.length} ngày có khách · TB ${fmtK(Math.round(tongT / Math.max(1, ngT.length)))}/ngày</div></div></div>
+    <div class="dt-cot">${days.map(d => { const t = (D[d] || {}).tong || 0; return `<button data-ngay="${d}" class="${d === ng ? 'on' : ''}" style="height:${Math.max(3, Math.round(t / mx * 100))}%" title="${dmy(d)}: ${fmtK(t)}"><span>${d.slice(8)}</span></button>`; }).join('')}</div>
+    ${Object.keys(n.loai).length ? `<div class="nh muted small" style="margin:8px 0 4px">Theo loại dịch vụ</div>${Object.entries(n.loai).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="dt-hd" style="border:0;padding:3px 0"><span>${esc(LO[k] || k)}</span><b>${fmtK(Math.round(v))}</b></div>`).join('')}` : ''}
+    <div class="nh muted small" style="margin:12px 0 2px">Hoá đơn trong ngày</div>
+    ${n.hd.length ? n.hd.slice().reverse().map(h => `<div class="dt-hd"><span class="muted">${esc(h[0])}</span><span><b style="margin:0">${esc(h[1])}</b><br><span class="muted small">${esc(h[2])}${h[5] ? ' · ' + esc(h[5]) : ''}</span></span><b>${fmtK(h[3])} <span class="muted small">${h[4]}</span></b></div>`).join('') : '<p class="muted">Chưa có hoá đơn.</p>'}
+    <p class="muted small">Máy quầy cập nhật ${DTC.luc ? new Date(DTC.luc).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) + ' ' + new Date(DTC.luc).toLocaleDateString('vi-VN') : '—'} (máy quầy phải mở app).</p>`;
 }
 function renderKhachChu() {
   const q = $('#kc-q').value.trim(), qd = q.replace(/\D/g, ''), qn = bodau(q);
