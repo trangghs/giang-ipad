@@ -46,6 +46,15 @@ h3{font-size:17px;margin:0 0 12px;color:var(--brand)}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .grow{flex:1}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.tn{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px;max-width:820px}
+.tn .top{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.tn .chat{border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);padding:8px 0;margin:8px 0;max-height:280px;overflow:auto}
+.tn .m{padding:6px 10px;border-radius:12px;margin:4px 0;max-width:80%;width:fit-content;white-space:pre-wrap;font-size:15px}
+.tn .m.k{background:#eef0f4}.tn .m.s{background:#f3e9e1;margin-left:auto}
+.tn .m small{display:block;color:#888;font-size:11px}
+.tn textarea{width:100%;min-height:96px;font:inherit}
+.tn .acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.tn .acts .pri{flex:1}
+.tn .day{display:none;gap:8px;margin-top:8px}.tn .day.on{display:flex}.tn .day input{flex:1}
 .tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:13px;background:var(--brand-soft);color:var(--brand);font-weight:600}
 .tag.ok{background:var(--ok-soft);color:var(--ok)} .tag.warn{background:var(--warn-soft);color:var(--warn)} .tag.bad{background:var(--bad-soft);color:var(--bad)}
 
@@ -76,6 +85,10 @@ main{padding:18px}
 /* ---- iPad nhân viên ---- */
 #btn-guiquay{display:none;width:100%;padding:16px;font-size:19px;margin-top:4px}
 body:not(.ipad) #nav button[data-tab=luongtoi]{display:none}
+#nav button[data-tab=khachchu]{display:none} body.ipad[data-tab=khachchu] #ip-bar{display:none!important} body.ipad.la-chu #nav button[data-tab=khachchu]{display:inline-flex!important}
+.kc-ds{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.kc-it{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.kc-it .sdt{font-size:17px;font-weight:700;letter-spacing:.3px} .kc-it a{margin-left:10px;font-size:14px}
 #nv-chip{display:none}
 body.ipad #nav button:not([data-tab=thanhtoan]):not([data-tab=luongtoi]){display:none}
 body.ipad #btn-guiquay{display:block}
@@ -153,6 +166,9 @@ body.ipad .pb-o button{min-height:44px}
 .dt-g i{position:absolute;top:-7px;left:-6px;width:21px;height:21px;border-radius:50%;background:#d4a94f;color:#2b1650;font-style:normal;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .dt-g sup{position:absolute;top:3px;right:7px;font-size:11px}
 .pb-them{position:absolute;top:-9px;right:-9px;width:24px;height:24px;border-radius:50%;background:#2f7d4f;color:#fff;font:800 17px/24px 'Segoe UI',Arial,sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer;font-variant:normal;letter-spacing:0}
+.mcc-nv{border-top:1px solid var(--line,#e6e0ea);padding:10px 0}
+.mcc-bang{margin-top:8px;font-size:14px;max-width:560px} .mcc-bang td,.mcc-bang th{padding:4px 10px}
+.warn-t{color:#b4506a;font-weight:600}
 .pb-them:hover{background:#25643f} body.ipad .pb-them{width:30px;height:30px;line-height:30px;top:-11px;right:-11px;font-size:20px}
 .pb .pb-o button{position:relative}
 @media (orientation:landscape){.dt-ds{column-count:2;column-gap:22px}}
@@ -386,6 +402,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   <nav id="nav">
     <button data-tab="thanhtoan" class="on">Thanh toán<span class="badge" id="badge-cho" hidden>0</span></button>
     <button data-tab="nhachap">Nhắc hấp<span class="badge" id="badge-nhac" hidden>0</span></button>
+    <button data-tab="tinnhan">Tin nhắn<span class="badge" id="badge-tn" hidden>0</span></button>
     <button data-tab="khach">Khách hàng</button>
     <button data-tab="hoadon">Hoá đơn &amp; doanh thu</button>
     <button data-tab="luong">Lương &amp; lãi lỗ</button>
@@ -393,6 +410,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <button data-tab="nhanvien">Nhân viên<span class="badge" id="badge-nv" hidden>0</span></button>
     <button data-tab="caidat">Cài đặt</button>
     <button data-tab="luongtoi">Lương của tôi</button>
+    <button data-tab="khachchu">Khách</button>
   </nav>
   <div id="nv-chip"></div>
   <button id="btn-capnhat" hidden title="Có bản mới hoặc chỉnh sửa mới từ Claude">⟳ Cập nhật</button>
@@ -466,6 +484,13 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   </div>
 </section>
 
+<!-- ================= TIN NHẮN (bot) ================= -->
+<section class="tab" id="tab-tinnhan">
+  <h2>Tin nhắn khách <span class="muted" id="tn-count"></span></h2>
+  <p class="muted small" style="margin-top:-8px">Bot đọc tin Messenger 93K, page nhỏ và Instagram rồi soạn nháp. Sửa nếu cần (mỗi dòng là 1 tin) → bấm <b>Gửi</b>. Bot học giọng từ câu anh sửa.</p>
+  <div id="tn-list"></div>
+</section>
+
 <!-- ================= NHẮC HẤP ================= -->
 <section class="tab" id="tab-nhachap">
   <div class="nh-grid">
@@ -488,7 +513,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   <div class="kh-grid">
     <div class="card">
       <div class="row" style="margin-bottom:12px">
-        <input id="kh-q" class="grow big-input" placeholder="Tìm theo tên, SĐT hoặc mã thẻ">
+        <input id="kh-q" class="grow big-input" placeholder="Tìm theo tên, SĐT hoặc mã thẻ"><button id="btn-mosdt" title="Nhập PIN để xem số điện thoại đầy đủ trong 3 phút">👁 Hiện SĐT</button>
       </div>
       <div class="muted small" id="kh-sum" style="margin-bottom:6px"></div>
       <div style="max-height:70vh;overflow:auto"><table id="kh-tbl"></table><div id="kh-socu"></div></div>
@@ -522,6 +547,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <b>Tháng</b><input type="month" id="l-thang"><span class="tag" id="l-cong"></span>
     <span class="muted small">Doanh thu, hoa hồng lấy tự động từ hoá đơn. Anh chỉ cần nhập chấm công và chi phí.</span>
     <span class="grow"></span><button id="btn-luong-xlsx">Xuất Excel bảng lương</button></div></div>
+  <div class="card" id="l-mcc"></div>
   <div class="card"><h3>Chấm công tháng</h3><div style="overflow:auto" id="l-cc"></div></div>
   <div class="cd-grid" id="l-bang"></div>
   <div class="card"><h3>Lãi / lỗ tháng</h3><div id="l-lailo"></div></div>
@@ -533,6 +559,8 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   <div class="card" style="margin-top:16px"><h3>Tài khoản nhân viên</h3><div id="nv-ds"></div></div>
 </section>
 <section class="tab" id="tab-xuhuong"><div class="card" id="xh-box"></div></section>
+<section class="tab" id="tab-khachchu"><div class="card"><div class="row"><input id="kc-q" class="grow big-input" placeholder="Tìm tên hoặc SĐT" autocomplete="off"></div>
+  <div class="muted small" id="kc-tt" style="margin-top:6px"></div><div class="kc-ds" id="kc-ds"></div></div></section>
 <section class="tab" id="tab-luongtoi"><div class="card" id="lt-box"></div></section>
 <div id="ipad-man" hidden></div>
 <div id="ip-bar"></div>
@@ -565,7 +593,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.8.2 (07/11/2026)';
+const APP_VERSION = '2.9.4 (07/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -595,7 +623,7 @@ const fmtD = k => group(Math.round(k * 1000)) + 'đ';
 const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
 const normPhone = s => { let d = String(s || '').replace(/\D/g, ''); if (d.startsWith('84') && d.length >= 11) d = '0' + d.slice(2); return d; };
 const bodau = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
-const maskPhone = p => p && p.length >= 8 ? p.slice(0, 4) + '***' + p.slice(-3) : (p || '');
+const maskPhone = p => p && p.length >= 8 && !((window._moSdt || 0) > Date.now()) ? p.slice(0, 4) + '***' + p.slice(-3) : (p || '');
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const LOAI = {hoachat:'Hoá chất', cat:'Cắt', catnam:'Cắt nam', phuchoi:'Phục hồi', goi:'Gội', hap:'Hấp', khac:'Khác'};
 const TT = {tienmat:'Tiền mặt', ck:'Chuyển khoản'};
@@ -1653,7 +1681,18 @@ async function backupToDir(interactive) {
     return true;
   } catch (e) { console.error(e); return false; }
 }
-let _bkT; function autoBackup() { clearTimeout(_bkT); _bkT = setTimeout(() => backupToDir(false), 800); }
+const SL_URL = 'http://127.0.0.1:47371';
+async function backupToHelper() { // chương trình nền sao-luu\sao_luu.py ghi file vào GiangQuay\sao-luu
+  if (IPAD || location.protocol !== 'file:') return false;
+  try {
+    const r = await fetch(SL_URL + '/luu', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Giang': '1'}, body: JSON.stringify(await snapshot())});
+    const j = await r.json(); if (!j.ok) return false;
+    S.slHelper = j.file; S.lastBackup = new Date().toISOString(); await DB.put('kv', S.lastBackup, 'lastBackup');
+    renderBanners(); if ($('#tab-caidat').classList.contains('on')) renderCaiDat();
+    return true;
+  } catch (e) { S.slHelper = ''; return false; }
+}
+let _bkT; function autoBackup() { clearTimeout(_bkT); _bkT = setTimeout(async () => { const a = await backupToHelper(); const b = await backupToDir(false); if (!a && !b) renderBanners(); }, 800); }
 async function downloadBackup() {
   if (!await xinPin('Tải file sao lưu (có toàn bộ dữ liệu khách)')) return;
   download(new Blob([JSON.stringify(await snapshot(), null, 1)], {type: 'application/json'}), `giang-saoluu-${today()}.json`);
@@ -1685,7 +1724,9 @@ function renderCaiDat() {
   const lb = S.lastBackup ? new Date(S.lastBackup) : null;
   $('#cd-backup').innerHTML = `<h3>Sao lưu dữ liệu</h3>
     <p class="small" style="margin-top:0">Lần sao lưu gần nhất: <b>${lb ? lb.toLocaleString('vi-VN') : 'chưa có'}</b></p>
-    ${canPickDir ? `<p class="small muted">Chọn 1 thư mục (nên là thư mục <b>Google Drive</b> trên máy hoặc USB). App tự ghi bản sao lưu mỗi lần thanh toán, mỗi ngày 1 file.</p>
+    <p class="small">${S.slHelper ? `<span class="tag ok">Tự động sao lưu đang chạy</span> Ghi vào thư mục <b>GiangQuay\\sao-luu</b> (file mới nhất: ${esc(S.slHelper)}). Mỗi ngày 1 file, giữ 60 ngày gần nhất + ngày 01 mỗi tháng.`
+      : `<span class="tag warn">Chưa bật tự động sao lưu</span> Mở app bằng biểu tượng "Mo app Giang" ngoài màn hình nền để chương trình sao lưu chạy cùng.`}</p>
+    ${canPickDir ? `<p class="small muted">Thêm 1 bản nữa ra chỗ khác (không bắt buộc): chọn 1 thư mục (nên là thư mục <b>Google Drive</b> trên máy hoặc USB). App tự ghi bản sao lưu mỗi lần thanh toán, mỗi ngày 1 file.</p>
       <div class="row"><button class="pri" data-cd="pickdir">${S.backupDir ? 'Đổi thư mục' : 'Chọn thư mục sao lưu'}</button>${S.backupDir ? `<span class="small">Đang lưu vào: <b>${esc(S.backupDir.name)}</b></span><button data-cd="backupnow">Sao lưu ngay</button>` : ''}</div>`
       : '<p class="small muted">Trình duyệt này không tự sao lưu vào thư mục được. Hãy mở app bằng file "Mo app Giang.bat" (Edge), hoặc bấm tải file sao lưu dưới đây.</p>'}
     <div class="row" style="margin-top:10px"><button data-cd="download">Tải file sao lưu về máy</button><button data-cd="restore">Khôi phục từ file…</button></div>
@@ -1849,6 +1890,45 @@ function tinhLuong(thang) {
   return {res, dauHC, pool, nhanGoi, inv, doanhThu, chi, tongChi, lai: doanhThu - tongChi};
 }
 
+/* ---------- Máy chấm công (ZKTeco, đọc file cham-cong/du-lieu.json) ---------- */
+const MCC = {data: null, loi: '', mo: {}};
+const mccCfg = () => (S.settings.chamCong = Object.assign({gioVao: '09:30', gioVe: '20:00', anHan: 5, otSau: 30, tinhOT: false, map: {}}, S.settings.chamCong || {}));
+const phut = hm => { const [h, m] = String(hm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
+const hmTu = mi => `${String(Math.floor(mi / 60)).padStart(2, '0')}:${String(mi % 60).padStart(2, '0')}`;
+async function taiMCC() {
+  try { MCC.data = await docJsonFile('cham-cong/du-lieu.json'); MCC.loi = ''; } catch (e) { MCC.loi = 'chua'; }
+  const c = mccCfg(), ds = (MCC.data && MCC.data.nguoi) || [];
+  S.settings.nhanvien.filter(n => n.tinhLuong && !c.map[n.id]).forEach(n => {
+    const m = ds.find(u => bodau(u.ten).trim() === bodau(n.ten).trim()); if (m) c.map[n.id] = m.ma; });
+  renderMCC();
+}
+function mccThang(ma, thang) { // từng ngày: giờ vào, giờ ra, phút muộn, phút làm thêm
+  const c = mccCfg(), ngay = {};
+  ((MCC.data && MCC.data.luot) || []).forEach(([m, t]) => { if (m !== ma || !t.startsWith(thang)) return; (ngay[t.slice(0, 10)] = ngay[t.slice(0, 10)] || []).push(phut(t.slice(11, 16))); });
+  return Object.keys(ngay).sort().map(d => { const x = ngay[d].sort((a, b) => a - b), vao = x[0], ra = x.length > 1 && x[x.length - 1] - vao >= 60 ? x[x.length - 1] : null;
+    const tre = vao - phut(c.gioVao), muon = tre > num(c.anHan) ? tre : 0;
+    const them = ra != null ? ra - phut(c.gioVe) : 0, ot = them >= num(c.otSau) ? them : 0;
+    return {d, vao, ra, muon, ot}; });
+}
+function renderMCC() {
+  const box = $('#l-mcc'); if (!box) return;
+  const c = mccCfg(), t = curThang(), D = MCC.data;
+  if (!D) { box.innerHTML = `<h3>Máy chấm công</h3><p class="muted">${MCC.loi ? 'Chưa có dữ liệu từ máy chấm công. Mở app bằng "Mo app Giang" để chương trình đồng bộ chạy cùng, hoặc chạy "cham-cong\\Dong bo cham cong (xem).bat".' : 'Đang đọc…'}</p>`; return; }
+  const cu = (Date.now() - new Date(D.capNhat.replace(' ', 'T')).getTime()) / 60000;
+  const staff = S.settings.nhanvien.filter(n => n.tinhLuong && (n.active || thangData(t).cc[n.id]));
+  const inp = (k, v, w, type = 'text') => `<input data-mcf="${k}" type="${type}" value="${esc(v)}" style="width:${w}px;padding:5px 6px">`;
+  box.innerHTML = `<div class="row" style="justify-content:space-between"><h3 style="margin:0">Máy chấm công <span class="muted small" style="font-weight:400">ZKTeco ${esc(D.ip || '')}</span></h3>
+    <span class="tag ${cu > 20 ? 'warn' : 'ok'}">Cập nhật ${esc(D.capNhat.slice(11, 16))} ${D.capNhat.slice(8, 10)}/${D.capNhat.slice(5, 7)}${cu > 20 ? ' – đã lâu, kiểm tra chương trình đồng bộ' : ''}</span></div>
+    <div class="row small" style="gap:10px;margin:8px 0;flex-wrap:wrap">Giờ vào ${inp('gioVao', c.gioVao, 110, 'time')} · Ân hạn ${inp('anHan', c.anHan, 50, 'number')} phút · Giờ về ${inp('gioVe', c.gioVe, 110, 'time')} · Làm thêm khi ở lại quá ${inp('otSau', c.otSau, 50, 'number')} phút
+      <label class="tick"><input type="checkbox" data-mcf="tinhOT" ${c.tinhOT ? 'checked' : ''}> Điền cả phút làm thêm vào bảng công</label></div>
+    ${staff.map(n => { const ma = c.map[n.id] || '', ds = ma ? mccThang(ma, t) : [];
+      const muon = ds.filter(x => x.muon), thieu = ds.filter(x => x.ra == null && x.d !== today()), ot = ds.reduce((a, x) => a + x.ot, 0), sm = muon.reduce((a, x) => a + x.muon, 0);
+      return `<div class="mcc-nv"><div class="row" style="gap:10px;flex-wrap:wrap"><b>${esc(n.ten)}</b>
+        <select data-mmap="${n.id}" style="padding:5px 8px"><option value="">— chọn người trên máy —</option>${(D.nguoi || []).map(u => `<option value="${esc(u.ma)}" ${u.ma === ma ? 'selected' : ''}>${esc(u.ten)} (mã ${esc(u.ma)})</option>`).join('')}</select>
+        ${ma ? `<span><b>${ds.length}</b> công</span><span class="${muon.length ? 'warn-t' : ''}">${muon.length} lần muộn · ${sm} phút</span><span>làm thêm ${ot} phút</span>${thieu.length ? `<span class="muted">${thieu.length} ngày thiếu chấm ra</span>` : ''}
+        <span class="grow"></span><button data-mxem="${n.id}">${MCC.mo[n.id] ? 'Ẩn' : 'Xem'} từng ngày</button><button class="primary" data-mdien="${n.id}">Điền vào bảng công</button>` : ''}</div>
+        ${ma && MCC.mo[n.id] ? `<table class="mcc-bang"><tr><th>Ngày</th><th>Vào</th><th>Ra</th><th class="num">Muộn</th><th class="num">Làm thêm</th></tr>${ds.map(x => `<tr><td>${x.d.slice(8)}/${x.d.slice(5, 7)} <span class="muted small">${['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][new Date(x.d).getDay()]}</span></td><td>${hmTu(x.vao)}</td><td>${x.ra == null ? `<span class="muted">${x.d === today() ? 'đang làm' : 'thiếu'}</span>` : hmTu(x.ra)}</td><td class="num ${x.muon ? 'warn-t' : ''}">${x.muon ? x.muon + ' ph' : ''}</td><td class="num">${x.ot ? x.ot + ' ph' : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">Tháng này chưa có lượt chấm.</td></tr>'}</table>` : ''}</div>`; }).join('') || '<p class="muted">Chưa có ai được tính lương.</p>'}`;
+}
 function renderLuong() {
   const t = curThang(); $('#l-thang').value = t;
   $('#l-cong').textContent = `${ngayTrongThang(t)} ngày − ${num(S.settings.luong.nghiCoLuong)} nghỉ có lương = ${congChuanThang(t)} công chuẩn`;
@@ -1857,6 +1937,7 @@ function renderLuong() {
     return `<tr><td><b>${esc(n.ten)}</b><div class="muted small">lương ${fmtK(n.luongThang)}/tháng</div></td>${CC_COLS.map(([k]) => `<td class="num"><input type="number" min="0" data-cc="${n.id}" data-k="${k}" value="${c[k] ?? ''}" style="width:96px;text-align:right"></td>`).join('')}</tr>`; }).join('')}</table>`
     : '<div class="empty">Chưa có ai được tính lương. Vào Cài đặt → Người làm, tích "Tính lương" và nhập lương tháng.</div>';
 
+  if (MCC.data) renderMCC(); taiMCC();
   const K = tinhLuong(t), L = S.settings.luong;
   $('#l-bang').innerHTML = Object.values(K.res).map(o => {
     const row = (l, v, note, neg) => `<tr><td>${l}${note ? `<div class="muted small">${note}</div>` : ''}</td><td class="num">${v ? (neg ? '−' : '') + fmtK(Math.round(v * 10) / 10) : '–'}</td></tr>`;
@@ -1983,7 +2064,7 @@ async function apDungLenh() {
    ========================================================= */
 function renderBanners() {
   const b = [];
-  if (S.backupDir && S._needPerm) b.push(`<div class="banner"><span>Cần bấm 1 lần để app được sao lưu hôm nay.</span><button class="sm pri" data-cd="grant">Bật sao lưu</button></div>`);
+  if (S.backupDir && S._needPerm && !S.slHelper) b.push(`<div class="banner"><span>Cần bấm 1 lần để app được sao lưu hôm nay.</span><button class="sm pri" data-cd="grant">Bật sao lưu</button></div>`);
   const days = S.lastBackup ? (Date.now() - new Date(S.lastBackup)) / 86400000 : null;
   if ((S.invoices.length || S.customers.size) && (days == null || days > 2)) b.push(`<div class="banner bad"><span>${days == null ? 'Dữ liệu chưa được sao lưu lần nào.' : `Đã ${Math.floor(days)} ngày chưa sao lưu.`} Hỏng máy là mất dữ liệu khách.</span><button class="sm" data-go="caidat">Vào Cài đặt → Sao lưu</button></div>`);
   const k = kmHienTai();
@@ -2008,6 +2089,7 @@ function showTab(name) {
   $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
   $$('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + name)); document.body.dataset.tab = name;
   if (name === 'nhachap') renderNhac();
+  if (name === 'tinnhan') { renderTinNhan(); botTai(); }
   if (name === 'khach') { renderKhachList(); if (khSel) renderKhachDetail(khSel); }
   if (name === 'hoadon') { if (!$('#hd-from').value) setRange('homnay'); else renderHoaDon(); }
   if (name === 'caidat') renderCaiDat();
@@ -2015,6 +2097,7 @@ function showTab(name) {
   if (name === 'nhanvien') renderNhanVien();
   if (name === 'xuhuong') taiXuHuong();
   if (name === 'luongtoi') renderLuongToi();
+  if (name === 'khachchu') taiKhachChu();
   if (name === 'thanhtoan') { renderPicker(); renderLines(); }
   window.scrollTo(0, 0);
 }
@@ -2258,6 +2341,23 @@ function bindEvents() {
     await saveThang(); renderLuong(); autoBackup();
   });
   $('#btn-luong-xlsx').onclick = exportLuong;
+  $('#btn-mosdt').onclick = async () => {
+    const veLai = () => { if ($('#tab-khach').classList.contains('on')) { renderKhachList(); if (khSel) renderKhachDetail(khSel); } };
+    if ((window._moSdt || 0) > Date.now()) { window._moSdt = 0; $('#btn-mosdt').textContent = '👁 Hiện SĐT'; veLai(); return; }
+    if (!await xinPin('Xem số điện thoại đầy đủ (3 phút)')) return;
+    window._moSdt = Date.now() + 3 * 60000; $('#btn-mosdt').textContent = '🙈 Che SĐT'; veLai();
+    clearTimeout(window._moSdtT); window._moSdtT = setTimeout(() => { window._moSdt = 0; $('#btn-mosdt').textContent = '👁 Hiện SĐT'; veLai(); }, 3 * 60000 + 200);
+  };
+  $('#l-mcc').addEventListener('change', async e => { const t = e.target, c = mccCfg();
+    if (t.dataset.mmap) c.map[t.dataset.mmap] = t.value;
+    else if (t.dataset.mcf) c[t.dataset.mcf] = t.type === 'checkbox' ? t.checked : t.type === 'number' ? num(t.value) : t.value;
+    else return;
+    e.stopPropagation(); await saveSettings(); renderMCC(); });
+  $('#l-mcc').addEventListener('click', async e => { const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.mxem) { MCC.mo[b.dataset.mxem] = !MCC.mo[b.dataset.mxem]; renderMCC(); return; }
+    if (b.dataset.mdien) { const id = b.dataset.mdien, c = mccCfg(), t = curThang(), ds = mccThang(c.map[id], t), d = thangData(t);
+      const o = d.cc[id] = d.cc[id] || {}; o.cong = ds.length; o.muon = ds.reduce((a, x) => a + x.muon, 0); if (c.tinhOT) o.ot = ds.reduce((a, x) => a + x.ot, 0);
+      await saveThang(); renderLuong(); autoBackup(); toast('Đã điền công, phút muộn' + (c.tinhOT ? ', làm thêm' : '') + ' từ máy chấm công. Anh vẫn sửa tay được.'); } });
   $('#file-import').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importSheetCu(f); };
   $('#file-restore').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) restoreFrom(f); };
 
@@ -2361,7 +2461,8 @@ async function init() {
   S.settings.nhanvien.forEach(n => { if (n.tinhLuong === undefined) n.tinhLuong = true; if (n.luongThang === undefined) n.luongThang = 0; if (n.chiaGoiHC === undefined) n.chiaGoiHC = false; });
   await saveSettings();
   try { S.backupDir = await DB.get('kv', 'backupDir') || null; } catch (e) { S.backupDir = null; }
-  if (S.backupDir) { try { const p = await S.backupDir.queryPermission({mode: 'readwrite'}); if (p === 'granted') autoBackup(); else S._needPerm = true; } catch (e) { S._needPerm = true; } }
+  if (S.backupDir) { try { const p = await S.backupDir.queryPermission({mode: 'readwrite'}); if (p !== 'granted') S._needPerm = true; } catch (e) { S._needPerm = true; } }
+  autoBackup(); setInterval(autoBackup, 30 * 60000);
   await sweepReminders();
   loadDraft();
   bindEvents();
@@ -2374,10 +2475,113 @@ async function init() {
   window.addEventListener('focus', () => kiemTraCapNhat(false));
   $('#hd-q').focus();
   quayCloudBatDau();
+  botBatDau();
   ['mousemove', 'keydown', 'mousedown', 'wheel', 'touchstart'].forEach(ev => window.addEventListener(ev, () => { _hoatDong = Date.now(); }, {passive: true}));
   setInterval(() => { const on = ($$('#nav button.on')[0] || {}).dataset?.tab;
     if (KHOA_TAB[on] && Date.now() - _hoatDong > 180000) { moKhoa[on] = false; showTab('thanhtoan'); toast('Đã tự khoá sau 3 phút không dùng'); } }, 15000);
 }
+
+/* =========================================================
+   TIN NHẮN – nháp của bot Messenger/IG (bản 2.9)
+   Gọi API của bot (Cloud Function giangbot). Link duyệt lưu ở S.settings.bot.link.
+   ========================================================= */
+const Bot = {ds: [], daThay: new Set(), loi: '', lanDau: true, dangGui: {}};
+function botCfg() {
+  const link = (S.settings.bot && S.settings.bot.link) || '';
+  try { const u = new URL(link); const k = u.searchParams.get('k'); if (!k) return null;
+    return {base: u.origin + u.pathname.replace(/\/duyet\/?$/, ''), k}; } catch (e) { return null; }
+}
+async function botApi(p, body) {
+  const c = botCfg(); if (!c) throw new Error('Chưa có link bot');
+  const r = await fetch(`${c.base}/${p}?k=${encodeURIComponent(c.k)}`, {method: body ? 'POST' : 'GET',
+    headers: Object.assign({'x-k': c.k}, body ? {'content-type': 'application/json'} : {}), body: body ? JSON.stringify(body) : undefined});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.loi || ('Lỗi ' + r.status));
+  return j;
+}
+function botBeep() { try { const a = new AudioContext(); [0, .22].forEach(t => { const o = a.createOscillator(), g = a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value = 660; g.gain.value = .08; o.start(a.currentTime + t); o.stop(a.currentTime + t + .15); }); } catch (e) {} }
+async function botTai() {
+  if (!botCfg()) { Bot.ds = []; renderBadgeTN(); if (tabDangMo() === 'tinnhan') renderTinNhan(); return; }
+  try {
+    const ds = await botApi('api/nhap'); Bot.loi = '';
+    const moi = ds.filter(d => !Bot.daThay.has(d.id));
+    ds.forEach(d => Bot.daThay.add(d.id));
+    if (moi.length && !Bot.lanDau) { botBeep(); const d = moi[0];
+      toast(`💬 ${d.chuyenNguoi ? '⚠ Cần anh – ' : ''}${{'93k': 'Page 93K', nho: 'Page nhỏ', ig: 'Instagram'}[d.kenh] || ''}: ${d.ten || 'Khách'} – ${d.tomTat || ''}`); }
+    Bot.lanDau = false;
+    // giữ nội dung đang sửa dở
+    const dangSua = {}; $$('#tn-list textarea[data-id]').forEach(t => { dangSua[t.dataset.id] = t.value; });
+    Bot.ds = ds; Bot.dangSua = dangSua;
+  } catch (e) { Bot.loi = e.message === 'Failed to fetch' ? 'Không kết nối được bot (máy có mạng không?)' : e.message; }
+  renderBadgeTN();
+  const ae = document.activeElement; if (tabDangMo() === 'tinnhan' && !(ae && /^(TEXTAREA|INPUT)$/.test(ae.tagName) && ae.closest('#tn-list'))) renderTinNhan();
+}
+const tabDangMo = () => ($$('#nav button.on')[0] || {}).dataset?.tab;
+function renderBadgeTN() { const b = $('#badge-tn'); if (!b) return; b.textContent = Bot.ds.length; b.hidden = !Bot.ds.length; }
+function renderTinNhan() {
+  const box = $('#tn-list'); if (!box) return;
+  $('#tn-count').textContent = Bot.ds.length ? `(${Bot.ds.length} nháp chờ duyệt)` : '';
+  if (!botCfg()) {
+    box.innerHTML = `<div class="card"><h3>Kết nối bot tin nhắn</h3>
+      <p class="small muted">Dán link trang duyệt bot gửi qua Messenger (bắt đầu bằng https://asia-southeast1-giang-hair.cloudfunctions.net/giangbot/duyet?k=…).</p>
+      <div class="row" style="gap:8px"><input id="tn-link" style="flex:1" placeholder="Dán link vào đây"><button class="pri" id="tn-luu">Lưu</button></div></div>`;
+    $('#tn-luu').onclick = async () => { const v = $('#tn-link').value.trim();
+      S.settings.bot = Object.assign({}, S.settings.bot, {link: v});
+      if (!botCfg()) { toast('Link không đúng', true); return; }
+      await saveSettings(); toast('Đã kết nối bot'); document.activeElement.blur(); await botTai(); renderTinNhan(); };
+    return;
+  }
+  const KENH = {'93k': 'Page 93K', nho: 'Page nhỏ', ig: 'Instagram'};
+  const nv = (S.settings.nhanvien || []).filter(n => n.active).map(n => n.ten);
+  const gioVN = d => { const x = new Date(d); return pad(x.getHours()) + ':' + pad(x.getMinutes()) + ' ' + pad(x.getDate()) + '/' + pad(x.getMonth() + 1); };
+  const loi = Bot.loi ? `<div class="card" style="border-color:#c0392b"><b>⚠ ${esc(Bot.loi)}</b> <button class="sm" id="tn-thu">Thử lại</button></div>` : '';
+  box.innerHTML = loi + (Bot.ds.length ? Bot.ds.map(d => {
+    const tags = [`<span class="tag">${KENH[d.kenh] || esc(d.kenh)}</span>`, `<span class="tag">${esc(d.intent || '')}</span>`];
+    if (d.chuyenNguoi) tags.push(`<span class="tag bad">Cần anh: ${esc(d.lyDo || '')}</span>`);
+    (d.canhBao || []).forEach(c => tags.push(`<span class="tag bad">${esc(c)}</span>`));
+    const conGio = Math.round((new Date(d.hetHan24h) - Date.now()) / 36e5);
+    if (conGio < 3) tags.push(`<span class="tag bad">Còn ${Math.max(conGio, 0)}h là hết hạn 24h</span>`);
+    const chat = (d.chat || []).map(m => `<div class="m ${m.from === 'khach' ? 'k' : 's'}"><small>${m.from === 'khach' ? 'Khách' : m.from === 'bot' ? 'Bot' : m.from === 'tudong' ? 'Tự động' : 'Salon'} · ${gioVN(m.at)}</small>${esc(m.text)}${m.kem && m.kem.length ? ' [' + esc(m.kem.join(', ')) + ']' : ''}</div>`).join('');
+    const txt = (Bot.dangSua && Bot.dangSua[d.id] != null) ? Bot.dangSua[d.id] : (d.tin || []).join('\n');
+    return `<div class="tn" data-tn="${d.id}">
+      <div class="top"><b>${esc(d.ten || 'Khách')}</b>${tags.join('')}</div>
+      <div class="small muted">${esc(d.tomTat || '')}${d.canHoiAnh ? '<br><b>Bot hỏi anh:</b> ' + esc(d.canHoiAnh) : ''}</div>
+      <div class="chat">${chat}</div>
+      <div class="small muted">Nháp (mỗi dòng 1 tin)${d.guiBangGia ? ' · kèm ảnh bảng giá' : ''}</div>
+      <textarea data-id="${d.id}">${esc(txt)}</textarea>
+      <div class="acts">
+        <select data-nguoi>${nv.map(n => `<option>${esc(n)}</option>`).join('')}</select>
+        <button class="pri" data-tn-act="gui">Gửi</button>
+        <button data-tn-act="day">Dạy bot</button>
+        <button class="ghost danger sm" data-tn-act="bo">Bỏ qua</button>
+      </div>
+      <div class="day"><input data-day placeholder="VD: khách hỏi nhuộm thì hỏi màu muốn nhuộm trước khi báo giá"><button class="sm pri" data-tn-act="luuday">Lưu</button></div>
+    </div>`; }).join('') : `<div class="card empty">Không có nháp nào chờ duyệt 🎉</div>`)
+    + `<p class="small muted">Tự tải lại mỗi 20 giây. <button class="sm ghost" id="tn-doilink">Đổi link bot</button></p>`;
+  const t = $('#tn-thu'); if (t) t.onclick = botTai;
+  $('#tn-doilink').onclick = async () => { if (await confirmBox('Gỡ link bot hiện tại để dán link mới?', 'Gỡ')) { S.settings.bot = {}; await saveSettings(); renderTinNhan(); } };
+}
+async function botClick(e) {
+  const b = e.target.closest('[data-tn-act]'); if (!b) return;
+  const card = b.closest('[data-tn]'), id = card.dataset.tn, a = b.dataset.tnAct;
+  try {
+    if (a === 'gui') {
+      const tin = card.querySelector('textarea').value.split('\n').map(x => x.trim()).filter(Boolean); if (!tin.length) return;
+      if (Bot.dangGui[id]) return; Bot.dangGui[id] = true;
+      card.querySelectorAll('button').forEach(x => x.disabled = true); b.textContent = 'Đang gửi…';
+      await botApi('api/gui', {id, tin, nguoi: card.querySelector('[data-nguoi]').value});
+      toast('Đã gửi cho khách'); Bot.ds = Bot.ds.filter(d => d.id !== id); card.remove(); renderBadgeTN();
+    } else if (a === 'bo') { await botApi('api/bo', {id}); Bot.ds = Bot.ds.filter(d => d.id !== id); card.remove(); renderBadgeTN(); }
+    else if (a === 'day') { const r = card.querySelector('.day'); r.classList.toggle('on'); r.querySelector('input').focus(); }
+    else if (a === 'luuday') { const v = card.querySelector('[data-day]').value.trim(); if (!v) return;
+      await botApi('api/day', {id, noiDung: v}); toast('Đã dạy bot'); card.querySelector('.day').classList.remove('on'); card.querySelector('[data-day]').value = ''; }
+  } catch (err) { toast('Lỗi: ' + err.message, true); delete Bot.dangGui[id]; card.querySelectorAll('button').forEach(x => x.disabled = false); if (a === 'gui') b.textContent = 'Gửi'; }
+}
+function botBatDau() {
+  document.addEventListener('click', botClick);
+  botTai(); setInterval(botTai, 20000);
+}
+
 /* =========================================================
    iPAD NHÂN VIÊN – đồng bộ qua Firebase (chỉ hoá đơn chờ, bảng giá/KM, lương riêng từng người)
    Dữ liệu khách KHÔNG đưa lên mạng.
@@ -2422,7 +2626,26 @@ async function quayCloudBatDau() {
     if (laChu()) quayNghe();
     renderNhanVien(); renderBadgeNV();
   });
-  if (!quayCloudBatDau._t) quayCloudBatDau._t = setInterval(() => { if (laChu()) dayLuongHet(); }, 60000);
+  if (!quayCloudBatDau._t) quayCloudBatDau._t = setInterval(() => { if (laChu()) { dayLuongHet(); dayKhachChu(); } }, 60000);
+}
+let _kcCu = '', _kcSo = 0;
+async function dayKhachChu() { // chỉ tài khoản chủ đọc được (Firestore rules: khachchu)
+  if (IPAD || !laChu() || !Cloud.db) return;
+  const st = {};
+  S.invoices.forEach(i => { if (!i.phone) return; const x = st[i.phone] = st[i.phone] || {n: 0, tong: 0, last: ''}; x.n++; x.tong += i.tong; if (i.date > x.last) x.last = i.date; });
+  S.sheetCu.forEach(r => { if (!r.phone) return; const x = st[r.phone] = st[r.phone] || {n: 0, tong: 0, last: ''}; x.n++; x.tong += num(r.tien); if (r.thang + '-00' > x.last) x.last = r.thang + '-00'; });
+  const ds = [...S.customers.values()].filter(c => c.phone).map(c => { const x = st[c.phone] || {};
+    return [c.phone, c.ten || '', c.danhxung || '', c.maThe || '', x.n || 0, Math.round(x.tong || 0), x.last || '']; });
+  const js = JSON.stringify(ds); if (js === _kcCu) return;
+  const per = 1200, so = Math.ceil(ds.length / per) || 1, col = Cloud.db.collection('khachchu');
+  try {
+    const cu = _kcSo || num(((await col.doc('meta').get()).data() || {}).so);
+    const b = Cloud.db.batch();
+    for (let i = 0; i < so; i++) b.set(col.doc('p' + i), {ds: JSON.stringify(ds.slice(i * per, (i + 1) * per))});
+    for (let i = so; i < cu; i++) b.delete(col.doc('p' + i));
+    b.set(col.doc('meta'), {so, n: ds.length, luc: Date.now()});
+    await b.commit(); _kcCu = js; _kcSo = so;
+  } catch (e) { console.warn('dayKhachChu', e.code || e); }
 }
 function quayNghe() {
   Cloud.unsub.push(Cloud.db.collection('nguoidung').onSnapshot(sn => {
@@ -2432,7 +2655,7 @@ function quayNghe() {
   Cloud.unsub.push(Cloud.db.collection('doncho').onSnapshot(sn => {
     sn.docChanges().forEach(c => { if (c.type === 'added') nhanDonIpad(c.doc); });
   }, loiCloud));
-  dayCauHinh(true);
+  dayCauHinh(true); setTimeout(dayKhachChu, 5000);
 }
 const sachDong = l => ({key: l.key || uid(), dvId: l.dvId || '', ten: String(l.ten || ''), hang: String(l.hang || ''), loai: l.loai || 'khac',
   giaGoc: num(l.giaGoc), giamPct: num(l.giamPct), gia: num(l.gia), v: num(l.v), chinh: l.chinh || '', phu: Array.isArray(l.phu) ? l.phu.slice(0, 5) : [],
@@ -2579,12 +2802,14 @@ async function ipadBatDau() {
   document.body.dataset.tab = 'thanhtoan';
   $('#hd-km').disabled = true;
   $('#btn-guiquay').onclick = guiVeQuay;
+  $('#kc-q').oninput = renderKhachChu;
   ipadMan('<h2>Đang kết nối…</h2>');
   try { if (!await cloudNap()) { ipadMan('<h2>Chưa cài đặt</h2><p>Trang iPad chưa được kết nối. Báo anh chủ.</p>'); return; } }
   catch (e) { ipadMan('<h2>Không có mạng</h2><p>Kiểm tra Wi-Fi rồi thử lại.</p><button class="pri" onclick="location.reload()">Thử lại</button>'); return; }
   Cloud.auth.onAuthStateChanged(u => {
-    Cloud.user = u; huyNghe(); Cloud.nd = null; Cloud.cfgOk = false; Cloud.xemLuong = null;
+    Cloud.user = u; huyNghe(); Cloud.nd = null; Cloud.cfgOk = false; Cloud.xemLuong = null; Cloud.chu = false; KC.ds = null; document.body.classList.remove('la-chu');
     if (!u) { $('#nv-chip').innerHTML = ''; manDangNhap(); return; }
+    thuChu(u);
     $('#nv-chip').innerHTML = `<span>👤 ${esc(u.email)}</span><button id="ip-dx">${window.innerWidth <= 700 ? 'Thoát' : 'Đăng xuất'}</button>`;
     $('#ip-dx').onclick = () => Cloud.auth.signOut();
     ipadMan('<h2>Đang tải…</h2>');
@@ -2614,7 +2839,37 @@ function manDangNhap(dangKy) {
 async function taoHoSo(ten) {
   await Cloud.db.collection('nguoidung').doc(Cloud.user.uid).set({email: Cloud.user.email, ten: String(ten).slice(0, 40), trangThai: 'cho', taoLuc: Date.now()});
 }
+const KC = {ds: null, luc: 0};
+async function thuChu(u) { // đọc được khachchu/meta = là tài khoản chủ (do Firestore rules quyết định)
+  try { const m = await Cloud.db.collection('khachchu').doc('meta').get(); if (Cloud.user !== u) return; Cloud.chu = true; KC.meta = m.exists ? m.data() : null; }
+  catch (e) { Cloud.chu = false; }
+  document.body.classList.toggle('la-chu', !!Cloud.chu); ipadTrangThai();
+}
+async function taiKhachChu() {
+  const tt = $('#kc-tt'); if (!Cloud.chu) { tt.textContent = 'Chỉ tài khoản chủ xem được.'; return; }
+  if (!KC.ds || Date.now() - KC.luc > 5 * 60000) {
+    tt.textContent = 'Đang tải danh sách khách…';
+    try { const sn = await Cloud.db.collection('khachchu').get(); let ds = [], meta = null;
+      sn.docs.forEach(d => { if (d.id === 'meta') meta = d.data(); }); const so = num(meta && meta.so);
+      for (let i = 0; i < so; i++) { const d = sn.docs.find(x => x.id === 'p' + i); if (d) ds = ds.concat(JSON.parse(d.data().ds || '[]')); }
+      KC.ds = ds.map(r => ({phone: r[0], ten: r[1], dx: r[2], the: r[3], n: r[4], tong: r[5], last: r[6], k: bodau(r[1])})); KC.luc = Date.now(); KC.meta = meta;
+    } catch (e) { tt.textContent = 'Lỗi: ' + loiVN(e); return; }
+  }
+  renderKhachChu();
+}
+function renderKhachChu() {
+  const q = $('#kc-q').value.trim(), qd = q.replace(/\D/g, ''), qn = bodau(q);
+  let l = (KC.ds || []).filter(c => !q || (qd.length >= 3 && c.phone.includes(qd)) || c.k.includes(qn));
+  l.sort((a, b) => (b.last || '').localeCompare(a.last || ''));
+  const m = KC.meta || {};
+  $('#kc-tt').textContent = `${l.length} khách${q ? ' khớp' : ''} · máy quầy cập nhật ${m.luc ? new Date(m.luc).toLocaleString('vi-VN', {hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'}) : '—'}`;
+  $('#kc-ds').innerHTML = l.slice(0, 150).map(c => `<div class="kc-it"><div><b>${esc(cap(c.dx || ''))} ${esc(c.ten)}</b>${c.the ? ` <span class="tag">thẻ ${esc(c.the)}</span>` : ''}</div>
+    <div style="margin:4px 0"><span class="sdt">${esc(c.phone)}</span><a href="tel:${esc(c.phone)}">Gọi</a><a href="https://zalo.me/${esc(c.phone)}" target="_blank">Zalo</a></div>
+    <div class="muted small">${c.n} lần · lần cuối ${c.last ? (c.last.endsWith('-00') ? 'tháng ' + c.last.slice(5, 7) + '/' + c.last.slice(0, 4) : dmy(c.last)) : '—'} · tổng ${fmtK(c.tong)}</div></div>`).join('')
+    + (l.length > 150 ? `<div class="muted small">Còn ${l.length - 150} khách nữa, gõ tên hoặc SĐT để tìm.</div>` : '');
+}
 function ipadTrangThai() {
+  if (Cloud.chu && (!Cloud.nd || Cloud.nd.trangThai !== 'duyet')) Cloud.nd = Object.assign({ten: 'Chủ', xemLuong: false}, Cloud.nd, {trangThai: 'duyet'});
   const nd = Cloud.nd, dx = '<button class="link2" onclick="Cloud.auth.signOut()">Đăng xuất</button>';
   if (!nd) {
     if (Cloud._tenDK) { const t = Cloud._tenDK; Cloud._tenDK = ''; taoHoSo(t).catch(e => ipadMan(`<h2>Lỗi</h2><p>${esc(loiVN(e))}</p>${dx}`)); return; }
