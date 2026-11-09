@@ -108,6 +108,10 @@ select.q-chu{border-color:#b4506a;color:#b4506a;font-weight:700}
 .vq-giay{position:absolute;top:-12px;width:9px;height:14px;z-index:3;border-radius:2px;animation:vqroi 2.8s ease-in forwards}
 @keyframes vqroi{to{transform:translateY(105vh) rotate(720deg)}}
 .quay-kq{color:#b4506a}
+.quay-tat{margin-top:8px;padding:8px 10px;border:1px dashed #d8cfc4;border-radius:10px;color:#8a7f74;font-size:14px}
+#hd-dangsua{background:#fff4e5;border:1px solid #f0c27a;border-radius:10px;padding:8px 12px;margin:-4px 0 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#hd-dangsua b{color:#8a4b00}
+.tag.sua{background:#fff4e5;color:#8a4b00}
 .kc-ds{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .kc-it{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
 .kc-it .sdt{font-size:17px;font-weight:700;letter-spacing:.3px} .kc-it a{margin-left:10px;font-size:14px}
@@ -476,6 +480,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
           <h3 style="margin:0">3. Hoá đơn</h3>
           <select id="hd-km" title="Chương trình khuyến mãi đang áp dụng" style="max-width:260px;padding:6px 8px;font-size:14px"></select>
         </div>
+        <div id="hd-dangsua" hidden></div>
         <div id="hd-bonus" class="row" style="gap:8px;margin:-4px 0 10px;flex-wrap:wrap"></div>
         <div id="hd-lines"></div>
         <div id="hd-sticker"></div>
@@ -626,7 +631,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.10.3 (09/11/2026)';
+const APP_VERSION = '2.10.4 (09/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -744,6 +749,35 @@ async function xinPin(viec) {
     PIN_SAI.n++; if (PIN_SAI.n >= 5) { PIN_SAI.n = 0; PIN_SAI.den = Date.now() + 60000; }
     toast('Sai mã PIN', true);
   }
+}
+/* MẬT KHẨU CẤP 2 – riêng cho việc nhạy cảm (sửa hoá đơn đã lưu). Tạo lần đầu phải nhập mã PIN thường. */
+async function datPin2Moi(tieuDe) {
+  const pin = await hopPin(tieuDe || 'Tạo mật khẩu cấp 2', 'Mật khẩu cấp 2 dùng để sửa hoá đơn đã lưu. Nên khác mã PIN thường và chỉ anh chủ biết.', true);
+  if (!pin) return false;
+  if (S.settings.pin && S.settings.pin.hash && await bamPin(pin, S.settings.pin.salt) === S.settings.pin.hash) { toast('Mật khẩu cấp 2 phải khác mã PIN thường', true); return false; }
+  const salt = uid(); S.settings.pin2 = {salt, hash: await bamPin(pin, salt)}; await saveSettings();
+  toast('Đã lưu mật khẩu cấp 2'); return true;
+}
+async function xinPin2(viec) {
+  if (IPAD) return false;
+  if (!S.settings.pin2 || !S.settings.pin2.hash) {
+    if (!await confirmBox('Chưa có <b>mật khẩu cấp 2</b>. Tạo ngay bây giờ?<br><span class="muted small">Cần nhập mã PIN thường trước.</span>', 'Tạo')) return false;
+    if (!await xinPin('Nhập mã PIN thường để tạo mật khẩu cấp 2')) return false;
+    return datPin2Moi();
+  }
+  while (true) {
+    if (Date.now() < PIN_SAI.den) { toast(`Nhập sai nhiều lần. Thử lại sau ${Math.ceil((PIN_SAI.den - Date.now()) / 1000)} giây`, true); return false; }
+    const pin = await hopPin('Mật khẩu cấp 2', viec);
+    if (pin == null) return false;
+    if (await bamPin(pin, S.settings.pin2.salt) === S.settings.pin2.hash) { PIN_SAI.n = 0; return true; }
+    PIN_SAI.n++; if (PIN_SAI.n >= 5) { PIN_SAI.n = 0; PIN_SAI.den = Date.now() + 60000; }
+    toast('Sai mật khẩu cấp 2', true);
+  }
+}
+async function doiPin2() {
+  if (S.settings.pin2 && S.settings.pin2.hash) { if (!await xinPin2('Nhập mật khẩu cấp 2 hiện tại để đổi')) return; await datPin2Moi('Mật khẩu cấp 2 mới'); }
+  else if (await xinPin('Nhập mã PIN thường để tạo mật khẩu cấp 2')) await datPin2Moi();
+  renderCaiDat();
 }
 async function doiPin() {
   if (S.settings.pin && S.settings.pin.hash && !await xinPin('Nhập mã PIN hiện tại để đổi')) return;
@@ -913,6 +947,7 @@ function capNhatChoDangMo() { // đơn chờ đang mở thì cập nhật luôn 
   clearTimeout(_choT); _choT = setTimeout(() => { luuDonCho(); renderDonCho(); }, 400);
 }
 async function datCho(imLang) {
+  if (HD.suaId) { if (!imLang) toast('Đang sửa hoá đơn cũ – bấm "Huỷ sửa" hoặc lưu sửa trước', true); return false; }
   if (!hdCoNoiDung(HD)) { if (!imLang) toast('Hoá đơn đang trống', true); return false; }
   const id = HD.choId || 'cho-' + uid(), cu = S.donCho.find(x => x.id === id);
   const hd = JSON.parse(JSON.stringify(Object.assign({}, HD, {choId: id})));
@@ -980,6 +1015,7 @@ const hdStickerDung = () => { // sticker trừ vào bill này: sticker cũ khác
   return list;
 };
 const hdGiamSticker = () => { // sticker % tính trên tổng cuối, rồi trừ tiếp sticker tiền
+  if (HD.suaId) return Math.min(hdTruocSticker(), num(HD.suaGiamStk)); // đang sửa HĐ cũ: giữ nguyên phần sticker của HĐ gốc
   const base = hdTruocSticker(), ds = hdStickerDung();
   const pct = ds.filter(x => x.kieu === 'pct').reduce((a, x) => a + x.giaTri, 0), k = ds.filter(x => x.kieu !== 'pct').reduce((a, x) => a + x.giaTri, 0);
   return Math.min(base, Math.round(base * Math.min(100, pct) / 100) + k); };
@@ -1203,6 +1239,8 @@ function renderQuayIpad() { // nút quay trên điện thoại/iPad nhân viên
 }
 function renderSticker() {
   const box = $('#hd-sticker'), c = hdCustomer(), loai = S.settings.sticker || [];
+  if (HD.suaId) { const g = S.invoices.find(i => i.id === HD.suaId) || {};
+    box.innerHTML = g.giamSticker || g.stickerNhan || g.quay ? `<div class="quay-tat">🎟 Sticker / quay thưởng của hoá đơn gốc giữ nguyên${g.giamSticker ? ` (trừ ${fmtK(g.giamSticker)})` : ''}${g.stickerNhan ? ` · trúng ${esc(stkText(g.stickerNhan))}` : ''}</div>` : ''; return; }
   const cho = (c?.stickers || []).filter(x => !x.dung);
   const duocBoc = HD.lines.length && loai.length; // anh chủ tự quyết khách nào được quay
   if (!cho.length && !duocBoc) { box.innerHTML = ''; HD.stkDung = []; HD.stkMoi = ''; return; }
@@ -1218,13 +1256,26 @@ function renderSticker() {
   </div>`;
 }
 
+function renderDangSua() {
+  const b = $('#hd-dangsua'); if (!b) return;
+  const g = HD.suaId && S.invoices.find(i => i.id === HD.suaId);
+  b.hidden = !g;
+  b.innerHTML = g ? `✏️ <span>Đang sửa hoá đơn <b>${esc(g.id)}</b> · ${dmy(g.date)} ${esc(g.time)} · gốc ${fmtK(g.tong)}</span><button class="sm ghost" data-huysua style="margin-left:auto">Huỷ sửa</button>` : '';
+  const bh = b.querySelector('[data-huysua]'); if (bh) bh.onclick = huySua;
+}
+async function huySua() {
+  if (!await confirmBox('Huỷ sửa? Hoá đơn gốc giữ nguyên như cũ.', 'Huỷ sửa')) return;
+  HD = blankHD(); saveDraft(); fillHDForm(); toast('Đã huỷ sửa, hoá đơn gốc không đổi');
+}
 function updateTotal() {
-  renderSticker();
+  renderSticker(); renderDangSua();
   const gs = hdGiamSticker();
   $('#hd-tong').innerHTML = gs ? `<span class="muted" style="font-size:15px;font-weight:400;text-decoration:line-through">${fmtD(hdTruocSticker())}</span> ${fmtD(hdTong())}` : fmtD(hdTong());
   const n = HD.lines.length;
   $('#btn-pay').disabled = $('#btn-pay-noprint').disabled = !n;
-  $('#btn-pay').textContent = n && hdTong() === 0 ? 'Lưu & in bill (0đ)' : 'Thanh toán & in bill';
+  $('#btn-pay').textContent = HD.suaId ? 'Lưu sửa & in lại bill' : n && hdTong() === 0 ? 'Lưu & in bill (0đ)' : 'Thanh toán & in bill';
+  $('#btn-pay-noprint').textContent = HD.suaId ? 'Lưu sửa, không in' : 'Lưu, không in';
+  $('#btn-cho').hidden = !!HD.suaId;
   $$('#hd-tt button').forEach(b => b.classList.toggle('on', b.dataset.tt === HD.tt));
   renderQRScreen();
 }
@@ -1353,9 +1404,12 @@ async function thanhToan(print) {
   if (HD.maThe) { const chu = timTheoThe(HD.maThe); if (chu && chu.phone !== phone) { toast(`Thẻ ${HD.maThe} đang thuộc ${chu.ten} (${maskPhone(chu.phone)})`, true); return; } }
   if (HD.maThe && !phone) { toast('Khách có thẻ thì cần SĐT để lưu thẻ', true); $('#hd-phone').focus(); return; }
 
-  const now = new Date(), date = ymd(now);
+  const goc = HD.suaId ? S.invoices.find(i => i.id === HD.suaId) : null;
+  if (HD.suaId && !goc) { toast('Không tìm thấy hoá đơn gốc ' + HD.suaId + ' (có thể đã bị xoá)', true); return; }
+  if (goc && (goc.phone || '') !== phone && ((goc.stickerDung || []).length || goc.stickerNhan)) { toast('Hoá đơn này có sticker gắn với SĐT cũ nên không đổi SĐT được. Muốn đổi khách: xoá hoá đơn rồi nhập lại.', true); return; }
+  const now = new Date(), date = goc ? goc.date : ymd(now);
   const inv = {
-    id: nextInvoiceId(date), date, time: `${pad(now.getHours())}:${pad(now.getMinutes())}`, ts: now.getTime(),
+    id: goc ? goc.id : nextInvoiceId(date), date, time: goc ? goc.time : `${pad(now.getHours())}:${pad(now.getMinutes())}`, ts: goc ? goc.ts : now.getTime(),
     phone, ten: ten || (phone ? S.customers.get(phone).ten : 'Khách lẻ'), danhxung: HD.danhxung,
     lines: HD.lines.map(l => ({dvId: l.dvId, ten: l.ten, hang: l.hang, loai: l.loai, giaGoc: num(l.giaGoc), giamPct: l.giamPct, gia: num(l.gia),
       giamTayPct: num(l.giamTayPct), giamTayK: num(l.giamTayK), tho: [l.chinh, ...(MOT_NGUOI.includes(l.loai) ? [] : l.phu.filter(x => x && x !== l.chinh))], tangHap: !!l.tangHap, lon: l.lon ?? !!l.tangHap, kmTen: l.giamPct && l.kmAuto ? (l.kmTen || '') : '', tenTin: l.tenTin || '', dungTang: !!l.dungTang})),
@@ -1364,8 +1418,19 @@ async function thanhToan(print) {
     stickerNhan: HD.stkMoi && stickerById(HD.stkMoi) ? {loai: HD.stkMoi, ten: stickerById(HD.stkMoi).ten, kieu: stickerById(HD.stkMoi).kieu || 'k', giaTri: num(stickerById(HD.stkMoi).giaTri), dungLuon: !!HD.stkMoiDungLuon} : null, lydo: HD.lydo.trim(), ghichu: HD.ghichu.trim(), tt: HD.tt,
     hapTangDung: 0, hapTangCong: 0, hapConLai: null,
   };
+  if (goc) { // giữ nguyên sticker / quay của HĐ gốc, ghi dấu đã sửa
+    Object.assign(inv, {stickerDung: goc.stickerDung || [], stickerNhan: goc.stickerNhan || null, quay: goc.quay || null, suaLan: (goc.suaLan || 0) + 1, suaLuc: now.getTime(),
+      suaTruoc: {tong: goc.tong, tt: goc.tt, lines: goc.lines.map(l => [l.ten, l.gia, (l.tho || []).join('+')])}});
+    inv.giamSticker = Math.min(Math.max(0, inv.lines.reduce((s, l) => s + l.gia, 0) - inv.giamThem), num(goc.giamSticker));
+  }
   inv.tong = Math.max(0, inv.lines.reduce((s, l) => s + l.gia, 0) - inv.giamThem - inv.giamSticker);
-  if (inv.stickerNhan && !inv.stickerNhan.dungLuon && !phone) { toast('Cần SĐT khách để lưu sticker cho lần sau', true); return; }
+  if (goc) { // trả lại buổi hấp tặng + bỏ lịch nhắc của HĐ gốc, lát nữa tính lại theo nội dung mới
+    const cg = goc.phone && S.customers.get(goc.phone);
+    if (cg) { cg.hapTang = Math.max(0, (cg.hapTang || 0) - (goc.hapTangCong || 0) + (goc.hapTangDung || 0)); await DB.put('customers', cg); }
+    for (const r of S.reminders.filter(r => r.invoiceId === goc.id)) await DB.del('reminders', r.id);
+    S.reminders = S.reminders.filter(r => r.invoiceId !== goc.id);
+  }
+  if (!goc && inv.stickerNhan && !inv.stickerNhan.dungLuon && !phone) { toast('Cần SĐT khách để lưu sticker cho lần sau', true); return; }
 
   const chemLines = inv.lines.filter(l => l.loai === 'hoachat' && l.tangHap);
   const newRems = [], changedRems = [];
@@ -1373,8 +1438,8 @@ async function thanhToan(print) {
     const c = S.customers.get(phone) || {phone, ten: inv.ten, danhxung: HD.danhxung, ngaysinh: '', ghichu: '', hapTang: 0, taoLuc: date};
     c.ten = inv.ten; c.danhxung = HD.danhxung; if (HD.maThe) c.maThe = HD.maThe; if (HD.ngaysinh) c.ngaysinh = HD.ngaysinh;
     c.stickers = c.stickers || [];
-    inv.stickerDung.filter(x => x.id !== 'moi').forEach(x => { const s0 = c.stickers.find(y => y.id === x.id); if (s0) s0.dung = {ngay: date, hd: inv.id}; });
-    if (inv.stickerNhan) c.stickers.push({id: uid(), loai: inv.stickerNhan.loai, ten: inv.stickerNhan.ten, kieu: inv.stickerNhan.kieu, giaTri: inv.stickerNhan.giaTri, ngayNhan: date, hdNhan: inv.id,
+    if (!goc) inv.stickerDung.filter(x => x.id !== 'moi').forEach(x => { const s0 = c.stickers.find(y => y.id === x.id); if (s0) s0.dung = {ngay: date, hd: inv.id}; });
+    if (inv.stickerNhan && !goc) c.stickers.push({id: uid(), loai: inv.stickerNhan.loai, ten: inv.stickerNhan.ten, kieu: inv.stickerNhan.kieu, giaTri: inv.stickerNhan.giaTri, ngayNhan: date, hdNhan: inv.id,
       dung: inv.stickerNhan.dungLuon ? {ngay: date, hd: inv.id} : null});
     inv.stickerCon = c.stickers.filter(x => !x.dung).length;
     inv.hapTangDung = inv.lines.filter(l => l.dungTang).length;
@@ -1404,7 +1469,7 @@ async function thanhToan(print) {
     inv.hapTangCong = num(S.settings.nhac.soHapTang) || 0;
   }
   await DB.put('invoices', inv);
-  S.invoices.push(inv);
+  if (goc) S.invoices[S.invoices.indexOf(goc)] = inv; else S.invoices.push(inv);
   for (const r of [...changedRems, ...newRems]) await DB.put('reminders', r);
   S.reminders.push(...newRems);
 
@@ -1413,7 +1478,8 @@ async function thanhToan(print) {
   HD = blankHD(); saveDraft(); fillHDForm();
   await boChoDaThanhToan(daXongCho);
   $('#hd-the-msg').innerHTML = ''; $('#hd-q').focus();
-  toast(`Đã lưu ${inv.id} · ${fmtD(inv.tong)}` + (!phone && chemLines.length ? ' · Khách không có SĐT nên không nhắc hấp được' : ''), !phone && chemLines.length);
+  if (goc) { toast(`✏️ Đã sửa ${inv.id}: ${fmtD(goc.tong)} → ${fmtD(inv.tong)}`); if (tabDangMo() === 'hoadon') renderHoaDon(); }
+  else toast(`Đã lưu ${inv.id} · ${fmtD(inv.tong)}` + (!phone && chemLines.length ? ' · Khách không có SĐT nên không nhắc hấp được' : ''), !phone && chemLines.length);
   refreshNhacBadge(); renderBanners();
   autoBackup();
 }
@@ -1676,11 +1742,33 @@ function renderHoaDon() {
         ${i.giamSticker ? `<br><span class="muted">🎟 Sticker −${fmtK(i.giamSticker)}</span>` : ''}${i.stickerNhan ? `<br><span class="muted">🎁 Trúng ${esc(stkText(i.stickerNhan))}</span>` : ''}
         ${i.giamThem ? `<br><span class="muted">Giảm thêm ${i.giamPctHD ? i.giamPctHD + '% = ' : ''}${fmtK(i.giamThem)} ${esc(i.lydo)}</span>` : ''}</td>
       <td>${TT[i.tt]}</td><td class="num"><b>${fmtK(i.tong)}</b></td>
-      <td style="white-space:nowrap"><button class="sm" data-reprint="${i.id}">In lại</button> <button class="sm ghost danger" data-delinv="${i.id}">Xoá</button></td></tr>`).join('')
+      <td style="white-space:nowrap"><button class="sm" data-reprint="${i.id}">In lại</button> <button class="sm" data-suainv="${i.id}">Sửa</button> <button class="sm ghost danger" data-delinv="${i.id}">Xoá</button>${i.suaLan ? `<div class="small"><span class="tag sua" title="Sửa lần cuối ${new Date(i.suaLuc).toLocaleString('vi-VN')}">✏️ đã sửa${i.suaLan > 1 ? ' ' + i.suaLan + ' lần' : ''}</span></div>` : ''}</td></tr>`).join('')
       || '<tr><td colspan="6" class="muted">Không có hoá đơn trong khoảng này</td></tr>');
 }
 
+async function suaHoaDon(id) {
+  const g = S.invoices.find(i => i.id === id); if (!g) return;
+  if (!await xinPin2('Sửa hoá đơn ' + id)) return;
+  if (HD.suaId && HD.suaId !== id && !await confirmBox(`Đang sửa dở hoá đơn ${esc(HD.suaId)}. Bỏ phần đang sửa đó?`, 'Bỏ')) return;
+  if (!HD.suaId && hdCoNoiDung(HD)) {
+    if (!await confirmBox('Hoá đơn đang nhập sẽ được chuyển vào <b>Đơn chờ</b> để mở hoá đơn cũ ra sửa.', 'Đồng ý')) return;
+    await datCho(true);
+  }
+  const g1 = S.settings.dichvu;
+  HD = Object.assign(blankHD(), {suaId: id, suaGiamStk: num(g.giamSticker), phone: g.phone || '', ten: g.phone ? g.ten : (g.ten === 'Khách lẻ' ? '' : g.ten),
+    danhxung: g.danhxung || 'chị', maThe: g.maThe || '', giamThem: num(g.giamThem) - (g.giamPctHD ? Math.round(g.lines.reduce((s, l) => s + num(l.gia), 0) * num(g.giamPctHD) / 100) : 0),
+    giamPctHD: num(g.giamPctHD), lydo: g.lydo || '', ghichu: g.ghichu || '', tt: g.tt || 'tienmat',
+    lines: g.lines.map(l => { const d = g1.find(x => x.id === l.dvId);
+      return {key: uid(), dvId: l.dvId || '', ten: l.ten, hang: l.hang || '', loai: l.loai, giaGoc: num(l.giaGoc), giamPct: num(l.giamPct), gia: num(l.gia),
+        v: d && l.hang ? Math.max(0, (d.nhan || S.settings.hang).indexOf(l.hang)) : 0, chinh: (l.tho || [])[0] || '', phu: (l.tho || []).slice(1),
+        tangHap: !!l.tangHap, lon: l.lon ?? !!l.tangHap, kmAuto: false, kmTen: l.kmTen || '', tenTin: l.tenTin || '', dungTang: !!l.dungTang,
+        giamTayPct: num(l.giamTayPct), giamTayK: num(l.giamTayK)}; })});
+  HD.giamThem = Math.max(0, HD.giamThem);
+  saveDraft(); showTab('thanhtoan'); fillHDForm();
+  toast('Đã mở ' + id + ' để sửa. Sửa xong bấm "Lưu sửa".');
+}
 async function deleteInvoice(id) {
+  if (HD.suaId === id) { toast('Hoá đơn này đang mở để sửa – huỷ sửa trước', true); return; }
   if (!await xinPin('Xoá hoá đơn ' + id)) return;
   const inv = S.invoices.find(i => i.id === id); if (!inv) return;
   if (!await confirmBox(`Xoá hoá đơn <b>${id}</b> của ${esc(inv.ten)} (${fmtD(inv.tong)})?<br><span class="muted small">Buổi hấp tặng và lịch nhắc của hoá đơn này cũng được trả lại như cũ.</span>`, 'Xoá hoá đơn')) return;
@@ -1806,8 +1894,11 @@ function renderCaiDat() {
   $('#cd-pin').innerHTML = `<h3>🔒 Mã PIN</h3>
     <p class="small" style="margin-top:0">Cần mã PIN để: mở tab <b>Lương &amp; lãi lỗ</b>, <b>Cài đặt</b>, <b>Nhân viên</b>; <b>xoá hoá đơn</b>; xuất Excel hoá đơn và tải file sao lưu (vì có SĐT khách). Rời tab hoặc để yên 3 phút là tự khoá lại.</p>
     <div class="row"><button class="pri" id="btn-doipin">${st.pin && st.pin.hash ? 'Đổi mã PIN' : 'Tạo mã PIN'}</button>${st.pin && st.pin.hash ? '<span class="tag ok">Đang bật</span>' : '<span class="tag warn">Chưa có mã PIN</span>'}</div>
-    <p class="small muted">Quên mã PIN: nhắn Claude để đặt lại.</p>`;
-  $('#btn-doipin').onclick = doiPin;
+    <h3 style="margin-top:16px">🔐 Mật khẩu cấp 2</h3>
+    <p class="small" style="margin-top:0">Cần mật khẩu cấp 2 để <b>sửa hoá đơn đã lưu</b> (tab Hoá đơn → nút Sửa). Khác mã PIN thường, chỉ anh chủ biết.</p>
+    <div class="row"><button class="pri" id="btn-doipin2">${st.pin2 && st.pin2.hash ? 'Đổi mật khẩu cấp 2' : 'Tạo mật khẩu cấp 2'}</button>${st.pin2 && st.pin2.hash ? '<span class="tag ok">Đang bật</span>' : '<span class="tag warn">Chưa có</span>'}</div>
+    <p class="small muted">Quên mã PIN / mật khẩu cấp 2: nhắn Claude để đặt lại.</p>`;
+  $('#btn-doipin').onclick = doiPin; $('#btn-doipin2').onclick = doiPin2;
   const lb = S.lastBackup ? new Date(S.lastBackup) : null;
   $('#cd-backup').innerHTML = `<h3>Sao lưu dữ liệu</h3>
     <p class="small" style="margin-top:0">Lần sao lưu gần nhất: <b>${lb ? lb.toLocaleString('vi-VN') : 'chưa có'}</b></p>
@@ -2393,6 +2484,7 @@ function bindEvents() {
     const r = e.target.closest('[data-range]'); if (r) setRange(r.dataset.range);
     const p = e.target.closest('[data-reprint]'); if (p) inBill(S.invoices.find(i => i.id === p.dataset.reprint));
     const d = e.target.closest('[data-delinv]'); if (d) deleteInvoice(d.dataset.delinv);
+    const sv = e.target.closest('[data-suainv]'); if (sv) suaHoaDon(sv.dataset.suainv);
   });
   $('#hd-from').onchange = $('#hd-to').onchange = renderHoaDon;
   $('#btn-xlsx').onclick = exportExcel;
