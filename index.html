@@ -626,7 +626,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.10.0 (09/11/2026)';
+const APP_VERSION = '2.10.1 (09/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -841,7 +841,7 @@ function kmNhomGoc(ten, loai, km) {
 }
 const STICKER_GOC = [{id: 's5', ten: '', kieu: 'pct', giaTri: 5}, {id: 's10', ten: '', kieu: 'pct', giaTri: 10}, {id: 's100', ten: '', kieu: 'k', giaTri: 100},
   {id: 'ruby', ten: 'Ruby', kieu: 'k', giaTri: 150}, {id: 's200', ten: '', kieu: 'k', giaTri: 200}];
-const TYLE_GOC = {s5: 45, s10: 30, s100: 15, ruby: 7, s200: 3}; // % trúng mặc định
+const TYLE_GOC = {s5: 25, s10: 25, s100: 20, ruby: 18, s200: 12}; // % trúng mặc định
 const tyleStk = x => x.tyle != null ? num(x.tyle) : (TYLE_GOC[x.id] ?? 10);
 function quayChon() { // bốc ngẫu nhiên theo tỷ lệ (crypto, không đoán trước được)
   const ds = (S.settings.sticker || []).filter(x => tyleStk(x) > 0); const tong = ds.reduce((a, x) => a + tyleStk(x), 0); if (!tong) return null;
@@ -2139,6 +2139,8 @@ async function apDungLenh() {
       if (b.loai === 'themDV') { for (const x of b.ds || []) { const cu = S.settings.dichvu.find(d => d.ten === x.ten);
           if (cu) Object.assign(cu, x); else S.settings.dichvu.push(Object.assign({id: uid(), gia: [], tangHap: false, tenTin: '', ghichu: '', kmNhom: 'khac'}, x)); }
         await saveSettings(); renderPicker(); ketQua.push(`Đã thêm/cập nhật ${(b.ds || []).length} dịch vụ`); }
+      if (b.loai === 'tyleStk') { let n = 0; (S.settings.sticker || []).forEach(x => { if (b.ds && b.ds[x.id] != null) { x.tyle = num(b.ds[x.id]); n++; } });
+        await saveSettings(); ketQua.push(`Đã đổi tỷ lệ ${n} giải quay thưởng`); }
       if (b.loai === 'inThu') { setTimeout(() => caiDatAction('testprint'), 1500); ketQua.push('Đã gửi 1 bill mẫu ra máy in mặc định'); }
       if (b.loai === 'caidat') { Object.entries(b.dat).forEach(([k, v]) => setPath(S.settings, k, v)); await saveSettings(); ketQua.push('Đã chỉnh cài đặt'); }
     } catch (e) { ketQua.push('Lỗi: ' + e.message); }
