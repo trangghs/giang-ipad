@@ -13,6 +13,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Giang">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2b1d3a">
 <style id="page-style"></style>
 <style>
 :root{
@@ -213,6 +215,7 @@ body.bg-dangto{overflow:hidden}
 .xh-d ul{grid-column:2 / 4;margin:2px 0 0;padding-left:18px;color:#4A4440;font-size:13px} .xh-d li{margin:2px 0}
 th button.sx{border:0;background:none;padding:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap}
 th button.sx span{opacity:.45;font-size:11px} th button.sx.on{color:var(--brand)} th button.sx.on span{opacity:1}
+.pin-o.mk2{font-size:20px;letter-spacing:2px}
 .pin-o{width:100%;box-sizing:border-box;font-size:28px;letter-spacing:12px;text-align:center;padding:12px;border-radius:12px;margin:6px 0}
 .pin-loi{color:var(--bad);min-height:20px;font-size:14px;text-align:center}
 /* ---- điện thoại (chế độ nhân viên, màn hình hẹp) ---- */
@@ -518,6 +521,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 <section class="tab" id="tab-tinnhan">
   <h2>Tin nhắn khách <span class="muted" id="tn-count"></span></h2>
   <p class="muted small" style="margin-top:-8px">Bot đọc tin Messenger 93K, page nhỏ và Instagram rồi soạn nháp. Sửa nếu cần (mỗi dòng là 1 tin) → bấm <b>Gửi</b>. Bot học giọng từ câu anh sửa.</p>
+  <div id="tn-push"></div>
   <div id="tn-list"></div>
 </section>
 
@@ -631,7 +635,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.10.4 (09/11/2026)';
+const APP_VERSION = '2.10.6 (09/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -714,21 +718,23 @@ async function bamPin(pin, salt) {
   catch (e) { let h = 2166136261; for (const ch of t) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return 'f' + h.toString(16); }
 }
 const PIN_SAI = {n: 0, den: 0};
-function hopPin(tieuDe, moTa, haiO) {
+function hopPin(tieuDe, moTa, haiO, chu) { // chu = true: mật khẩu chữ + số 8–20 ký tự (MK cấp 2)
   return new Promise(res => {
     const d = dialog(`<h3 style="margin-top:0">🔒 ${tieuDe}</h3>${moTa ? `<p class="muted" style="margin-top:-4px">${moTa}</p>` : ''}
-      <input class="pin-o" id="pin1" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••">
-      ${haiO ? '<input class="pin-o" id="pin2" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="nhập lại">' : ''}
+      <input class="pin-o${chu ? ' mk2' : ''}" id="pin1" type="password" ${chu ? 'autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20" placeholder="8–20 ký tự"' : 'inputmode="numeric" maxlength="8" placeholder="••••"'} autocomplete="off">
+      ${haiO ? `<input class="pin-o${chu ? ' mk2' : ''}" id="pin2" type="password" ${chu ? 'autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20"' : 'inputmode="numeric" maxlength="8"'} autocomplete="off" placeholder="nhập lại">` : ''}
+      ${chu ? '<label class="small muted" style="display:block;text-align:center"><input type="checkbox" id="pin-hien"> Hiện mật khẩu</label>' : ''}
       <div class="pin-loi" id="pin-loi"></div>
       <div class="row" style="justify-content:flex-end"><button data-no>Huỷ</button><button class="pri" data-yes>Xác nhận</button></div>`);
     const xong = v => { d.close(); res(v); };
-    const ok = () => { const a = $('#pin1').value.trim(), b = haiO ? $('#pin2').value.trim() : a;
-      if (!/^\d{4,8}$/.test(a)) { $('#pin-loi').textContent = 'Mã PIN gồm 4–8 chữ số'; return; }
+    const ok = () => { const a = chu ? $('#pin1').value : $('#pin1').value.trim(), b = haiO ? (chu ? $('#pin2').value : $('#pin2').value.trim()) : a;
+      if (chu ? !a || (haiO && !(a.length >= 8 && a.length <= 20)) : !/^\d{4,8}$/.test(a)) { $('#pin-loi').textContent = chu ? 'Mật khẩu cấp 2 dài 8–20 ký tự (chữ, số, ký hiệu đều được)' : 'Mã PIN gồm 4–8 chữ số'; return; }
       if (a !== b) { $('#pin-loi').textContent = 'Hai lần nhập không giống nhau'; return; }
       xong(a); };
     d.querySelector('[data-no]').onclick = () => xong(null); d.querySelector('[data-yes]').onclick = ok;
     d.oncancel = () => res(null);
     d.querySelectorAll('.pin-o').forEach(i => i.onkeydown = e => { if (e.key === 'Enter') ok(); });
+    const hien = d.querySelector('#pin-hien'); if (hien) hien.onchange = () => d.querySelectorAll('.pin-o').forEach(i => i.type = hien.checked ? 'text' : 'password');
     setTimeout(() => $('#pin1').focus(), 50);
   });
 }
@@ -752,10 +758,10 @@ async function xinPin(viec) {
 }
 /* MẬT KHẨU CẤP 2 – riêng cho việc nhạy cảm (sửa hoá đơn đã lưu). Tạo lần đầu phải nhập mã PIN thường. */
 async function datPin2Moi(tieuDe) {
-  const pin = await hopPin(tieuDe || 'Tạo mật khẩu cấp 2', 'Mật khẩu cấp 2 dùng để sửa hoá đơn đã lưu. Nên khác mã PIN thường và chỉ anh chủ biết.', true);
+  const pin = await hopPin(tieuDe || 'Tạo mật khẩu cấp 2', 'Dùng để sửa hoá đơn đã lưu. Dài 8–20 ký tự, gõ chữ, số, ký hiệu đều được (phân biệt chữ hoa/thường). Chỉ anh chủ biết.', true, true);
   if (!pin) return false;
   if (S.settings.pin && S.settings.pin.hash && await bamPin(pin, S.settings.pin.salt) === S.settings.pin.hash) { toast('Mật khẩu cấp 2 phải khác mã PIN thường', true); return false; }
-  const salt = uid(); S.settings.pin2 = {salt, hash: await bamPin(pin, salt)}; await saveSettings();
+  const salt = uid(); S.settings.pin2 = {salt, hash: await bamPin(pin, salt), chu: true}; await saveSettings();
   toast('Đã lưu mật khẩu cấp 2'); return true;
 }
 async function xinPin2(viec) {
@@ -767,9 +773,11 @@ async function xinPin2(viec) {
   }
   while (true) {
     if (Date.now() < PIN_SAI.den) { toast(`Nhập sai nhiều lần. Thử lại sau ${Math.ceil((PIN_SAI.den - Date.now()) / 1000)} giây`, true); return false; }
-    const pin = await hopPin('Mật khẩu cấp 2', viec);
+    const pin = await hopPin('Mật khẩu cấp 2', viec, false, true);
     if (pin == null) return false;
-    if (await bamPin(pin, S.settings.pin2.salt) === S.settings.pin2.hash) { PIN_SAI.n = 0; return true; }
+    if (await bamPin(pin, S.settings.pin2.salt) === S.settings.pin2.hash) { PIN_SAI.n = 0;
+      if (!S.settings.pin2.chu) { toast('Mật khẩu cấp 2 giờ dài 8–20 ký tự – đặt lại mật khẩu mới', true); if (!await datPin2Moi('Đặt mật khẩu cấp 2 mới (8–20 ký tự)')) return false; }
+      return true; }
     PIN_SAI.n++; if (PIN_SAI.n >= 5) { PIN_SAI.n = 0; PIN_SAI.den = Date.now() + 60000; }
     toast('Sai mật khẩu cấp 2', true);
   }
@@ -3077,11 +3085,68 @@ async function ipadTinNhan() {
       S.settings.bot = {link: (d.exists && d.data().link) || ''}; } catch (e) { S.settings.bot = null; _tnBat = false; return; }
     document.body.classList.add('tra-loi-tin');
     if (!botBatDau._da) { botBatDau._da = true; botBatDau(); } else botTai();
+    pushKhoiDong();
+    if (/[?&]tab=tinnhan/.test(location.search)) { showTab('tinnhan'); try { history.replaceState(null, '', location.pathname); } catch (e) {} }
   } else {
-    S.settings.bot = null; Bot.ds = []; document.body.classList.remove('tra-loi-tin'); renderBadgeTN();
+    S.settings.bot = null; Bot.ds = []; document.body.classList.remove('tra-loi-tin'); renderBadgeTN(); renderPush();
     if (document.body.dataset.tab === 'tinnhan') showTab('thanhtoan');
   }
 }
+/* THÔNG BÁO ĐẨY (Web Push, 2.10.6) – điện thoại nhân viên có quyền trả lời tin.
+   Máy đăng ký → lưu vào Firestore pushsub/{uid}_{máy}. Cloud Function giangpush gửi khi bot có nháp mới. */
+const VAPID_PUB = 'BOcsqv0tduSlaOgnvPOViTaMSldH7b0GYs1dHMG3fBZPtRepQ5chgfrvOJC8HXzPTREodpjCIcuWExT7Yn0J84o';
+const Push = {reg: null, sub: null, loi: ''};
+const pushHoTro = () => IPAD && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const laIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const dangCaiApp = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+function b64u(x) { const r = atob((x + '='.repeat((4 - x.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); }
+function pushDevId() { let i = ''; try { i = localStorage.getItem('giang-dev') || ''; if (!i) { i = uid(); localStorage.setItem('giang-dev', i); } } catch (e) { i = 'x'; } return i; }
+const pushDocId = () => Cloud.user.uid + '_' + pushDevId();
+async function pushLuu(sub) {
+  await Cloud.db.collection('pushsub').doc(pushDocId()).set({uid: Cloud.user.uid, email: Cloud.user.email || '', ten: String((Cloud.nd && (Cloud.nd.tenNV || Cloud.nd.ten)) || '').slice(0, 40),
+    sub: JSON.parse(JSON.stringify(sub)), ua: navigator.userAgent.slice(0, 150), luc: Date.now()});
+}
+async function pushKhoiDong() {
+  if (pushHoTro()) {
+    try { Push.reg = await navigator.serviceWorker.register('sw.js');
+      Push.sub = await Push.reg.pushManager.getSubscription();
+      if (Push.sub && Notification.permission === 'granted') await pushLuu(Push.sub); // làm mới mỗi lần mở app
+    } catch (e) { Push.loi = e.message || String(e); }
+  }
+  renderPush();
+}
+async function pushBat() {
+  const nut = $('#push-bat'); if (nut) { nut.disabled = true; nut.textContent = 'Đang bật…'; }
+  try {
+    const q = await Notification.requestPermission(); // phải gọi ngay khi bấm (iPhone yêu cầu)
+    if (q !== 'granted') { Push.loi = q === 'denied' ? 'chan' : 'Chưa cho phép thông báo'; renderPush(); return; }
+    if (!Push.reg) Push.reg = await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    Push.sub = await Push.reg.pushManager.getSubscription() || await Push.reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUB)});
+    await pushLuu(Push.sub); Push.loi = '';
+    toast('Đã bật thông báo trên máy này');
+    Push.reg.showNotification('GIANG – đã bật thông báo', {body: 'Có tin nhắn khách mới, máy sẽ báo ở đây kể cả khi khoá màn hình.', tag: 'thu', icon: 'apple-touch-icon.png'}).catch(() => {});
+  } catch (e) { Push.loi = e.message || String(e); toast('Không bật được thông báo: ' + Push.loi, true); }
+  renderPush();
+}
+async function pushTat() {
+  try { if (Push.sub) await Push.sub.unsubscribe(); } catch (e) {}
+  try { await Cloud.db.collection('pushsub').doc(pushDocId()).delete(); } catch (e) {}
+  Push.sub = null; renderPush(); toast('Đã tắt thông báo trên máy này');
+}
+function renderPush() {
+  const b = $('#tn-push'); if (!b) return;
+  if (!IPAD || !_tnBat) { b.innerHTML = ''; return; }
+  let h;
+  if (laIOS() && !dangCaiApp()) h = '🔔 Muốn điện thoại báo khi có tin nhắn mới: trong Safari bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên lên) → <b>Thêm vào MH chính</b>. Sau đó mở app từ biểu tượng <b>GIANG</b> ngoài màn hình chính, vào lại tab này bấm "Bật thông báo". (iPhone cần iOS 16.4 trở lên.)';
+  else if (!pushHoTro()) h = '🔔 Máy này chưa hỗ trợ thông báo đẩy. iPhone cần iOS 16.4 trở lên và mở app từ biểu tượng ngoài màn hình chính.';
+  else if (Notification.permission === 'denied' || Push.loi === 'chan') h = '🔕 Thông báo đang bị chặn. Vào <b>Cài đặt</b> điện thoại → <b>Thông báo</b> → <b>GIANG</b> → bật <b>Cho phép thông báo</b>, rồi mở lại app.';
+  else if (Push.sub && Notification.permission === 'granted') h = '🔔 <b>Đã bật thông báo</b> trên máy này: có tin nhắn khách mới sẽ báo cả khi khoá màn hình. <button class="sm ghost" id="push-tat">Tắt</button>';
+  else h = '🔔 Nhận thông báo khi có tin nhắn khách mới, kể cả khi khoá màn hình. <button class="sm pri" id="push-bat">Bật thông báo</button>' + (Push.loi ? '<div class="small" style="color:var(--bad)">' + esc(Push.loi) + '</div>' : '');
+  b.innerHTML = '<div class="card small" style="max-width:820px">' + h + '</div>';
+  const x = $('#push-bat'); if (x) x.onclick = pushBat; const y = $('#push-tat'); if (y) y.onclick = pushTat;
+}
+if (IPAD && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.mo === 'tinnhan' && _tnBat) { showTab('tinnhan'); botTai(); } });
 async function thuChu(u) { // đọc được khachchu/meta = là tài khoản chủ (do Firestore rules quyết định)
   try { const m = await Cloud.db.collection('khachchu').doc('meta').get(); if (Cloud.user !== u) return; Cloud.chu = true; KC.meta = m.exists ? m.data() : null; }
   catch (e) { Cloud.chu = false; KC.ds = null; if (document.body.dataset.tab === 'khachchu') showTab('thanhtoan'); }
