@@ -108,8 +108,6 @@ select.q-chu{border-color:#b4506a;color:#b4506a;font-weight:700}
 .vq-giay{position:absolute;top:-12px;width:9px;height:14px;z-index:3;border-radius:2px;animation:vqroi 2.8s ease-in forwards}
 @keyframes vqroi{to{transform:translateY(105vh) rotate(720deg)}}
 .quay-kq{color:#b4506a}
-.quay-mo-mo{opacity:.5}.quay-mo-mo[disabled],.quay-tat button[disabled]{cursor:not-allowed;opacity:.5}
-.quay-tat{margin-top:8px;padding:8px 10px;border:1px dashed #d8cfc4;border-radius:10px;color:#8a7f74;font-size:14px}
 .kc-ds{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .kc-it{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
 .kc-it .sdt{font-size:17px;font-weight:700;letter-spacing:.3px} .kc-it a{margin-left:10px;font-size:14px}
@@ -628,7 +626,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.10.2 (09/11/2026)';
+const APP_VERSION = '2.10.3 (09/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -1199,7 +1197,6 @@ function moVongQuay() { // vòng quay toàn màn hình; 1 hoá đơn chỉ quay 
 function renderQuayIpad() { // nút quay trên điện thoại/iPad nhân viên
   const b = $('#ip-quay'); if (!b) return;
   if (!IPAD || !(S.settings.sticker || []).length) { b.innerHTML = ''; return; }
-  if (!coHoaChatLon()) { b.innerHTML = `<button class="big quay-mo-mo" disabled>🎡 Cho khách quay thưởng</button><div class="muted small" style="text-align:center;margin-top:2px">Chỉ quay khi bill có uốn / duỗi-ép / nhuộm cả đầu (hoặc balayage, combo)</div>`; return; }
   b.innerHTML = HD.quay ? `<div class="quay-kq">🎡 Khách đã quay trúng <b>${esc(stkText(stickerById(HD.quay.id) || {kieu: 'k', giaTri: 0}))}</b> – gửi về quầy để áp vào bill</div>`
     : `<button class="pri big" id="ip-quay-mo">🎡 Cho khách quay thưởng</button>`;
   const m = $('#ip-quay-mo'); if (m) m.onclick = moVongQuay;
@@ -1207,13 +1204,12 @@ function renderQuayIpad() { // nút quay trên điện thoại/iPad nhân viên
 function renderSticker() {
   const box = $('#hd-sticker'), c = hdCustomer(), loai = S.settings.sticker || [];
   const cho = (c?.stickers || []).filter(x => !x.dung);
-  const duocBoc = coHoaChatLon() && loai.length;
-  if (!cho.length && !duocBoc) { HD.stkDung = []; HD.stkMoi = '';
-    box.innerHTML = loai.length && HD.lines.length ? `<div class="quay-tat"><b>🎁 Bốc thăm</b> <button class="sm" disabled>🎡 Cho khách quay</button> <span class="muted small">chỉ quay khi bill có uốn / duỗi-ép / nhuộm cả đầu (hoặc balayage, combo)</span></div>` : ''; return; }
+  const duocBoc = HD.lines.length && loai.length; // anh chủ tự quyết khách nào được quay
+  if (!cho.length && !duocBoc) { box.innerHTML = ''; HD.stkDung = []; HD.stkMoi = ''; return; }
   box.innerHTML = `<div class="stk">
     ${cho.length ? `<div><b>🎟 Sticker trên thẻ đang chờ dùng</b> <span class="muted small">(tích để trừ thẳng vào tổng bill)</span><br>
       ${cho.map(x => `<label><input type="checkbox" data-stkdung="${x.id}" ${HD.stkDung.includes(x.id) ? 'checked' : ''}> <b>${esc(stkText(x))}</b> <span class="muted small">(nhận ${dm(x.ngayNhan)})</span></label>`).join('')}</div>` : ''}
-    ${duocBoc ? `<div ${cho.length ? 'style="margin-top:8px"' : ''}><b>🎁 Bốc thăm</b> <span class="muted small">(có dịch vụ hoá chất lớn)</span> –
+    ${duocBoc ? `<div ${cho.length ? 'style="margin-top:8px"' : ''}><b>🎁 Bốc thăm</b> –
       ${HD.quay ? `<b class="quay-kq">🎡 Quay trúng ${esc(stkText(stickerById(HD.quay.id) || {kieu: 'k', giaTri: 0}))}</b> <span class="muted small">(${esc(HD.quay.nguoi || 'máy quầy')} · ${new Date(HD.quay.luc).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})})</span> <button class="sm ghost" data-quay-sua>Sửa (PIN)</button>`
         : `<button class="sm pri" data-quay-mo>🎡 Cho khách quay</button> hoặc khách bốc tay được`}
       <select data-stkmoi ${HD.quay ? 'hidden' : ''}><option value="">– chưa bốc / không trúng –</option>${loai.map(x => `<option value="${x.id}" ${HD.stkMoi === x.id ? 'selected' : ''}>${esc(stkText(x))}</option>`).join('')}</select>
