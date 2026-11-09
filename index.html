@@ -87,6 +87,8 @@ main{padding:18px}
 body:not(.ipad) #nav button[data-tab=luongtoi]{display:none}
 #nav button[data-tab=khachchu],#nav button[data-tab=doanhthu]{display:none} body.ipad[data-tab=khachchu] #ip-bar{display:none!important} body.ipad.la-chu #nav button[data-tab=khachchu],body.ipad.la-chu #nav button[data-tab=doanhthu]{display:inline-block!important}
 body.ipad[data-tab=doanhthu] #ip-bar{display:none!important}
+body.ipad.tra-loi-tin #nav button[data-tab=tinnhan]{display:inline-block!important} body.ipad[data-tab=tinnhan] #ip-bar{display:none!important}
+body.ipad #tn-doilink{display:none} body.ipad #nav{overflow-x:auto;scrollbar-width:none}
 @media (max-width:700px){body.ipad.la-chu .logo{display:none} body.ipad.la-chu #nav button{padding-left:7px!important;padding-right:7px!important;font-size:15px!important;white-space:nowrap}}
 .dt-top{display:grid;grid-template-columns:1fr 1fr;gap:10px} .dt-o{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
 .dt-o .so{font-size:24px;font-weight:800;letter-spacing:-.5px} .dt-o .nh{font-size:13px;color:var(--muted)}
@@ -95,6 +97,17 @@ body.ipad[data-tab=doanhthu] #ip-bar{display:none!important}
 .dt-cot button.on{background:#2b1d3a} .dt-cot button span{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--muted)}
 .dt-hd{display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px} .dt-hd b{margin-left:auto;white-space:nowrap}
 select.q-chu{border-color:#b4506a;color:#b4506a;font-weight:700}
+#vq{position:fixed;inset:0;z-index:9999;background:rgba(30,20,45,.82);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.vq-in{background:#fbf7f2;border-radius:24px;padding:22px 18px;width:min(92vw,460px);text-align:center;position:relative;z-index:2}
+.vq-tit{font-size:24px;font-weight:800;color:#2b1d3a}.vq-sub{color:#6f6479;margin:4px 0 12px}
+.vq-wrap{position:relative;width:min(80vw,380px);margin:0 auto}.vq-wrap svg{width:100%;display:block}
+.vq-kim{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:30px solid #b4506a;z-index:2;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
+#vq-nut{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26%;aspect-ratio:1;border-radius:50%;border:5px solid #fff;background:#b4506a;color:#fff;font-weight:900;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+#vq-nut:disabled{opacity:.85}.vq-trung{font-size:22px;margin:14px 0 10px;color:#2b1d3a}.vq-trung b{color:#b4506a;font-size:30px}
+#vq-kq .pri{min-width:140px}#vq-dong{margin-top:10px}
+.vq-giay{position:absolute;top:-12px;width:9px;height:14px;z-index:3;border-radius:2px;animation:vqroi 2.8s ease-in forwards}
+@keyframes vqroi{to{transform:translateY(105vh) rotate(720deg)}}
+.quay-kq{color:#b4506a}
 .kc-ds{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .kc-it{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
 .kc-it .sdt{font-size:17px;font-weight:700;letter-spacing:.3px} .kc-it a{margin-left:10px;font-size:14px}
@@ -416,6 +429,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <button data-tab="hoadon">Hoá đơn &amp; doanh thu</button>
     <button data-tab="luong">Lương &amp; lãi lỗ</button>
     <button data-tab="xuhuong">Xu hướng</button>
+    <button data-tab="camera">Camera</button>
     <button data-tab="nhanvien">Nhân viên<span class="badge" id="badge-nv" hidden>0</span></button>
     <button data-tab="caidat">Cài đặt</button>
     <button data-tab="luongtoi">Lương của tôi</button>
@@ -482,6 +496,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
         </div>
         <div id="hd-qr"></div>
         <div class="tong"><span class="muted">Khách trả</span><b id="hd-tong">0đ</b></div>
+        <div id="ip-quay" style="margin:6px 0"></div>
         <button class="pri" id="btn-guiquay">📤 Gửi về quầy</button>
         <div class="pay-btns">
           <button class="pri" id="btn-pay">Thanh toán &amp; in bill</button>
@@ -569,6 +584,12 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   <div class="card" style="margin-top:16px"><h3>Tài khoản nhân viên</h3><div id="nv-ds"></div></div>
 </section>
 <section class="tab" id="tab-xuhuong"><div class="card" id="xh-box"></div></section>
+<section class="tab" id="tab-camera"><div class="card">
+  <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Camera quán</h3>
+    <span class="row" style="gap:6px"><button class="sm" data-cam="quan_nhe">Nhẹ (mượt)</button><button class="sm" data-cam="quan">Nét</button><button class="sm" id="cam-full">⛶ Toàn màn hình</button></span></div>
+  <div id="cam-tt" class="muted small" style="margin:8px 0"></div>
+  <div id="cam-khung" style="position:relative;background:#111;border-radius:12px;overflow:hidden;aspect-ratio:16/9;max-height:72vh"><iframe id="cam-if" title="Camera" style="width:100%;height:100%;border:0" allow="autoplay; fullscreen"></iframe></div>
+  <p class="muted small">Hình lấy thẳng từ camera trong mạng quán (không qua máy chủ hãng), chỉ xem được trên máy quầy.</p></div></section>
 <section class="tab" id="tab-doanhthu"><div class="card"><div class="row" style="justify-content:space-between"><b id="dtc-ngay" style="font-size:18px"></b>
   <span><button class="sm" id="dtc-lui">‹</button> <button class="sm" id="dtc-toi">›</button></span></div><div id="dtc-box" style="margin-top:10px"></div></div></section>
 <section class="tab" id="tab-khachchu"><div class="card"><div class="row"><input id="kc-q" class="grow big-input" placeholder="Tìm tên hoặc SĐT" autocomplete="off"></div>
@@ -605,7 +626,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.9.9 (07/11/2026)';
+const APP_VERSION = '2.10.0 (09/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -820,6 +841,13 @@ function kmNhomGoc(ten, loai, km) {
 }
 const STICKER_GOC = [{id: 's5', ten: '', kieu: 'pct', giaTri: 5}, {id: 's10', ten: '', kieu: 'pct', giaTri: 10}, {id: 's100', ten: '', kieu: 'k', giaTri: 100},
   {id: 'ruby', ten: 'Ruby', kieu: 'k', giaTri: 150}, {id: 's200', ten: '', kieu: 'k', giaTri: 200}];
+const TYLE_GOC = {s5: 45, s10: 30, s100: 15, ruby: 7, s200: 3}; // % trúng mặc định
+const tyleStk = x => x.tyle != null ? num(x.tyle) : (TYLE_GOC[x.id] ?? 10);
+function quayChon() { // bốc ngẫu nhiên theo tỷ lệ (crypto, không đoán trước được)
+  const ds = (S.settings.sticker || []).filter(x => tyleStk(x) > 0); const tong = ds.reduce((a, x) => a + tyleStk(x), 0); if (!tong) return null;
+  const r = crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32 * tong; let cong = 0;
+  for (const x of ds) { cong += tyleStk(x); if (r < cong) return x; } return ds[ds.length - 1];
+}
 const stkVal = x => x.kieu === 'pct' ? num(x.giaTri) + '%' : fmtK(num(x.giaTri));
 const stkText = x => (x.ten ? x.ten + ' ' : '') + stkVal(x);
 const KM_NHOM = {lon: 'Dịch vụ lớn', nho: 'Dịch vụ nhỏ', khac: 'Khác', combo: 'Combo (chỉ giảm thêm)', khong: 'Không giảm'};
@@ -870,7 +898,7 @@ const activeStaff = () => S.settings.nhanvien.filter(n => n.active);
    THANH TOÁN
    ========================================================= */
 let HD = blankHD();
-function blankHD() { return {bonus: {}, phone: '', ten: '', danhxung: 'chị', lines: [], choId: '', giamThem: 0, giamPctHD: 0, maThe: '', ngaysinh: '', stkDung: [], stkMoi: '', stkMoiDungLuon: false, lydo: '', ghichu: '', tt: 'tienmat'}; }
+function blankHD() { return {quay: null, bonus: {}, phone: '', ten: '', danhxung: 'chị', lines: [], choId: '', giamThem: 0, giamPctHD: 0, maThe: '', ngaysinh: '', stkDung: [], stkMoi: '', stkMoiDungLuon: false, lydo: '', ghichu: '', tt: 'tienmat'}; }
 const saveDraft = () => { try { localStorage.setItem('giang-draft', JSON.stringify(HD)); } catch (e) {} capNhatChoDangMo(); };
 
 /* ---------- ĐƠN CHỜ THANH TOÁN ---------- */
@@ -1105,7 +1133,7 @@ function renderBonus() {
 
 const moRong = new Set(); // các dòng đang mở phần "Giảm thêm ⋯"
 function renderLines() {
-  apLaiKm(); renderBonus();
+  apLaiKm(); renderBonus(); renderQuayIpad();
   const staffOpts = sel => activeStaff().map(n => `<option value="${n.id}" ${n.id === sel ? 'selected' : ''}>${esc(n.ten)}</option>`).join('');
   $('#hd-lines').innerHTML = HD.lines.length ? HD.lines.map(l => `
     <div class="line" data-key="${l.key}">
@@ -1135,6 +1163,44 @@ function renderLines() {
   updateTotal(); renderKhachInfo(); renderPicker(); if (S.donCho) renderDonCho();
 }
 
+function moVongQuay() { // vòng quay toàn màn hình; 1 hoá đơn chỉ quay 1 lần
+  if (HD.quay) { toast('Hoá đơn này đã quay rồi'); return; }
+  const ds = (S.settings.sticker || []).filter(x => tyleStk(x) > 0); if (!ds.length) { toast('Chưa cài giải thưởng', true); return; }
+  const tong = ds.reduce((a, x) => a + tyleStk(x), 0), MAU = ['#f6d6de', '#e9dff3', '#fde8c8', '#d8ecf3', '#e3f1dc', '#f3e0d2'];
+  let goc = 0; const lat = ds.map((x, i) => { const g = Math.max(24, tyleStk(x) / tong * 360); const o = {x, tu: goc, g, mau: MAU[i % MAU.length]}; goc += g; return o; });
+  const k = 360 / goc; lat.forEach(o => { o.tu *= k; o.g *= k; }); // co lại đủ 360° (lát nhỏ tối thiểu 18° cho dễ nhìn)
+  const P = (a, r) => [200 + r * Math.sin(a * Math.PI / 180), 200 - r * Math.cos(a * Math.PI / 180)];
+  const svg = lat.map(o => { const [x1, y1] = P(o.tu, 190), [x2, y2] = P(o.tu + o.g, 190), [tx, ty] = P(o.tu + o.g / 2, 128);
+    return `<path d="M200 200 L${x1} ${y1} A190 190 0 ${o.g > 180 ? 1 : 0} 1 ${x2} ${y2} Z" fill="${o.mau}" stroke="#fff" stroke-width="3"/>
+      <text x="${tx}" y="${ty}" transform="rotate(${o.tu + o.g / 2} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle" font-size="${o.g < 30 ? 22 : 30}" font-weight="800" fill="#2b1d3a">${esc(stkVal(o.x))}</text>`; }).join('');
+  const box = document.createElement('div'); box.id = 'vq';
+  box.innerHTML = `<div class="vq-in"><div class="vq-tit">🎁 Vòng quay may mắn</div><div class="vq-sub">${HD.ten ? esc(cap(HD.danhxung) + ' ' + HD.ten) + ' ơi, ' : ''}chạm nút để quay nhé!</div>
+    <div class="vq-wrap"><div class="vq-kim"></div><svg viewBox="0 0 400 400" id="vq-svg"><circle cx="200" cy="200" r="197" fill="#2b1d3a"/>${svg}</svg>
+      <button id="vq-nut">QUAY</button></div><div id="vq-kq"></div><button class="ghost" id="vq-dong">Để sau</button></div>`;
+  document.body.appendChild(box);
+  $('#vq-dong').onclick = () => box.remove();
+  $('#vq-nut').onclick = () => {
+    if (HD.quay) return; const x = quayChon(); if (!x) return; const o = lat.find(l => l.x.id === x.id);
+    const dich = o.tu + o.g * (0.2 + crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32 * 0.6); // điểm rơi ngẫu nhiên trong lát
+    HD.quay = {id: x.id, luc: Date.now(), nguoi: IPAD ? ((Cloud.nd || {}).tenNV || (Cloud.nd || {}).ten || 'iPad') : 'Máy quầy'};
+    HD.stkMoi = x.id; saveDraft();
+    if (IPAD && Cloud.db && Cloud.user) Cloud.db.collection('quaythuong').add({uid: Cloud.user.uid, nguoi: HD.quay.nguoi, kq: x.id, giai: stkText(x), khach: (HD.ten || '').slice(0, 60), luc: HD.quay.luc}).catch(e => console.warn('quaythuong', e));
+    $('#vq-nut').disabled = true; $('#vq-dong').hidden = true;
+    const svgEl = $('#vq-svg'); svgEl.style.transition = 'transform 5.2s cubic-bezier(.12,.6,.1,1)'; svgEl.style.transform = `rotate(${360 * 7 - dich}deg)`;
+    setTimeout(() => {
+      $('#vq-kq').innerHTML = `<div class="vq-trung">🎉 Chúc mừng ${HD.ten ? esc(cap(HD.danhxung) + ' ' + HD.ten) : 'bạn'}!<br>Trúng <b>${esc(stkText(x))}</b></div><button class="pri" id="vq-xong">Xong</button>`;
+      for (let i = 0; i < 60; i++) { const c = document.createElement('i'); c.className = 'vq-giay'; c.style.left = Math.random() * 100 + '%'; c.style.background = MAU[i % 6].replace('f6', 'e8'); c.style.animationDelay = Math.random() * .6 + 's'; box.appendChild(c); }
+      $('#vq-xong').onclick = () => { box.remove(); renderLines(); };
+    }, 5400);
+  };
+}
+function renderQuayIpad() { // nút quay trên điện thoại/iPad nhân viên
+  const b = $('#ip-quay'); if (!b) return;
+  if (!IPAD || !coHoaChatLon() || !(S.settings.sticker || []).length) { b.innerHTML = ''; return; }
+  b.innerHTML = HD.quay ? `<div class="quay-kq">🎡 Khách đã quay trúng <b>${esc(stkText(stickerById(HD.quay.id) || {kieu: 'k', giaTri: 0}))}</b> – gửi về quầy để áp vào bill</div>`
+    : `<button class="pri big" id="ip-quay-mo">🎡 Cho khách quay thưởng</button>`;
+  const m = $('#ip-quay-mo'); if (m) m.onclick = moVongQuay;
+}
 function renderSticker() {
   const box = $('#hd-sticker'), c = hdCustomer(), loai = S.settings.sticker || [];
   const cho = (c?.stickers || []).filter(x => !x.dung);
@@ -1144,7 +1210,9 @@ function renderSticker() {
     ${cho.length ? `<div><b>🎟 Sticker trên thẻ đang chờ dùng</b> <span class="muted small">(tích để trừ thẳng vào tổng bill)</span><br>
       ${cho.map(x => `<label><input type="checkbox" data-stkdung="${x.id}" ${HD.stkDung.includes(x.id) ? 'checked' : ''}> <b>${esc(stkText(x))}</b> <span class="muted small">(nhận ${dm(x.ngayNhan)})</span></label>`).join('')}</div>` : ''}
     ${duocBoc ? `<div ${cho.length ? 'style="margin-top:8px"' : ''}><b>🎁 Bốc thăm</b> <span class="muted small">(có dịch vụ hoá chất lớn)</span> –
-      khách bốc được <select data-stkmoi><option value="">– chưa bốc / không trúng –</option>${loai.map(x => `<option value="${x.id}" ${HD.stkMoi === x.id ? 'selected' : ''}>${esc(stkText(x))}</option>`).join('')}</select>
+      ${HD.quay ? `<b class="quay-kq">🎡 Quay trúng ${esc(stkText(stickerById(HD.quay.id) || {kieu: 'k', giaTri: 0}))}</b> <span class="muted small">(${esc(HD.quay.nguoi || 'máy quầy')} · ${new Date(HD.quay.luc).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})})</span> <button class="sm ghost" data-quay-sua>Sửa (PIN)</button>`
+        : `<button class="sm pri" data-quay-mo>🎡 Cho khách quay</button> hoặc khách bốc tay được`}
+      <select data-stkmoi ${HD.quay ? 'hidden' : ''}><option value="">– chưa bốc / không trúng –</option>${loai.map(x => `<option value="${x.id}" ${HD.stkMoi === x.id ? 'selected' : ''}>${esc(stkText(x))}</option>`).join('')}</select>
       ${HD.stkMoi ? `<label><input type="checkbox" data-stkluon ${HD.stkMoiDungLuon ? 'checked' : ''}> Trừ luôn vào bill này</label><span class="muted small">${HD.stkMoiDungLuon ? '' : 'Không tích: dán sticker lên thẻ, trừ ở lần sau.'}</span>` : ''}
       ${!normPhone(HD.phone) && HD.stkMoi && !HD.stkMoiDungLuon ? '<div class="small" style="color:#ffb4a8">Cần SĐT khách để lưu sticker cho lần sau.</div>' : ''}</div>` : ''}
   </div>`;
@@ -1292,6 +1360,7 @@ async function thanhToan(print) {
     lines: HD.lines.map(l => ({dvId: l.dvId, ten: l.ten, hang: l.hang, loai: l.loai, giaGoc: num(l.giaGoc), giamPct: l.giamPct, gia: num(l.gia),
       giamTayPct: num(l.giamTayPct), giamTayK: num(l.giamTayK), tho: [l.chinh, ...(MOT_NGUOI.includes(l.loai) ? [] : l.phu.filter(x => x && x !== l.chinh))], tangHap: !!l.tangHap, lon: l.lon ?? !!l.tangHap, kmTen: l.giamPct && l.kmAuto ? (l.kmTen || '') : '', tenTin: l.tenTin || '', dungTang: !!l.dungTang})),
     giamThem: hdGiamThem(), giamPctHD: num(HD.giamPctHD), stickerDung: hdStickerDung(), giamSticker: hdGiamSticker(), maThe: HD.maThe || '',
+    quay: HD.quay || null,
     stickerNhan: HD.stkMoi && stickerById(HD.stkMoi) ? {loai: HD.stkMoi, ten: stickerById(HD.stkMoi).ten, kieu: stickerById(HD.stkMoi).kieu || 'k', giaTri: num(stickerById(HD.stkMoi).giaTri), dungLuon: !!HD.stkMoiDungLuon} : null, lydo: HD.lydo.trim(), ghichu: HD.ghichu.trim(), tt: HD.tt,
     hapTangDung: 0, hapTangCong: 0, hapConLai: null,
   };
@@ -1780,7 +1849,9 @@ function renderCaiDat() {
     <div class="row" style="margin-top:10px"><button data-cd="addkm">+ Thêm chương trình</button></div>
     <h3 style="margin-top:20px">Sticker bốc thăm trên thẻ thành viên</h3>
     <p class="small muted" style="margin-top:-6px">Khách làm dịch vụ hoá chất lớn được bốc thăm. Sticker trừ thẳng vào tổng bill cuối cùng (sau khuyến mãi và các khoản giảm khác).</p>
-    ${(st.sticker || []).map(x => `<div class="row" style="margin-bottom:6px"><input data-stkloai="${x.id}" data-stkf="ten" value="${esc(x.ten)}" placeholder="Tên (VD: Ruby)" style="width:140px"> giảm <input type="number" data-stkloai="${x.id}" data-stkf="giaTri" value="${x.giaTri}" style="width:80px;text-align:right"> <select data-stkloai="${x.id}" data-stkf="kieu"><option value="k" ${x.kieu !== 'pct' ? 'selected' : ''}>k (tiền)</option><option value="pct" ${x.kieu === 'pct' ? 'selected' : ''}>% bill</option></select> <button class="x" data-stkloai-xoa="${x.id}" title="Xoá">×</button></div>`).join('')}
+    ${(st.sticker || []).map(x => `<div class="row" style="margin-bottom:6px"><input data-stkloai="${x.id}" data-stkf="ten" value="${esc(x.ten)}" placeholder="Tên (VD: Ruby)" style="width:140px"> giảm <input type="number" data-stkloai="${x.id}" data-stkf="giaTri" value="${x.giaTri}" style="width:80px;text-align:right"> tỷ lệ trúng <input type="number" data-stkloai="${x.id}" data-stkf="tyle" value="${tyleStk(x)}" style="width:64px;text-align:right">% <select data-stkloai="${x.id}" data-stkf="kieu"><option value="k" ${x.kieu !== 'pct' ? 'selected' : ''}>k (tiền)</option><option value="pct" ${x.kieu === 'pct' ? 'selected' : ''}>% bill</option></select> <button class="x" data-stkloai-xoa="${x.id}" title="Xoá">×</button></div>`).join('')}
+    <p class="small muted">Tổng tỷ lệ: <b>${(st.sticker || []).reduce((a, x) => a + tyleStk(x), 0)}%</b> (app tự chia lại nếu khác 100). Vòng quay luôn ra 1 giải, mỗi hoá đơn có hoá chất lớn quay 1 lần.
+      Trung bình mỗi lượt quay với bill 1 triệu ≈ <b>${fmtK(Math.round((st.sticker || []).reduce((a, x) => a + tyleStk(x) * (x.kieu === 'pct' ? num(x.giaTri) * 10 : num(x.giaTri)), 0) / Math.max(1, (st.sticker || []).reduce((a, x) => a + tyleStk(x), 0))))}</b> tiền giảm.</p>
     <button class="sm" data-cd="addstk">+ Thêm loại sticker</button>`;
 
 
@@ -2114,6 +2185,7 @@ function showTab(name) {
   if (name === 'luong') renderLuong();
   if (name === 'nhanvien') renderNhanVien();
   if (name === 'xuhuong') taiXuHuong();
+  if (name === 'camera') camMo(); else camDong();
   if (name === 'luongtoi') renderLuongToi();
   if (name === 'khachchu') taiKhachChu();
   if (name === 'doanhthu') taiDoanhThu();
@@ -2181,6 +2253,10 @@ function bindEvents() {
   });
   $('#hd-ten').addEventListener('input', e => { HD.ten = e.target.value; saveDraft(); });
   $('#hd-dx').addEventListener('change', e => { HD.danhxung = e.target.value; saveDraft(); });
+  $('#hd-sticker').addEventListener('click', async e => {
+    if (e.target.closest('[data-quay-mo]')) moVongQuay();
+    if (e.target.closest('[data-quay-sua]') && await xinPin('Sửa kết quả quay thưởng')) { HD.quay = null; HD.stkMoi = ''; saveDraft(); renderLines(); }
+  });
   $('#hd-sticker').addEventListener('change', e => {
     const t = e.target;
     if (t.dataset.stkdung) HD.stkDung = t.checked ? [...HD.stkDung, t.dataset.stkdung] : HD.stkDung.filter(x => x !== t.dataset.stkdung);
@@ -2336,7 +2412,7 @@ function bindEvents() {
       if (t.type === 'checkbox') n[f] = t.checked; else if (f === 'luongThang') n[f] = num(t.value); else n.ten = t.value.trim() || n.ten;
       await saveSettings(); toast('Đã lưu'); autoBackup(); if (f === 'tinhLuong') renderCaiDat();
     }
-    if (t.dataset.stkloai) { const x = S.settings.sticker.find(y => y.id === t.dataset.stkloai); x[t.dataset.stkf] = t.dataset.stkf === 'giaTri' ? num(t.value) : t.value.trim(); renderSticker(); await saveSettings(); toast('Đã lưu'); autoBackup(); }
+    if (t.dataset.stkloai) { const x = S.settings.sticker.find(y => y.id === t.dataset.stkloai); x[t.dataset.stkf] = ['giaTri', 'tyle'].includes(t.dataset.stkf) ? num(t.value) : t.value.trim(); renderSticker(); await saveSettings(); toast('Đã lưu'); autoBackup(); if (t.dataset.stkf === 'tyle') renderCaiDat(); }
     if (t.dataset.km) {
       const k = S.settings.kmList.find(x => x.id === t.dataset.km), f = t.dataset.kf;
       if (f.includes('.')) { const [g, w] = f.split('.'); (k[g] = k[g] || {thuong: 0, cuoituan: 0})[w] = num(t.value); } else k[f] = t.value.trim();
@@ -2360,6 +2436,8 @@ function bindEvents() {
     await saveThang(); renderLuong(); autoBackup();
   });
   $('#btn-luong-xlsx').onclick = exportLuong;
+  $$('[data-cam]').forEach(b => b.onclick = () => { localStorage.setItem('giang_cam', b.dataset.cam); camMo(b.dataset.cam); });
+  $('#cam-full').onclick = () => { const k = $('#cam-khung'); (k.requestFullscreen || k.webkitRequestFullscreen).call(k); };
   $('#btn-mosdt').onclick = async () => {
     const veLai = () => { if ($('#tab-khach').classList.contains('on')) { renderKhachList(); if (khSel) renderKhachDetail(khSel); } };
     if ((window._moSdt || 0) > Date.now()) { window._moSdt = 0; $('#btn-mosdt').textContent = '👁 Hiện SĐT'; veLai(); return; }
@@ -2552,7 +2630,8 @@ function renderTinNhan() {
     return;
   }
   const KENH = {'93k': 'Page 93K', nho: 'Page nhỏ', ig: 'Instagram'};
-  const nv = (S.settings.nhanvien || []).filter(n => n.active).map(n => n.ten);
+  let nv = (S.settings.nhanvien || []).filter(n => n.active).map(n => n.ten);
+  const toi = IPAD && Cloud.nd && (Cloud.nd.tenNV || ''); if (toi && nv.includes(toi)) nv = [toi, ...nv.filter(n => n !== toi)];
   const gioVN = d => { const x = new Date(d); return pad(x.getHours()) + ':' + pad(x.getMinutes()) + ' ' + pad(x.getDate()) + '/' + pad(x.getMonth() + 1); };
   const loi = Bot.loi ? `<div class="card" style="border-color:#c0392b"><b>⚠ ${esc(Bot.loi)}</b> <button class="sm" id="tn-thu">Thử lại</button></div>` : '';
   box.innerHTML = loi + (Bot.ds.length ? Bot.ds.map(d => {
@@ -2646,7 +2725,7 @@ async function quayCloudBatDau() {
     if (laChu()) quayNghe();
     renderNhanVien(); renderBadgeNV();
   });
-  if (!quayCloudBatDau._t) quayCloudBatDau._t = setInterval(() => { if (laChu()) { dayLuongHet(); dayKhachChu(); dayThongKe(); } }, 60000);
+  if (!quayCloudBatDau._t) quayCloudBatDau._t = setInterval(() => { if (laChu()) { dayLuongHet(); dayKhachChu(); dayThongKe(); dayBotLink(); } }, 60000);
 }
 let _kcCu = '', _kcSo = 0;
 async function dayKhachChu() { // chỉ tài khoản chủ đọc được (Firestore rules: khachchu)
@@ -2686,6 +2765,11 @@ async function dayThongKe() { // chủ salon xem trên điện thoại (Firestor
   try { await Cloud.db.collection('thongke').doc('ngay').set({ds: js, luc: Date.now(), loai: JSON.stringify(LOAI)}); _tkCu = js; }
   catch (e) { console.warn('dayThongKe', e.code || e); }
 }
+let _blCu = '';
+function dayBotLink(ep) { // link bot (có khoá) cho điện thoại được quyền trả lời tin – Firestore rules: botcfg
+  if (IPAD || !laChu() || !Cloud.db) return; const l = (S.settings.bot && S.settings.bot.link) || ''; if (!l || (l === _blCu && !ep)) return;
+  Cloud.db.collection('botcfg').doc('link').set({link: l, luc: Date.now()}).then(() => { _blCu = l; }).catch(e => console.warn('botcfg', e.code || e));
+}
 function quayNghe() {
   Cloud.unsub.push(Cloud.db.collection('nguoidung').onSnapshot(sn => {
     Cloud.ds = sn.docs.map(d => Object.assign({uid: d.id}, d.data())); Cloud.loi = '';
@@ -2706,6 +2790,7 @@ async function nhanDonIpad(doc) {
     const r = d.hd || {};
     const hd = Object.assign(blankHD(), {danhxung: r.danhxung || 'chị', ten: String(r.ten || '').slice(0, 60), phone: String(r.phone || '').slice(0, 20),
       ghichu: String(r.ghichu || '').slice(0, 3000), lines: (r.lines || []).slice(0, 30).map(sachDong), choId: id});
+    if (r.quay && stickerById(String(r.quay.id))) { hd.quay = {id: String(r.quay.id), luc: num(r.quay.luc), nguoi: String(r.quay.nguoi || d.nguoi || 'iPad').slice(0, 40)}; hd.stkMoi = hd.quay.id; }
     S.donCho.push({id, tao: num(d.tao) || Date.now(), luc: Date.now(), hd, tuIpad: String(d.nguoi || 'iPad')});
     await luuDonCho(); renderDonCho();
     toast(`📱 ${d.nguoi || 'iPad'} gửi đơn: ${hd.ten ? cap(hd.danhxung) + ' ' + hd.ten : 'khách chưa tên'} · ${fmtD(tongCua(hd))}`);
@@ -2720,7 +2805,8 @@ function dayCauHinh(ngay) {
   _cfgT = setTimeout(() => {
     const st = S.settings;
     const cfg = docSach({dichvu: st.dichvu, kmList: st.kmList || [], kmChon: st.kmChon || '', hang: st.hang, hangTieuDe: st.hangTieuDe || st.hang,
-      nhanvien: st.nhanvien.map(n => ({id: n.id, ten: n.ten, active: !!n.active})), soHapTang: num(st.nhac && st.nhac.soHapTang)});
+      nhanvien: st.nhanvien.map(n => ({id: n.id, ten: n.ten, active: !!n.active})), soHapTang: num(st.nhac && st.nhac.soHapTang),
+      sticker: (st.sticker || []).map(x => ({id: x.id, ten: x.ten || '', kieu: x.kieu || 'k', giaTri: num(x.giaTri), tyle: tyleStk(x)}))});
     const ky = JSON.stringify(cfg); if (ky === _cfgCu) return;
     Cloud.db.collection('cauhinh').doc('chung').set(Object.assign(cfg, {luc: Date.now()})).then(() => { _cfgCu = ky; }).catch(loiCloud);
   }, ngay ? 0 : 1500);
@@ -2805,21 +2891,23 @@ function renderNhanVien() {
   const ds = Cloud.ds.filter(u => (u.email || '').toLowerCase() !== CHU_EMAIL.toLowerCase())
     .sort((a, b) => (a.trangThai === 'cho' ? 0 : 1) - (b.trangThai === 'cho' ? 0 : 1) || num(b.taoLuc) - num(a.taoLuc));
   dsBox.innerHTML = !ds.length ? '<p class="muted">Chưa có ai đăng ký. Nhân viên mở trang iPad, bấm <b>Đăng ký</b>, rồi vào đây duyệt.</p>' : `
-    <table class="nv-tbl" style="width:100%;border-collapse:collapse"><tr><th>Người đăng ký</th><th>Trạng thái</th><th>Là ai</th><th>Quyền</th><th>Được xem lương</th><th></th></tr>
+    <table class="nv-tbl" style="width:100%;border-collapse:collapse"><tr><th>Người đăng ký</th><th>Trạng thái</th><th>Là ai</th><th>Quyền</th><th>Trả lời tin</th><th>Được xem lương</th><th></th></tr>
     ${ds.map(u => `<tr data-u="${u.uid}">
       <td><b>${esc(u.ten || '')}</b><br><span class="muted small">${esc(u.email || '')}</span></td>
       <td>${TT[u.trangThai] || esc(u.trangThai || '')}</td>
       <td><select data-nv>${nvOpt(u.nvId)}</select></td>
       <td><select data-quyen class="${u.quyen === 'chu' ? 'q-chu' : ''}"><option value="nv">Nhân viên</option><option value="chu" ${u.quyen === 'chu' ? 'selected' : ''}>Chủ salon</option></select></td>
+      <td><label class="tick ${u.traLoiTin ? '' : 'off'}" style="cursor:pointer"><input type="checkbox" data-tlt ${u.traLoiTin ? 'checked' : ''}> ${u.traLoiTin ? 'Có' : 'Không'}</label></td>
       <td><label class="tick ${u.xemLuong ? '' : 'off'}" style="cursor:pointer"><input type="checkbox" data-xl ${u.xemLuong ? 'checked' : ''}> ${u.xemLuong ? 'Có' : 'Không'}</label></td>
       <td style="white-space:nowrap;text-align:right">${u.trangThai === 'duyet' ? '<button class="ghost sm danger" data-act="khoa">Khoá</button>' : '<button class="pri sm" data-act="duyet">Duyệt</button>'}
         <button class="x" data-act="xoa" title="Xoá tài khoản khỏi danh sách">×</button></td></tr>`).join('')}</table>
-    <p class="muted small"><b>Chủ salon</b>: thêm tab <b>Khách</b> trên điện thoại (xem SĐT đầy đủ, gọi, Zalo). <b>Nhân viên</b>: chỉ Tư vấn và Lương (nếu được bật).<br>Tắt "Được xem lương" là điện thoại/iPad của người đó hết xem được lương ngay. Lương trên iPad tự cập nhật khoảng 1 phút một lần.</p>`;
+    <p class="muted small"><b>Chủ salon</b>: thêm tab <b>Khách</b> trên điện thoại (xem SĐT đầy đủ, gọi, Zalo). <b>Nhân viên</b>: chỉ Tư vấn và Lương (nếu được bật). <b>Trả lời tin</b>: thêm tab Tin nhắn trên điện thoại để duyệt/gửi nháp của bot.<br>Tắt "Được xem lương" là điện thoại/iPad của người đó hết xem được lương ngay. Lương trên iPad tự cập nhật khoảng 1 phút một lần.</p>`;
   const sua = (u, obj) => Cloud.db.collection('nguoidung').doc(u).update(obj).catch(e => toast(loiVN(e), true));
   $$('#nv-ds tr[data-u]').forEach(tr => {
     const u = tr.dataset.u, info = Cloud.ds.find(x => x.uid === u);
     tr.querySelector('[data-nv]').onchange = e => { const nv = S.settings.nhanvien.find(n => n.id === e.target.value); sua(u, {nvId: e.target.value, tenNV: nv ? nv.ten : ''}); };
     tr.querySelector('[data-xl]').onchange = e => sua(u, {xemLuong: e.target.checked});
+    tr.querySelector('[data-tlt]').onchange = e => { sua(u, {traLoiTin: e.target.checked}); if (e.target.checked) dayBotLink(true); };
     tr.querySelector('[data-quyen]').onchange = async e => { const v = e.target.value;
       if (v === 'chu' && !await confirmBox(`Cho <b>${esc(info.ten || info.email)}</b> quyền <b>Chủ salon</b>? Tài khoản này sẽ xem được tên và SĐT đầy đủ của toàn bộ khách.`, 'Cho quyền chủ')) { e.target.value = 'nv'; return; }
       sua(u, {quyen: v}); };
@@ -2853,7 +2941,7 @@ async function ipadBatDau() {
   try { if (!await cloudNap()) { ipadMan('<h2>Chưa cài đặt</h2><p>Trang iPad chưa được kết nối. Báo anh chủ.</p>'); return; } }
   catch (e) { ipadMan('<h2>Không có mạng</h2><p>Kiểm tra Wi-Fi rồi thử lại.</p><button class="pri" onclick="location.reload()">Thử lại</button>'); return; }
   Cloud.auth.onAuthStateChanged(u => {
-    Cloud.user = u; huyNghe(); Cloud.nd = null; Cloud.cfgOk = false; Cloud.xemLuong = null; Cloud.chu = false; Cloud._qk = ''; KC.ds = null; document.body.classList.remove('la-chu');
+    Cloud.user = u; huyNghe(); Cloud.nd = null; Cloud.cfgOk = false; Cloud.xemLuong = null; Cloud.chu = false; Cloud._qk = ''; KC.ds = null; _tnBat = false; S.settings.bot = null; document.body.classList.remove('tra-loi-tin'); document.body.classList.remove('la-chu');
     if (!u) { $('#nv-chip').innerHTML = ''; manDangNhap(); return; }
     thuChu(u);
     $('#nv-chip').innerHTML = `<span>👤 ${esc(u.email)}</span><button id="ip-dx">${window.innerWidth <= 700 ? 'Thoát' : 'Đăng xuất'}</button>`;
@@ -2886,6 +2974,20 @@ async function taoHoSo(ten) {
   await Cloud.db.collection('nguoidung').doc(Cloud.user.uid).set({email: Cloud.user.email, ten: String(ten).slice(0, 40), trangThai: 'cho', taoLuc: Date.now()});
 }
 const KC = {ds: null, luc: 0};
+let _tnBat = false;
+async function ipadTinNhan() {
+  const nd = Cloud.nd || {}, duoc = !!(Cloud.user && nd.trangThai === 'duyet' && (nd.traLoiTin || Cloud.chu));
+  if (duoc === _tnBat) return; _tnBat = duoc;
+  if (duoc) {
+    try { const d = await Cloud.db.collection('botcfg').doc('link').get(); if (!_tnBat) return;
+      S.settings.bot = {link: (d.exists && d.data().link) || ''}; } catch (e) { S.settings.bot = null; _tnBat = false; return; }
+    document.body.classList.add('tra-loi-tin');
+    if (!botBatDau._da) { botBatDau._da = true; botBatDau(); } else botTai();
+  } else {
+    S.settings.bot = null; Bot.ds = []; document.body.classList.remove('tra-loi-tin'); renderBadgeTN();
+    if (document.body.dataset.tab === 'tinnhan') showTab('thanhtoan');
+  }
+}
 async function thuChu(u) { // đọc được khachchu/meta = là tài khoản chủ (do Firestore rules quyết định)
   try { const m = await Cloud.db.collection('khachchu').doc('meta').get(); if (Cloud.user !== u) return; Cloud.chu = true; KC.meta = m.exists ? m.data() : null; }
   catch (e) { Cloud.chu = false; KC.ds = null; if (document.body.dataset.tab === 'khachchu') showTab('thanhtoan'); }
@@ -2913,7 +3015,7 @@ function taiDoanhThu() {
   renderDoanhThu();
 }
 function renderDoanhThu() {
-  const box = $('#dtc-box'); if (!box) return;
+  const box = $('#dtc-box'); if (!box) return; setTimeout(() => taiQuayNgay(DTC.ngay || today()), 0);
   const ng = DTC.ngay || today(); $('#dtc-ngay').textContent = (ng === today() ? 'Hôm nay · ' : thuOf(ng) + ' · ') + dmy(ng);
   if (!DTC.ds) { box.innerHTML = '<p class="muted">Đang tải…</p>'; return; }
   const D = DTC.ds, n = D[ng] || {tong: 0, so: 0, tm: 0, ck: 0, loai: {}, hd: []}, hq = D[addDays(ng, -1)] || {tong: 0};
@@ -2932,7 +3034,34 @@ function renderDoanhThu() {
     ${Object.keys(n.loai).length ? `<div class="nh muted small" style="margin:8px 0 4px">Theo loại dịch vụ</div>${Object.entries(n.loai).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="dt-hd" style="border:0;padding:3px 0"><span>${esc(LO[k] || k)}</span><b>${fmtK(Math.round(v))}</b></div>`).join('')}` : ''}
     <div class="nh muted small" style="margin:12px 0 2px">Hoá đơn trong ngày</div>
     ${n.hd.length ? n.hd.slice().reverse().map(h => `<div class="dt-hd"><span class="muted">${esc(h[0])}</span><span><b style="margin:0">${esc(h[1])}</b><br><span class="muted small">${esc(h[2])}${h[5] ? ' · ' + esc(h[5]) : ''}</span></span><b>${fmtK(h[3])} <span class="muted small">${h[4]}</span></b></div>`).join('') : '<p class="muted">Chưa có hoá đơn.</p>'}
+    <div class="nh muted small" style="margin:12px 0 2px">🎡 Quay thưởng trên điện thoại trong ngày</div><div id="dtc-quay" class="small muted">Đang tải…</div>
     <p class="muted small">Máy quầy cập nhật ${DTC.luc ? new Date(DTC.luc).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) + ' ' + new Date(DTC.luc).toLocaleDateString('vi-VN') : '—'} (máy quầy phải mở app).</p>`;
+}
+const CAM_API = 'http://127.0.0.1:1984';
+async function camMo(src) {
+  if (IPAD) return; src = src || localStorage.getItem('giang_cam') || 'quan_nhe';
+  $$('[data-cam]').forEach(b => b.classList.toggle('primary', b.dataset.cam === src));
+  const tt = $('#cam-tt');
+  try {
+    const r = await fetch(CAM_API + '/api/streams', {cache: 'no-store'}); const j = await r.json();
+    if (!j[src]) { tt.innerHTML = 'Chương trình camera đang chạy nhưng chưa cài camera. Chạy <b>camera\\Cai dat camera</b>.'; return; }
+    tt.textContent = 'Đang xem: ' + (src === 'quan' ? 'Nét' : 'Nhẹ (mượt)');
+    const url = `${CAM_API}/stream.html?src=${encodeURIComponent(src)}&mode=mse,webrtc`;
+    if ($('#cam-if').src !== url) $('#cam-if').src = url;
+  } catch (e) {
+    tt.innerHTML = 'Chưa kết nối được chương trình camera trên máy này. Mở app bằng biểu tượng <b>Mo app Giang</b> (chương trình camera chạy cùng), hoặc chạy <b>camera\\Cai dat camera</b> nếu chưa cài.';
+    $('#cam-if').removeAttribute('src');
+  }
+}
+function camDong() { const f = $('#cam-if'); if (f && f.getAttribute('src')) f.removeAttribute('src'); }
+async function taiQuayNgay(ng) {
+  const box = $('#dtc-quay'); if (!box) return;
+  const t0 = new Date(ng + 'T00:00:00').getTime();
+  try { const sn = await Cloud.db.collection('quaythuong').where('luc', '>=', t0).where('luc', '<', t0 + 86400000).get();
+    if ((DTC.ngay || today()) !== ng || !$('#dtc-quay')) return;
+    const ds = sn.docs.map(d => d.data()).sort((a, b) => a.luc - b.luc);
+    box.innerHTML = ds.length ? ds.map(q => `<div class="dt-hd" style="padding:4px 0"><span class="muted">${new Date(q.luc).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}</span><span>${esc(q.nguoi || '')} · ${esc(q.khach || 'khách')}</span><b>${esc(q.giai || '')}</b></div>`).join('') : 'Chưa có lượt quay.';
+  } catch (e) { box.textContent = 'Không đọc được: ' + loiVN(e); }
 }
 function renderKhachChu() {
   const q = $('#kc-q').value.trim(), qd = q.replace(/\D/g, ''), qn = bodau(q);
@@ -2948,6 +3077,7 @@ function renderKhachChu() {
 function ipadTrangThai() {
   if (Cloud.chu && !Cloud.nd) Cloud.nd = {ten: 'Chủ', xemLuong: false, trangThai: 'duyet', chuGoc: true};
   if (Cloud.nd && !Cloud.nd.chuGoc) { const k = (Cloud.nd.trangThai || '') + '|' + (Cloud.nd.quyen || ''); if (Cloud._qk !== k) { Cloud._qk = k; if (Cloud.user) thuChu(Cloud.user); } }
+  ipadTinNhan();
   const nd = Cloud.nd, dx = '<button class="link2" onclick="Cloud.auth.signOut()">Đăng xuất</button>';
   if (!nd) {
     if (Cloud._tenDK) { const t = Cloud._tenDK; Cloud._tenDK = ''; taoHoSo(t).catch(e => ipadMan(`<h2>Lỗi</h2><p>${esc(loiVN(e))}</p>${dx}`)); return; }
@@ -2975,6 +3105,7 @@ function apCauHinh(c) {
   Object.assign(st, {dichvu: c.dichvu || st.dichvu, kmList: c.kmList || [], kmChon: c.kmChon || '', hang: c.hang || st.hang, hangTieuDe: c.hangTieuDe || st.hangTieuDe,
     nhanvien: (c.nhanvien || st.nhanvien).map(n => Object.assign({tinhLuong: false, luongThang: 0}, n))});
   st.nhac = Object.assign({}, st.nhac, {soHapTang: num(c.soHapTang) || st.nhac.soHapTang});
+  if (Array.isArray(c.sticker)) st.sticker = c.sticker;
   HD.lines.forEach(l => { if (!st.nhanvien.some(n => n.id === l.chinh)) l.chinh = (activeStaff()[0] || {}).id || ''; l.phu = l.phu.filter(id => st.nhanvien.some(n => n.id === id)); });
   DB.put('kv', st, 'settings');
   renderKmChon(); apLaiKm(); renderPicker(); renderLines();
@@ -2982,7 +3113,7 @@ function apCauHinh(c) {
 async function guiVeQuay() {
   if (!HD.lines.length) { toast('Chưa chọn dịch vụ nào', true); return; }
   const nd = Cloud.nd || {}, b = $('#btn-guiquay'), b2 = $('#ip-gui'); b.disabled = true; b.textContent = 'Đang gửi…'; if (b2) { b2.disabled = true; b2.textContent = 'Đang gửi…'; }
-  const hd = docSach({danhxung: HD.danhxung, ten: (HD.ten || '').trim(), phone: (HD.phone || '').trim(), ghichu: HD.ghichu || '', lines: HD.lines});
+  const hd = docSach({danhxung: HD.danhxung, ten: (HD.ten || '').trim(), phone: (HD.phone || '').trim(), ghichu: HD.ghichu || '', lines: HD.lines, quay: HD.quay || null});
   try {
     const gui = Cloud.db.collection('doncho').add({uid: Cloud.user.uid, nguoi: nd.tenNV || nd.ten || '', tao: Date.now(), hd});
     await Promise.race([gui, new Promise((_, loi) => setTimeout(() => loi({code: 'unavailable'}), 15000))]);
