@@ -485,6 +485,11 @@ body.pc #nav button:hover{border-color:var(--brand-2)}
 body.pc #nav button.on,body.pc #nav button.chon{background:#1c1a17;border-color:#1c1a17;color:#f6dc95}
 body.pc #nav .badge{font-size:12px;line-height:18px;margin-left:6px}
 body.pc.nhom-don #nav{display:none}
+/* 2.11.2: người làm bắt buộc chọn */
+.line select.thieu{border-color:#d9534f;background:#fff5f3;color:#b3261e;font-weight:600}
+@keyframes lac{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.line select.lac{animation:lac .25s 3}
+.hd-thieu{margin:4px 0 10px;padding:7px 10px;border-radius:8px;background:#fff1ee;border:1px solid #f0c4b8;color:#b3261e;font-size:14px;font-weight:600}
 </style>
 </head>
 <body>
@@ -569,6 +574,7 @@ body.pc.nhom-don #nav{display:none}
         <div id="hd-qr"></div>
         <div class="tong"><span class="muted">Khách trả</span><b id="hd-tong">0đ</b></div>
         <div id="ip-quay" style="margin:6px 0"></div>
+        <div id="hd-thieu" class="hd-thieu" hidden></div>
         <button class="pri" id="btn-guiquay">📤 Gửi về quầy</button>
         <div class="pay-btns">
           <button class="pri" id="btn-pay">Thanh toán &amp; in bill</button>
@@ -706,7 +712,7 @@ body.pc.nhom-don #nav{display:none}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.11.1 (13/11/2026)';
+const APP_VERSION = '2.11.2 (13/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -1193,9 +1199,7 @@ function addLine(dvId, v) {
   const giaGoc = num(d.gia[v]);
   const multi = d.gia.filter(x => x !== '' && x != null).length > 1;
   const pct = kmPctDv(d);
-  const last = HD.lines[HD.lines.length - 1];
-  const chinh = last ? last.chinh : (activeStaff()[0] || {}).id || '';
-  const phu = last ? last.phu.slice() : [];
+  const chinh = '', phu = []; // 2.11.2: người làm để trống – nhân viên phải tự chọn (không tự điền anh chủ)
   const line = {key: uid(), dvId: d.id, ten: d.ten, hang: multi ? ((d.nhan && d.nhan[v]) || S.settings.hang[v] || '') : '', loai: d.loai,
     giaGoc, giamPct: pct, gia: Math.round(giaGoc * (1 - pct / 100)), v, chinh, phu, tangHap: d.tangHap, lon: d.tangHap, kmAuto: true, kmTen: pct ? (kmHienTai() || {}).ten : '', tenTin: d.tenTin, dungTang: false};
   if (d.loai === 'hap' && hapConDung() > 0) { line.dungTang = true; line.gia = 0; }
@@ -1249,7 +1253,7 @@ function renderBonus() {
 const moRong = new Set(); // các dòng đang mở phần "Giảm thêm ⋯"
 function renderLines() {
   apLaiKm(); renderBonus(); renderQuayIpad();
-  const staffOpts = sel => activeStaff().map(n => `<option value="${n.id}" ${n.id === sel ? 'selected' : ''}>${esc(n.ten)}</option>`).join('');
+  const staffOpts = sel => S.settings.nhanvien.filter(n => n.active || n.id === sel).map(n => `<option value="${n.id}" ${n.id === sel ? 'selected' : ''}>${esc(n.ten)}</option>`).join('');
   $('#hd-lines').innerHTML = HD.lines.length ? HD.lines.map(l => `
     <div class="line" data-key="${l.key}">
       <div class="top">
@@ -1261,7 +1265,7 @@ function renderLines() {
       </div>
       <div class="sub">
         <span class="muted">${MOT_NGUOI.includes(l.loai) ? 'Người làm' : 'Làm'}</span>
-        <select data-f="chinh">${l.chinh ? '' : '<option value="">– chọn –</option>'}${staffOpts(l.chinh)}</select>
+        <select data-f="chinh" class="${l.chinh ? '' : 'thieu'}">${l.chinh ? '' : '<option value="">– chọn người làm –</option>'}${staffOpts(l.chinh)}</select>
         ${MOT_NGUOI.includes(l.loai) ? '' : `<span class="muted">${l.loai === 'hap' ? 'Tư vấn' : 'Phụ'}</span>
         ${activeStaff().filter(n => n.id !== l.chinh).map(n => `<span class="chip ${l.phu.includes(n.id) ? 'on' : ''}" data-phu="${n.id}">${esc(n.ten)}</span>`).join(' ')}`}
         <button class="more ${moRong.has(l.key) || l.giamTayPct || l.giamTayK ? 'on' : ''}" data-more title="Giảm thêm, loại tính lương">Giảm thêm ⋯</button>
@@ -1352,6 +1356,8 @@ function updateTotal() {
   $('#hd-tong').innerHTML = gs ? `<span class="muted" style="font-size:15px;font-weight:400;text-decoration:line-through">${fmtD(hdTruocSticker())}</span> ${fmtD(hdTong())}` : fmtD(hdTong());
   const n = HD.lines.length;
   $('#btn-pay').disabled = $('#btn-pay-noprint').disabled = !n;
+  const thieu = HD.lines.filter(l => !l.chinh).length, tb = $('#hd-thieu');
+  if (tb) { tb.hidden = !thieu; tb.innerHTML = thieu ? `⚠ Còn ${thieu} dịch vụ chưa chọn <b>người làm</b> – ${IPAD ? 'chưa gửi về quầy được' : 'chưa thanh toán được'}` : ''; }
   $('#btn-pay').textContent = HD.suaId ? 'Lưu sửa & in lại bill' : n && hdTong() === 0 ? 'Lưu & in bill (0đ)' : 'Thanh toán & in bill';
   $('#btn-pay-noprint').textContent = HD.suaId ? 'Lưu sửa, không in' : 'Lưu, không in';
   $('#btn-cho').hidden = !!HD.suaId;
@@ -1471,9 +1477,16 @@ function nextInvoiceId(date) {
   return pre + String(max + 1).padStart(3, '0');
 }
 
+function duNguoiLam(viec) { // 2.11.2: dịch vụ nào cũng phải có người làm mới thanh toán / gửi về quầy
+  const l = HD.lines.find(x => !x.chinh); if (!l) return true;
+  toast(`Chưa chọn người làm cho "${l.ten}" – ${viec || 'chưa thanh toán được'}`, true);
+  const sel = $(`#hd-lines .line[data-key="${l.key}"] [data-f="chinh"]`);
+  if (sel) { sel.scrollIntoView({behavior: 'smooth', block: 'center'}); sel.focus(); sel.classList.remove('lac'); void sel.offsetWidth; sel.classList.add('lac'); }
+  return false;
+}
 async function thanhToan(print) {
   if (!HD.lines.length) return;
-  if (HD.lines.some(l => !l.chinh)) { toast('Còn dịch vụ chưa chọn người làm', true); return; }
+  if (!duNguoiLam()) return;
   const phone = normPhone(HD.phone);
   if (phone && (phone.length < 10 || phone.length > 11)) {
     if (!await confirmBox(`SĐT <b>${esc(phone)}</b> có ${phone.length} số. Vẫn lưu?`, 'Vẫn lưu')) return;
@@ -1998,14 +2011,16 @@ function renderCaiDat() {
     <label>Lời cảm ơn</label><textarea data-s="salon.camon" rows="3">${esc(st.salon.camon)}</textarea>
     </div><p class="small muted gc">{danhxung} sẽ tự đổi thành chị/anh theo khách.</p>`;
 
+  const vtMap = mccCfg().map;
   $('#cd-nv').innerHTML = `<h3>Người làm</h3>
     ${st.nhanvien.map(n => `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)" data-nv="${n.id}">
-      <div class="row"><input class="grow" data-nvf="ten" value="${esc(n.ten)}"><label class="small"><input type="checkbox" data-nvf="active" ${n.active ? 'checked' : ''}> Đang làm</label></div>
+      <div class="row"><input class="grow" data-nvf="ten" value="${esc(n.ten)}"><label class="small"><input type="checkbox" data-nvf="active" ${n.active ? 'checked' : ''}> Đang làm</label>
+        ${vtMap[n.id] ? `<span class="tag ok" title="Đã có trên máy chấm công">👆 mã ${esc(vtMap[n.id])}</span>` : n.active && n.tinhLuong ? '<button class="sm ghost" data-go="chamcong" title="Mở Nhân viên → Chấm công → Đăng ký vân tay">👆 Lấy vân tay</button>' : ''}</div>
       <div class="row small" style="margin-top:6px"><label><input type="checkbox" data-nvf="tinhLuong" ${n.tinhLuong ? 'checked' : ''}> Tính lương</label>
         ${n.tinhLuong ? `<span>Lương tháng</span><input type="number" data-nvf="luongThang" value="${n.luongThang || ''}" style="width:90px;padding:5px 8px;text-align:right">k
         <label><input type="checkbox" data-nvf="chiaGoiHC" ${n.chiaGoiHC ? 'checked' : ''}> Nhận chia thưởng gội hoá chất</label>` : ''}</div></div>`).join('')}
     <div class="row"><button data-cd="addnv">+ Thêm người</button></div>
-    <p class="small muted gc">Người nghỉ thì bỏ dấu "Đang làm" (không xoá, để hoá đơn cũ vẫn hiện đúng tên). Anh chủ không cần tích "Tính lương".</p>`;
+    <p class="small muted gc">Người nghỉ thì bỏ dấu "Đang làm" (không xoá, để hoá đơn cũ vẫn hiện đúng tên). Anh chủ không cần tích "Tính lương". Nhân viên mới nên thêm ở <b>Nhân viên → Chấm công → Đăng ký vân tay</b>: thêm 1 lần là có cả trên máy vân tay lẫn trong app.</p>`;
 
   const kmIn = (k, f, w) => `<input ${f.includes('.') ? 'type="number" style="width:58px;padding:5px 6px;text-align:right"' : f === 'tu' || f === 'den' ? 'type="date" style="padding:5px 6px"' : `style="width:${w || 170}px;padding:5px 8px"`} data-km="${k.id}" data-kf="${f}" value="${esc(f.split('.').reduce((o, x) => (o || {})[x], k) ?? '')}">`;
   $('#cd-km').style.gridColumn = '1 / -1';
@@ -2626,6 +2641,7 @@ function bindEvents() {
   $('#cc-dk').addEventListener('change', e => { if (e.target.id === 'dk-nv') $('#dk-ten').style.display = e.target.value ? 'none' : ''; });
   $('#cc-dk').addEventListener('click', async e => {
     if (e.target.id === 'dk-them') return dkThem();
+    const ba = e.target.closest('[data-dk-app]'); if (ba) return dkVaoApp(ba.dataset.dkApp, ba.dataset.ten);
     const b = e.target.closest('[data-dk-vt]'); if (!b || DK.dang) return;
     if (!await xinPin('Lấy vân tay trên máy chấm công')) return;
     if (!await mccSan()) return;
@@ -2658,7 +2674,7 @@ async function caiDatAction(a, btn) {
   if (a === 'restore') $('#file-restore').click();
   if (a === 'import') $('#file-import').click();
   if (a === 'checkupdate') kiemTraCapNhat(true);
-  if (a === 'addnv') { st.nhanvien.push({id: uid(), ten: 'Người mới', active: true}); await saveSettings(); renderCaiDat(); const ins = $$('#cd-nv [data-nvf="ten"]'); ins[ins.length - 1].select(); }
+  if (a === 'addnv') { st.nhanvien.push({id: uid(), ten: 'Người mới', active: true, tinhLuong: true, luongThang: 0, chiaGoiHC: false}); await saveSettings(); renderCaiDat(); const ins = $$('#cd-nv [data-nvf="ten"]'); ins[ins.length - 1].select(); }
   if (a === 'addstk') { st.sticker = st.sticker || []; st.sticker.push({id: 'stk-' + uid(), ten: '', kieu: 'k', giaTri: 100}); await saveSettings(); renderCaiDat(); }
   if (a === 'addkm') {
     const t = today(), [y, m] = t.split('-').map(Number), id = 'km-' + uid();
@@ -3394,14 +3410,14 @@ function renderDangKy() {
   box.innerHTML = `<h3 style="margin-top:0">👆 Đăng ký vân tay</h3>
     <p class="small muted gc">Thêm nhân viên mới vào máy chấm công và lấy vân tay ngay từ đây. Người đó đứng cạnh máy, đặt ngón tay 3 lần khi máy báo.</p>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
-      <select id="dk-nv" style="padding:8px">${nvChua.map(n => `<option value="${n.id}">${esc(n.ten)}</option>`).join('')}<option value="">+ Người khác (gõ tên)</option></select>
-      <input id="dk-ten" placeholder="Tên (không dấu cũng được)" style="width:200px;${nvChua.length ? 'display:none' : ''}">
+      <select id="dk-nv" style="padding:8px">${nvChua.map(n => `<option value="${n.id}">${esc(n.ten)}</option>`).join('')}<option value="">+ Nhân viên mới (gõ tên)</option></select>
+      <input id="dk-ten" placeholder="Tên nhân viên mới (gõ có dấu)" style="width:220px;${nvChua.length ? 'display:none' : ''}">
       <button class="pri" id="dk-them">Thêm vào máy & lấy vân tay</button></div>
-    <p class="small muted gc">${nvChua.length ? 'Danh sách trên là nhân viên trong app chưa có trên máy chấm công.' : 'Mọi nhân viên trong app đều đã có trên máy.'} Nhân viên mới chưa có trong app thì thêm ở <b>Cài đặt → Người làm &amp; lương</b> trước, hoặc chọn "Người khác".</p>
+    <p class="small muted gc">${nvChua.length ? 'Danh sách trên là nhân viên trong app chưa có trên máy chấm công.' : 'Mọi nhân viên trong app đều đã có trên máy.'} Nhân viên mới: chọn <b>+ Nhân viên mới</b>, gõ tên → app tự thêm vào danh sách Người làm, có luôn ở Thanh toán (chọn người làm), Chấm công, Lương và Tài khoản &amp; iPad. Lương tháng chỉnh ở <b>Cài đặt → Người làm &amp; lương</b>.</p>
     ${ds.length ? `<div class="nh muted small" style="margin:12px 0 4px">Người đang có trên máy chấm công</div>
     <table class="cc-bang" style="max-width:820px"><tr><th>Mã</th><th>Tên trên máy</th><th>Nhân viên trong app</th><th>Ngón đã có</th><th></th></tr>
     ${ds.map(u => { const nv = S.settings.nhanvien.find(n => c.map[n.id] === u.ma);
-      return `<tr><td>${esc(u.ma)}</td><td>${esc(u.ten)}</td><td>${nv ? esc(nv.ten) : '<span class="muted">—</span>'}</td>
+      return `<tr><td>${esc(u.ma)}</td><td>${esc(u.ten)}</td><td>${nv ? esc(nv.ten) : `<button class="sm" data-dk-app="${esc(u.ma)}" data-ten="${esc(u.ten)}" title="Thêm người này thành nhân viên trong app">＋ Thêm vào app</button>`}</td>
         <td>${DK.ngon ? ((DK.ngon[u.ma] || []).length ? (DK.ngon[u.ma] || []).map(i => `<span class="tag" title="${tenNgon(i)}">${i} ${NGON[i]} ${i < 5 ? 'T' : 'P'}</span>`).join(' ') : '<span class="muted small">chưa có</span>') : ''}</td>
         <td style="white-space:nowrap"><button class="sm" data-dk-vt="${esc(u.ma)}" data-ten="${esc(u.ten)}">👆 Vân tay</button></td></tr>`; }).join('')}</table>` : ''}`;
 }
@@ -3486,23 +3502,75 @@ async function dkLayVanTay(ma, ngon, ten) {
   } catch (e) { dkXong(); toast(e.name === 'AbortError' ? 'Máy chấm công không trả lời. Kiểm tra máy còn bật và cùng mạng.' : 'Lỗi: ' + e.message, true); }
   return false;
 }
+/* 2.11.2: thêm người mới trên máy chấm công = thêm nhân viên mới của app (1 lần là có ở mọi tab) */
+function themNVApp(ten) { // dùng lại nhân viên trùng tên (VD: người cũ quay lại làm) nếu chưa ghép máy, không thì tạo mới
+  const c = mccCfg(), k = bodau(ten);
+  let nv = S.settings.nhanvien.find(n => !c.map[n.id] && bodau(n.ten) === k), moi = false;
+  if (nv) { nv.active = true; if (nv.tinhLuong === undefined) nv.tinhLuong = true; }
+  else { nv = {id: uid(), ten, active: true, tinhLuong: true, luongThang: 0, chiaGoiHC: false}; S.settings.nhanvien.push(nv); moi = true; }
+  return {nv, moi};
+}
+async function luuNVMoi(nv, moi) {
+  await saveSettings(); autoBackup();
+  renderLines(); // ô "người làm" ở Thanh toán có tên mới ngay
+  toast(moi ? `Đã thêm nhân viên mới "${nv.ten}" – có luôn ở Thanh toán, Chấm công, Lương. Lương tháng chỉnh ở Cài đặt → Người làm & lương.`
+    : `Đã ghép "${nv.ten}" với người trên máy chấm công`);
+}
 async function dkThem() {
   if (DK.dang) return;
-  const sel = $('#dk-nv').value, nv = S.settings.nhanvien.find(n => n.id === sel), ten = nv ? nv.ten : $('#dk-ten').value.trim();
-  if (!ten) { toast('Gõ tên người cần thêm', true); $('#dk-ten').focus(); return; }
-  if (!await xinPin('Thêm người vào máy chấm công')) return;
+  const c = mccCfg(), sel = $('#dk-nv').value;
+  let nv = S.settings.nhanvien.find(n => n.id === sel);
+  const ten = nv ? nv.ten : $('#dk-ten').value.trim().replace(/\s+/g, ' ');
+  if (!ten) { toast('Gõ tên nhân viên mới', true); $('#dk-ten').focus(); return; }
+  if (!nv) { const trung = S.settings.nhanvien.find(n => c.map[n.id] && bodau(n.ten) === bodau(ten));
+    if (trung) { toast(`"${trung.ten}" đã có trên máy chấm công (mã ${c.map[trung.id]}). Nếu là người khác, gõ thêm chữ để phân biệt (VD: ${ten} 2).`, true); return; } }
+  if (!await xinPin(nv ? 'Thêm người vào máy chấm công' : 'Thêm nhân viên mới')) return;
   if (!await mccSan()) return;
   DK.dang = true; dkCho(`Đang tạo <b>${esc(ten)}</b> trên máy chấm công…`);
   try {
     const r = await mccGoi('/them?ten=' + encodeURIComponent(ten), 45000);
     if (!r.ok) throw new Error(r.loi || 'máy không tạo được người mới');
-    if (nv) { mccCfg().map[nv.id] = r.ma; await saveSettings(); }
+    const ma = String(r.ma), cua = S.settings.nhanvien.find(n => c.map[n.id] === ma && (!nv || n.id !== nv.id));
+    if (cua) { // trên máy mã này đã là của nhân viên khác trong app
+      if (nv) throw new Error(`trên máy, mã ${ma} (${r.ten}) đã là của ${cua.ten}`);
+      nv = cua;
+    } else {
+      let moi = false;
+      if (!nv) ({nv, moi} = themNVApp(ten));
+      c.map[nv.id] = ma; await luuNVMoi(nv, moi);
+    }
     await taiMCC(); renderChamCong(); renderDangKy();
     dkXong();
-    if (r.daCo) toast(`Trên máy đã có "${r.ten}" (mã ${r.ma}) – chọn ngón để lấy thêm vân tay.`);
-    DK.dang = false; await moTay(r.ma, r.ten); return;
+    if (r.daCo) toast(`Trên máy đã có "${r.ten}" (mã ${ma}) – chọn ngón để lấy thêm vân tay.`);
+    DK.dang = false; await moTay(ma, nv.ten); return;
   } catch (e) { dkXong(); toast('Lỗi: ' + (e.name === 'AbortError' ? 'máy chấm công không trả lời' : e.message), true); }
   DK.dang = false; await taiMCC(); renderChamCong(); renderDangKy();
+}
+async function dkVaoApp(ma, tenMay) { // người đã có trên máy chấm công nhưng chưa là nhân viên trong app
+  const c = mccCfg(), chua = S.settings.nhanvien.filter(n => !c.map[n.id] && (n.active || n.tinhLuong));
+  const goiY = chua.find(n => bodau(n.ten) === bodau(tenMay));
+  const kq = await new Promise(res => {
+    const d = dialog(`<h3 style="margin-top:0">Thêm "${esc(tenMay)}" (mã ${esc(ma)}) vào app</h3>
+      <p class="muted small" style="margin-top:-4px">Người này đã có trên máy chấm công. Thêm vào app thì có luôn ở Thanh toán (chọn người làm), Chấm công, Lương và Tài khoản &amp; iPad.</p>
+      <label class="small muted">Là ai trong app</label>
+      <select id="dka-nv" style="width:100%;padding:8px;margin:4px 0 10px">${chua.map(n => `<option value="${n.id}" ${goiY && goiY.id === n.id ? 'selected' : ''}>${esc(n.ten)} (đã có trong app)</option>`).join('')}<option value="" ${goiY ? '' : 'selected'}>+ Nhân viên mới</option></select>
+      <div id="dka-moi"><label class="small muted">Tên hiện trong app (gõ có dấu)</label><input id="dka-ten" value="${esc(tenMay)}" style="width:100%;margin-top:4px"></div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button data-no>Huỷ</button><button class="pri" data-yes>Thêm vào app</button></div>`);
+    const doi = () => { $('#dka-moi').hidden = !!$('#dka-nv').value; }; doi();
+    $('#dka-nv').onchange = doi;
+    d.querySelector('[data-no]').onclick = () => { d.close(); res(null); };
+    d.oncancel = () => res(null);
+    d.querySelector('[data-yes]').onclick = () => { const id = $('#dka-nv').value, ten = $('#dka-ten').value.trim().replace(/\s+/g, ' ');
+      if (!id && !ten) { $('#dka-ten').focus(); return; } d.close(); res({id, ten}); };
+    setTimeout(() => { const i = $('#dka-ten'); if (i && !$('#dka-moi').hidden) i.select(); }, 50);
+  });
+  if (!kq) return;
+  if (!await xinPin('Thêm nhân viên vào app')) return;
+  let nv, moi = false;
+  if (kq.id) { nv = S.settings.nhanvien.find(n => n.id === kq.id); nv.active = true; }
+  else ({nv, moi} = themNVApp(kq.ten));
+  c.map[nv.id] = String(ma); await luuNVMoi(nv, moi);
+  renderChamCong(); renderDangKy();
 }
 let _ccCu = '';
 async function dayChamCong() { // chủ xem trên điện thoại (Firestore rules: chamcong) – chỉ tên nhân viên + giờ chấm
@@ -3584,12 +3652,13 @@ function apCauHinh(c) {
     nhanvien: (c.nhanvien || st.nhanvien).map(n => Object.assign({tinhLuong: false, luongThang: 0}, n))});
   st.nhac = Object.assign({}, st.nhac, {soHapTang: num(c.soHapTang) || st.nhac.soHapTang});
   if (Array.isArray(c.sticker)) st.sticker = c.sticker;
-  HD.lines.forEach(l => { if (!st.nhanvien.some(n => n.id === l.chinh)) l.chinh = (activeStaff()[0] || {}).id || ''; l.phu = l.phu.filter(id => st.nhanvien.some(n => n.id === id)); });
+  HD.lines.forEach(l => { if (!st.nhanvien.some(n => n.id === l.chinh)) l.chinh = ''; l.phu = l.phu.filter(id => st.nhanvien.some(n => n.id === id)); });
   DB.put('kv', st, 'settings');
   renderKmChon(); apLaiKm(); renderPicker(); renderLines();
 }
 async function guiVeQuay() {
   if (!HD.lines.length) { toast('Chưa chọn dịch vụ nào', true); return; }
+  if (!duNguoiLam('chưa gửi về quầy được')) return;
   const nd = Cloud.nd || {}, b = $('#btn-guiquay'), b2 = $('#ip-gui'); b.disabled = true; b.textContent = 'Đang gửi…'; if (b2) { b2.disabled = true; b2.textContent = 'Đang gửi…'; }
   const hd = docSach({danhxung: HD.danhxung, ten: (HD.ten || '').trim(), phone: (HD.phone || '').trim(), ghichu: HD.ghichu || '', lines: HD.lines, quay: HD.quay || null});
   try {
