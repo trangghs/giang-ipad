@@ -712,7 +712,7 @@ body.pc.nhom-don #nav{display:none}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.11.5 (13/11/2026)';
+const APP_VERSION = '2.11.6 (13/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -803,14 +803,14 @@ function hopPin(tieuDe, moTa, haiO, chu) { // chu = true: mật khẩu chữ + s
       ${chu ? '<label class="small muted" style="display:block;text-align:center"><input type="checkbox" id="pin-hien"> Hiện mật khẩu</label>' : ''}
       <div class="pin-loi" id="pin-loi"></div>
       <div class="row" style="justify-content:flex-end"><button data-no>Huỷ</button><button class="pri" data-yes>Xác nhận</button></div>`);
-    const xong = v => { d.close(); res(v); };
+    const xong = v => { d.close(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); res(v); };
     const ok = () => { const a = chu ? $('#pin1').value : $('#pin1').value.trim(), b = haiO ? (chu ? $('#pin2').value : $('#pin2').value.trim()) : a;
       if (chu ? !a || (haiO && !(a.length >= 8 && a.length <= 20)) : !/^\d{4,8}$/.test(a)) { $('#pin-loi').textContent = chu ? 'Mật khẩu cấp 2 dài 8–20 ký tự (chữ, số, ký hiệu đều được)' : 'Mã PIN gồm 4–8 chữ số'; return; }
       if (a !== b) { $('#pin-loi').textContent = 'Hai lần nhập không giống nhau'; return; }
       xong(a); };
     d.querySelector('[data-no]').onclick = () => xong(null); d.querySelector('[data-yes]').onclick = ok;
     d.oncancel = () => res(null);
-    d.querySelectorAll('.pin-o').forEach(i => i.onkeydown = e => { if (e.key === 'Enter') ok(); });
+    d.querySelectorAll('.pin-o').forEach(i => i.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); ok(); } });
     const hien = d.querySelector('#pin-hien'); if (hien) hien.onchange = () => d.querySelectorAll('.pin-o').forEach(i => i.type = hien.checked ? 'text' : 'password');
     setTimeout(() => $('#pin1').focus(), 50);
   });
@@ -3561,6 +3561,10 @@ async function xoaNVApp(id) {
   await saveSettings(); autoBackup(); renderCaiDat(); renderLines(); toast(`Đã xoá nhân viên "${n.ten}"`);
 }
 async function xoaNguoiMay(ma, tenMay) { // nút 🗑 Xoá trong bảng người trên máy chấm công
+  if (DK.dangXoa) return; DK.dangXoa = true;
+  try { await xoaNguoiMay0(ma, tenMay); } finally { DK.dangXoa = false; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+}
+async function xoaNguoiMay0(ma, tenMay) {
   const c = mccCfg(), nv = S.settings.nhanvien.find(n => c.map[n.id] === String(ma));
   const kq = await new Promise(res => { const d = dialog(`<h3 style="margin-top:0">Xoá "${esc(tenMay)}" (mã ${esc(ma)}) khỏi máy chấm công?</h3>
     <p class="muted small" style="margin-top:-4px">Người này sẽ không chấm công được nữa (xoá cả vân tay). Các lượt chấm công cũ vẫn giữ.</p>
