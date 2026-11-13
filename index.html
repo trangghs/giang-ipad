@@ -712,7 +712,7 @@ body.pc.nhom-don #nav{display:none}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.11.3 (13/11/2026)';
+const APP_VERSION = '2.11.4 (13/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -2013,14 +2013,15 @@ function renderCaiDat() {
 
   const vtMap = mccCfg().map;
   $('#cd-nv').innerHTML = `<h3>Người làm</h3>
-    ${st.nhanvien.map(n => `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)" data-nv="${n.id}">
+    ${st.nhanvien.filter(n => !n.xoa).map(n => `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)" data-nv="${n.id}">
       <div class="row"><input class="grow" data-nvf="ten" value="${esc(n.ten)}"><label class="small"><input type="checkbox" data-nvf="active" ${n.active ? 'checked' : ''}> Đang làm</label>
-        ${vtMap[n.id] ? `<span class="tag ok" title="Đã có trên máy chấm công">👆 mã ${esc(vtMap[n.id])}</span>` : n.active && n.tinhLuong ? '<button class="sm ghost" data-go="chamcong" title="Mở Nhân viên → Chấm công → Đăng ký vân tay">👆 Lấy vân tay</button>' : ''}</div>
+        ${vtMap[n.id] ? `<span class="tag ok" title="Đã có trên máy chấm công">👆 mã ${esc(vtMap[n.id])}</span>` : n.active && n.tinhLuong ? '<button class="sm ghost" data-go="chamcong" title="Mở Nhân viên → Chấm công → Đăng ký vân tay">👆 Lấy vân tay</button>' : ''}
+        <button class="sm ghost danger" data-xoanv="${n.id}" title="Xoá nhân viên này">🗑 Xoá</button></div>
       <div class="row small" style="margin-top:6px"><label><input type="checkbox" data-nvf="tinhLuong" ${n.tinhLuong ? 'checked' : ''}> Tính lương</label>
         ${n.tinhLuong ? `<span>Lương tháng</span><input type="number" data-nvf="luongThang" value="${n.luongThang || ''}" style="width:90px;padding:5px 8px;text-align:right">k
         <label><input type="checkbox" data-nvf="chiaGoiHC" ${n.chiaGoiHC ? 'checked' : ''}> Nhận chia thưởng gội hoá chất</label>` : ''}</div></div>`).join('')}
     <div class="row"><button data-cd="addnv">+ Thêm người</button></div>
-    <p class="small muted gc">Người nghỉ thì bỏ dấu "Đang làm" (không xoá, để hoá đơn cũ vẫn hiện đúng tên). Anh chủ không cần tích "Tính lương". Nhân viên mới nên thêm ở <b>Nhân viên → Chấm công → Đăng ký vân tay</b>: thêm 1 lần là có cả trên máy vân tay lẫn trong app.</p>`;
+    <p class="small muted gc">Người nghỉ: bỏ dấu "Đang làm" (tạm nghỉ) hoặc bấm <b>🗑 Xoá</b> (nghỉ hẳn; hoá đơn và bảng lương cũ vẫn giữ đúng tên). Anh chủ không cần tích "Tính lương". Nhân viên mới nên thêm ở <b>Nhân viên → Chấm công → Đăng ký vân tay</b>: thêm 1 lần là có cả trên máy vân tay lẫn trong app.</p>`;
 
   const kmIn = (k, f, w) => `<input ${f.includes('.') ? 'type="number" style="width:58px;padding:5px 6px;text-align:right"' : f === 'tu' || f === 'den' ? 'type="date" style="padding:5px 6px"' : `style="width:${w || 170}px;padding:5px 8px"`} data-km="${k.id}" data-kf="${f}" value="${esc(f.split('.').reduce((o, x) => (o || {})[x], k) ?? '')}">`;
   $('#cd-km').style.gridColumn = '1 / -1';
@@ -2172,7 +2173,7 @@ const hmTu = mi => `${String(Math.floor(mi / 60)).padStart(2, '0')}:${String(mi 
 async function taiMCC() {
   try { MCC.data = await docJsonFile('cham-cong/du-lieu.json'); MCC.loi = ''; } catch (e) { MCC.loi = 'chua'; }
   const c = mccCfg(), ds = (MCC.data && MCC.data.nguoi) || [];
-  S.settings.nhanvien.filter(n => n.tinhLuong && !c.map[n.id]).forEach(n => {
+  S.settings.nhanvien.filter(n => n.tinhLuong && !n.xoa && !c.map[n.id]).forEach(n => {
     const m = ds.find(u => bodau(u.ten).trim() === bodau(n.ten).trim()); if (m) c.map[n.id] = m.ma; });
   renderMCC();
 }
@@ -2638,6 +2639,7 @@ function bindEvents() {
   };
   $('#cc-thang').onchange = e => { if (e.target.value) { CCT.thang = e.target.value; renderChamCong(); } };
   $('#cc-lay').onclick = ccLayNgay;
+  $('#cd-nv').addEventListener('click', e => { const b = e.target.closest('[data-xoanv]'); if (b) xoaNV(b.dataset.xoanv); });
   $('#cc-dk').addEventListener('change', e => { if (e.target.id === 'dk-nv') $('#dk-ten').style.display = e.target.value ? 'none' : ''; });
   $('#cc-dk').addEventListener('click', async e => {
     if (e.target.id === 'dk-them') return dkThem();
@@ -3524,6 +3526,28 @@ async function dkLayVanTay(ma, ngon, ten) {
     toast(`Chưa lấy được vân tay${r.loi ? ' (' + r.loi + ')' : ''}. Bấm "Lấy vân tay" để thử lại, hoặc lấy ngay trên máy: M/OK → Quản lý người dùng → mã ${ma} → Vân tay.`, true);
   } catch (e) { dkXong(); toast(e.name === 'AbortError' ? 'Máy chấm công không trả lời. Kiểm tra máy còn bật và cùng mạng.' : 'Lỗi: ' + e.message, true); }
   return false;
+}
+/* 2.11.4: xoá nhân viên. Có trong hoá đơn cũ → giữ tên cho hoá đơn/lương cũ (đánh dấu xoa), không thì xoá hẳn */
+async function xoaNV(id) {
+  const st = S.settings, n = st.nhanvien.find(x => x.id === id); if (!n) return;
+  if (!st.nhanvien.some(x => !x.xoa && x.active && x.id !== id)) { toast('Phải còn ít nhất 1 người làm', true); return; }
+  const c = mccCfg(), ma = c.map[id];
+  const coHD = S.invoices.some(i => (i.lines || []).some(l => (l.tho || []).includes(id))) || Object.values(S.thang || {}).some(t => t && t.cc && t.cc[id]);
+  const kq = await new Promise(res => { const d = dialog(`<h3 style="margin-top:0">Xoá nhân viên "${esc(n.ten)}"?</h3>
+    <p class="muted small" style="margin-top:-4px">${coHD ? 'Người này có trong hoá đơn / bảng công cũ: các hoá đơn và bảng lương cũ vẫn giữ đúng tên. Từ nay không còn ở ô người làm, chấm công, lương, tài khoản iPad.' : 'Người này chưa có hoá đơn nào: xoá hẳn khỏi app.'}</p>
+    ${ma ? `<label class="small" style="display:block;margin:8px 0"><input type="checkbox" id="xnv-vt" checked> Huỷ luôn vân tay trên máy chấm công (mã ${esc(ma)})</label>` : ''}
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button data-no>Không xoá</button><button class="pri danger" data-yes>Xoá nhân viên</button></div>`);
+    d.querySelector('[data-no]').onclick = () => { d.close(); res(null); }; d.oncancel = () => res(null);
+    d.querySelector('[data-yes]').onclick = () => { const vt = !!(d.querySelector('#xnv-vt') || {}).checked; d.close(); res({vt}); }; });
+  if (!kq) return;
+  if (kq.vt && ma) {
+    try { const r = await mccGoi('/xoa-het?ma=' + encodeURIComponent(ma), 60000); if (!r || !Array.isArray(r.daXoa)) throw new Error('chương trình chấm công chưa cập nhật'); }
+    catch (e) { toast('Chưa huỷ được vân tay trên máy (' + (e.name === 'AbortError' ? 'máy không trả lời' : e.message) + '). Nhân viên vẫn được xoá trong app; vân tay huỷ sau ở Chấm công.', true); }
+  }
+  delete c.map[id];
+  if (coHD) Object.assign(n, {xoa: true, active: false}); else st.nhanvien = st.nhanvien.filter(x => x.id !== id);
+  HD.lines.forEach(l => { if (l.chinh === id) l.chinh = ''; l.phu = (l.phu || []).filter(x => x !== id); }); saveDraft();
+  await saveSettings(); autoBackup(); renderCaiDat(); renderLines(); toast(`Đã xoá nhân viên "${n.ten}"`);
 }
 /* 2.11.2: thêm người mới trên máy chấm công = thêm nhân viên mới của app (1 lần là có ở mọi tab) */
 function themNVApp(ten) { // dùng lại nhân viên trùng tên (VD: người cũ quay lại làm) nếu chưa ghép máy, không thì tạo mới
