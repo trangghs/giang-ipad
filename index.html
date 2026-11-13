@@ -99,6 +99,11 @@ body.ipad.la-chu #nav button[data-tab=chamcong]{display:inline-block!important} 
 .cc-hn>div{background:#faf7f3;border:1px solid var(--line,#e6e0ea);border-radius:12px;padding:10px 12px}
 .cc-hn .so{font-size:20px;font-weight:700} .cc-nv{border-top:1px solid var(--line,#e6e0ea);padding:12px 0 4px}
 .cc-tom{display:flex;gap:14px;flex-wrap:wrap;margin:4px 0 6px;font-size:14px}
+body.ipad #cc-dk{display:none}
+#dk-cho{position:fixed;inset:0;background:rgba(30,20,30,.45);z-index:50;display:flex;align-items:center;justify-content:center}
+#dk-cho[hidden]{display:none} #dk-cho .hop{background:#fff;border-radius:16px;padding:26px 30px;max-width:460px;text-align:center;font-size:18px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#dk-cho .xoay{width:42px;height:42px;border:4px solid #eadfd6;border-top-color:#8a4b2f;border-radius:50%;margin:0 auto 14px;animation:dkx 1s linear infinite}
+@keyframes dkx{to{transform:rotate(360deg)}}
 .cc-bang{font-size:14px;width:100%;max-width:640px} .cc-bang td,.cc-bang th{padding:5px 8px} .cc-bang tr.hn td{background:#fff4e5}
 @media(max-width:520px){.cc-bang{font-size:13px}.cc-bang td,.cc-bang th{padding:5px 3px;white-space:nowrap}.cc-bang td:first-child{white-space:normal}}
 body.ipad.tra-loi-tin #nav button[data-tab=tinnhan]{display:inline-block!important} body.ipad[data-tab=tinnhan] #ip-bar{display:none!important}
@@ -615,7 +620,9 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 <section class="tab" id="tab-chamcong"><div class="card">
   <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">⏱ Chấm công vân tay</h3>
     <span class="row" style="gap:6px"><input type="month" id="cc-thang" style="padding:6px 8px"><button class="pri sm" id="cc-lay">⟳ Lấy ngay từ máy</button></span></div>
-  <div id="cc-tt" class="small" style="margin:6px 0"></div><div id="cc-box"></div></div></section>
+  <div id="cc-tt" class="small" style="margin:6px 0"></div><div id="cc-box"></div></div>
+  <div class="card" id="cc-dk"></div></section>
+<div id="dk-cho" hidden><div class="hop"><div class="xoay"></div><div id="dk-cho-txt"></div></div></div>
 <section class="tab" id="tab-doanhthu"><div class="card"><div class="row" style="justify-content:space-between"><b id="dtc-ngay" style="font-size:18px"></b>
   <span><button class="sm" id="dtc-lui">‹</button> <button class="sm" id="dtc-toi">›</button></span></div><div id="dtc-box" style="margin-top:10px"></div></div></section>
 <section class="tab" id="tab-khachchu"><div class="card"><div class="row"><input id="kc-q" class="grow big-input" placeholder="Tìm tên hoặc SĐT" autocomplete="off"></div>
@@ -652,7 +659,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.10.8 (13/11/2026)';
+const APP_VERSION = '2.10.9 (13/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -2567,6 +2574,14 @@ function bindEvents() {
   };
   $('#cc-thang').onchange = e => { if (e.target.value) { CCT.thang = e.target.value; renderChamCong(); } };
   $('#cc-lay').onclick = ccLayNgay;
+  $('#cc-dk').addEventListener('change', e => { if (e.target.id === 'dk-nv') $('#dk-ten').style.display = e.target.value ? 'none' : ''; });
+  $('#cc-dk').addEventListener('click', async e => {
+    if (e.target.id === 'dk-them') return dkThem();
+    const b = e.target.closest('[data-dk-vt]'); if (!b || DK.dang) return;
+    const ma = b.dataset.dkVt, ngon = num($(`[data-dk-ngon="${ma}"]`).value);
+    if (!await xinPin('Lấy vân tay trên máy chấm công')) return;
+    if (!await mccSan()) return;
+    DK.dang = true; await dkLayVanTay(ma, ngon, b.dataset.ten); DK.dang = false; });
   $('#l-mcc').addEventListener('change', async e => { const t = e.target, c = mccCfg();
     if (t.dataset.mmap) c.map[t.dataset.mmap] = t.value;
     else if (t.dataset.mcf) c[t.dataset.mcf] = t.type === 'checkbox' ? t.checked : t.type === 'number' ? num(t.value) : t.value;
@@ -3257,7 +3272,7 @@ async function ccMo() {
       Cloud.unsub.push(() => { if (CCT.unsub) { CCT.unsub(); CCT.unsub = null; } }); }
     renderChamCong(); return;
   }
-  renderChamCong(); await taiMCC(); renderChamCong();
+  renderChamCong(); await taiMCC(); renderChamCong(); renderDangKy();
   if (!CCT.t) CCT.t = setInterval(async () => { if (document.body.dataset.tab === 'chamcong' && !CCT.dangLay) { await taiMCC(); renderChamCong(); } }, 60000);
 }
 async function ccLayNgay() {
@@ -3309,6 +3324,63 @@ function renderChamCong() {
         <td>${x[2] == null ? `<span class="muted">${x[0] === td ? 'đang làm' : 'thiếu'}</span>` : hmTu(x[2])}</td><td class="num">${gl(x[1], x[2])}</td>
         <td class="num ${x[3] ? 'warn-t' : ''}">${x[3] ? x[3] + ' ph' : ''}</td><td class="num">${x[4] ? x[4] + ' ph' : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Tháng này chưa có lượt chấm.</td></tr>'}</table></div>`; }).join('')
     + (IPAD ? '' : '<p class="muted small">Muốn tính lương: tab <b>Lương & lãi lỗ</b> → <b>Điền vào bảng công</b>.</p>');
+}
+/* Đăng ký vân tay: tạo người trên máy (GET /them) rồi bật chế độ lấy vân tay (GET /van-tay) – cần dong_bo.py bản 3 */
+const DK = {dang: false};
+async function mccGoi(path, ms) {
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), ms || 30000);
+  try { const r = await fetch(MCC_API + path, {headers: {'X-Giang': '1'}, signal: ctl.signal, cache: 'no-store'}); return await r.json(); }
+  finally { clearTimeout(tm); }
+}
+const dkCho = h => { $('#dk-cho-txt').innerHTML = h; $('#dk-cho').hidden = false; };
+const dkXong = () => { $('#dk-cho').hidden = true; };
+async function mccSan() {
+  try { const r = await mccGoi('/', 5000); if (r && r.phienBan >= 3) return true; } catch (e) {}
+  toast('Chương trình đồng bộ chấm công chưa phải bản mới. Tắt app rồi mở lại bằng biểu tượng GIANG trên màn hình, rồi thử lại.', true);
+  return false;
+}
+function renderDangKy() {
+  const box = $('#cc-dk'); if (!box || IPAD) return;
+  const c = mccCfg(), ds = (MCC.data && MCC.data.nguoi) || [], nvChua = S.settings.nhanvien.filter(n => n.active && n.tinhLuong && !c.map[n.id]);
+  box.innerHTML = `<h3 style="margin-top:0">👆 Đăng ký vân tay</h3>
+    <p class="small muted" style="margin-top:-6px">Thêm nhân viên mới vào máy chấm công và lấy vân tay ngay từ đây. Người đó đứng cạnh máy, đặt ngón tay 3 lần khi máy báo.</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="dk-nv" style="padding:8px">${nvChua.map(n => `<option value="${n.id}">${esc(n.ten)}</option>`).join('')}<option value="">+ Người khác (gõ tên)</option></select>
+      <input id="dk-ten" placeholder="Tên (không dấu cũng được)" style="width:200px;${nvChua.length ? 'display:none' : ''}">
+      <button class="pri" id="dk-them">Thêm vào máy & lấy vân tay</button></div>
+    <p class="small muted">${nvChua.length ? 'Danh sách trên là nhân viên trong app chưa có trên máy chấm công.' : 'Mọi nhân viên trong app đều đã có trên máy.'} Nhân viên mới chưa có trong app thì thêm ở <b>Cài đặt → Người làm</b> trước, hoặc chọn "Người khác".</p>
+    ${ds.length ? `<div class="nh muted small" style="margin:12px 0 4px">Người đang có trên máy chấm công</div>
+    <table class="cc-bang"><tr><th>Mã</th><th>Tên trên máy</th><th>Nhân viên trong app</th><th></th></tr>
+    ${ds.map(u => { const nv = S.settings.nhanvien.find(n => c.map[n.id] === u.ma);
+      return `<tr><td>${esc(u.ma)}</td><td>${esc(u.ten)}</td><td>${nv ? esc(nv.ten) : '<span class="muted">—</span>'}</td>
+        <td style="white-space:nowrap"><select data-dk-ngon="${esc(u.ma)}" style="padding:5px">${[...Array(10)].map((_, i) => `<option value="${i}">Ngón ${i + 1}</option>`).join('')}</select>
+        <button class="sm" data-dk-vt="${esc(u.ma)}" data-ten="${esc(u.ten)}">Lấy vân tay</button></td></tr>`; }).join('')}</table>` : ''}`;
+}
+async function dkLayVanTay(ma, ngon, ten) {
+  dkCho(`👆 Mời <b>${esc(ten)}</b> đặt ngón tay lên máy chấm công <b>3 lần</b><br><span class="muted" style="font-size:15px">Đặt – nhấc lên – đặt lại theo tiếng máy báo. Máy chờ khoảng 1 phút cho mỗi lần.</span>`);
+  try {
+    const r = await mccGoi(`/van-tay?ma=${encodeURIComponent(ma)}&ngon=${ngon}`, 240000); dkXong();
+    if (r.ok) { toast(`✅ Đã lưu vân tay ngón ${ngon + 1} cho ${ten} (mã ${ma}). Thử chấm công trên máy để kiểm tra.`); return true; }
+    toast(`Chưa lấy được vân tay${r.loi ? ' (' + r.loi + ')' : ''}. Bấm "Lấy vân tay" để thử lại, hoặc lấy ngay trên máy: M/OK → Quản lý người dùng → mã ${ma} → Vân tay.`, true);
+  } catch (e) { dkXong(); toast(e.name === 'AbortError' ? 'Máy chấm công không trả lời. Kiểm tra máy còn bật và cùng mạng.' : 'Lỗi: ' + e.message, true); }
+  return false;
+}
+async function dkThem() {
+  if (DK.dang) return;
+  const sel = $('#dk-nv').value, nv = S.settings.nhanvien.find(n => n.id === sel), ten = nv ? nv.ten : $('#dk-ten').value.trim();
+  if (!ten) { toast('Gõ tên người cần thêm', true); $('#dk-ten').focus(); return; }
+  if (!await xinPin('Thêm người vào máy chấm công')) return;
+  if (!await mccSan()) return;
+  DK.dang = true; dkCho(`Đang tạo <b>${esc(ten)}</b> trên máy chấm công…`);
+  try {
+    const r = await mccGoi('/them?ten=' + encodeURIComponent(ten), 45000);
+    if (!r.ok) throw new Error(r.loi || 'máy không tạo được người mới');
+    if (nv) { mccCfg().map[nv.id] = r.ma; await saveSettings(); }
+    await taiMCC(); renderChamCong(); renderDangKy();
+    if (r.daCo) toast(`Trên máy đã có "${r.ten}" (mã ${r.ma}) – lấy thêm vân tay cho người này.`);
+    await dkLayVanTay(r.ma, 0, r.ten);
+  } catch (e) { dkXong(); toast('Lỗi: ' + (e.name === 'AbortError' ? 'máy chấm công không trả lời' : e.message), true); }
+  DK.dang = false; await taiMCC(); renderChamCong(); renderDangKy();
 }
 let _ccCu = '';
 async function dayChamCong() { // chủ xem trên điện thoại (Firestore rules: chamcong) – chỉ tên nhân viên + giờ chấm
