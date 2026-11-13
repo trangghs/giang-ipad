@@ -101,7 +101,16 @@ body.ipad.la-chu #nav button[data-tab=chamcong]{display:inline-block!important} 
 .cc-tom{display:flex;gap:14px;flex-wrap:wrap;margin:4px 0 6px;font-size:14px}
 body.ipad #cc-dk{display:none}
 #dk-cho{position:fixed;inset:0;background:rgba(30,20,30,.45);z-index:50;display:flex;align-items:center;justify-content:center}
-#dk-cho[hidden]{display:none} #dk-cho .hop{background:#fff;border-radius:16px;padding:26px 30px;max-width:460px;text-align:center;font-size:18px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#dk-cho[hidden]{display:none}
+#dk-tay{position:fixed;inset:0;background:rgba(30,20,30,.45);z-index:49;display:flex;align-items:center;justify-content:center}
+#dk-tay[hidden]{display:none} #dk-tay .hop{background:#fff;border-radius:16px;padding:20px 24px;width:min(640px,94vw);max-height:94vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.tay-svg{width:100%;max-width:560px;display:block;margin:6px auto} .tay-svg [data-ngon]{cursor:pointer}
+.tay-svg .ng{fill:#f4ede6;stroke:#bba796;stroke-width:2} .tay-svg .ng.co{fill:#d9efe0;stroke:#3c8d5a}
+.tay-svg .ng.chon{fill:#b4506a;stroke:#7d2d43} .tay-svg .ng.co.chon{fill:#3c8d5a;stroke:#245c39}
+.tay-svg .so{font:700 15px sans-serif;fill:#6b5a4c;pointer-events:none;text-anchor:middle} .tay-svg .so.tr{fill:#fff}
+.tay-svg .ban{fill:#efe5dc;stroke:#bba796;stroke-width:2} .tay-svg .nh{font:600 14px sans-serif;fill:#8a7f74;text-anchor:middle}
+.tay-tt{text-align:center;font-size:17px;margin:4px 0 10px} .tay-tt .loi{color:var(--bad)} .tay-tt .ok{color:#2f7a4a}
+.tay-nut{display:flex;gap:8px;justify-content:center;flex-wrap:wrap} #dk-cho .hop{background:#fff;border-radius:16px;padding:26px 30px;max-width:460px;text-align:center;font-size:18px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 #dk-cho .xoay{width:42px;height:42px;border:4px solid #eadfd6;border-top-color:#8a4b2f;border-radius:50%;margin:0 auto 14px;animation:dkx 1s linear infinite}
 @keyframes dkx{to{transform:rotate(360deg)}}
 .cc-bang{font-size:14px;width:100%;max-width:640px} .cc-bang td,.cc-bang th{padding:5px 8px} .cc-bang tr.hn td{background:#fff4e5}
@@ -622,6 +631,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <span class="row" style="gap:6px"><input type="month" id="cc-thang" style="padding:6px 8px"><button class="pri sm" id="cc-lay">⟳ Lấy ngay từ máy</button></span></div>
   <div id="cc-tt" class="small" style="margin:6px 0"></div><div id="cc-box"></div></div>
   <div class="card" id="cc-dk"></div></section>
+<div id="dk-tay" hidden><div class="hop" id="dk-tay-hop"></div></div>
 <div id="dk-cho" hidden><div class="hop"><div class="xoay"></div><div id="dk-cho-txt"></div></div></div>
 <section class="tab" id="tab-doanhthu"><div class="card"><div class="row" style="justify-content:space-between"><b id="dtc-ngay" style="font-size:18px"></b>
   <span><button class="sm" id="dtc-lui">‹</button> <button class="sm" id="dtc-toi">›</button></span></div><div id="dtc-box" style="margin-top:10px"></div></div></section>
@@ -659,7 +669,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.10.9 (13/11/2026)';
+const APP_VERSION = '2.10.10 (13/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -2578,10 +2588,10 @@ function bindEvents() {
   $('#cc-dk').addEventListener('click', async e => {
     if (e.target.id === 'dk-them') return dkThem();
     const b = e.target.closest('[data-dk-vt]'); if (!b || DK.dang) return;
-    const ma = b.dataset.dkVt, ngon = num($(`[data-dk-ngon="${ma}"]`).value);
     if (!await xinPin('Lấy vân tay trên máy chấm công')) return;
     if (!await mccSan()) return;
-    DK.dang = true; await dkLayVanTay(ma, ngon, b.dataset.ten); DK.dang = false; });
+    moTay(b.dataset.dkVt, b.dataset.ten); });
+  $('#dk-tay').addEventListener('click', tayBam);
   $('#l-mcc').addEventListener('change', async e => { const t = e.target, c = mccCfg();
     if (t.dataset.mmap) c.map[t.dataset.mmap] = t.value;
     else if (t.dataset.mcf) c[t.dataset.mcf] = t.type === 'checkbox' ? t.checked : t.type === 'number' ? num(t.value) : t.value;
@@ -3273,6 +3283,7 @@ async function ccMo() {
     renderChamCong(); return;
   }
   renderChamCong(); await taiMCC(); renderChamCong(); renderDangKy();
+  mccGoi('/ngon', 40000).then(r => { if (r && r.ok) { DK.ngon = r.ds || {}; renderDangKy(); } }).catch(() => {});
   if (!CCT.t) CCT.t = setInterval(async () => { if (document.body.dataset.tab === 'chamcong' && !CCT.dangLay) { await taiMCC(); renderChamCong(); } }, 60000);
 }
 async function ccLayNgay() {
@@ -3326,7 +3337,7 @@ function renderChamCong() {
     + (IPAD ? '' : '<p class="muted small">Muốn tính lương: tab <b>Lương & lãi lỗ</b> → <b>Điền vào bảng công</b>.</p>');
 }
 /* Đăng ký vân tay: tạo người trên máy (GET /them) rồi bật chế độ lấy vân tay (GET /van-tay) – cần dong_bo.py bản 3 */
-const DK = {dang: false};
+const DK = {dang: false, ngon: null};
 async function mccGoi(path, ms) {
   const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), ms || 30000);
   try { const r = await fetch(MCC_API + path, {headers: {'X-Giang': '1'}, signal: ctl.signal, cache: 'no-store'}); return await r.json(); }
@@ -3335,7 +3346,7 @@ async function mccGoi(path, ms) {
 const dkCho = h => { $('#dk-cho-txt').innerHTML = h; $('#dk-cho').hidden = false; };
 const dkXong = () => { $('#dk-cho').hidden = true; };
 async function mccSan() {
-  try { const r = await mccGoi('/', 5000); if (r && r.phienBan >= 3) return true; } catch (e) {}
+  try { const r = await mccGoi('/', 5000); if (r && r.phienBan >= 4) return true; } catch (e) {}
   toast('Chương trình đồng bộ chấm công chưa phải bản mới. Tắt app rồi mở lại bằng biểu tượng GIANG trên màn hình, rồi thử lại.', true);
   return false;
 }
@@ -3350,11 +3361,83 @@ function renderDangKy() {
       <button class="pri" id="dk-them">Thêm vào máy & lấy vân tay</button></div>
     <p class="small muted">${nvChua.length ? 'Danh sách trên là nhân viên trong app chưa có trên máy chấm công.' : 'Mọi nhân viên trong app đều đã có trên máy.'} Nhân viên mới chưa có trong app thì thêm ở <b>Cài đặt → Người làm</b> trước, hoặc chọn "Người khác".</p>
     ${ds.length ? `<div class="nh muted small" style="margin:12px 0 4px">Người đang có trên máy chấm công</div>
-    <table class="cc-bang"><tr><th>Mã</th><th>Tên trên máy</th><th>Nhân viên trong app</th><th></th></tr>
+    <table class="cc-bang" style="max-width:820px"><tr><th>Mã</th><th>Tên trên máy</th><th>Nhân viên trong app</th><th>Ngón đã có</th><th></th></tr>
     ${ds.map(u => { const nv = S.settings.nhanvien.find(n => c.map[n.id] === u.ma);
       return `<tr><td>${esc(u.ma)}</td><td>${esc(u.ten)}</td><td>${nv ? esc(nv.ten) : '<span class="muted">—</span>'}</td>
-        <td style="white-space:nowrap"><select data-dk-ngon="${esc(u.ma)}" style="padding:5px">${[...Array(10)].map((_, i) => `<option value="${i}">Ngón ${i + 1}</option>`).join('')}</select>
-        <button class="sm" data-dk-vt="${esc(u.ma)}" data-ten="${esc(u.ten)}">Lấy vân tay</button></td></tr>`; }).join('')}</table>` : ''}`;
+        <td>${DK.ngon ? ((DK.ngon[u.ma] || []).length ? (DK.ngon[u.ma] || []).map(i => `<span class="tag" title="${tenNgon(i)}">${i} ${NGON[i]} ${i < 5 ? 'T' : 'P'}</span>`).join(' ') : '<span class="muted small">chưa có</span>') : ''}</td>
+        <td style="white-space:nowrap"><button class="sm" data-dk-vt="${esc(u.ma)}" data-ten="${esc(u.ten)}">👆 Vân tay</button></td></tr>`; }).join('')}</table>` : ''}`;
+}
+/* Bàn tay chọn ngón – số ngón theo chuẩn máy ZKTeco (máy cũng hiện số này khi lấy vân tay) */
+const NGON = ['út', 'áp út', 'giữa', 'trỏ', 'cái', 'cái', 'trỏ', 'giữa', 'áp út', 'út'];
+const tenNgon = i => `ngón ${NGON[i]} tay ${i < 5 ? 'trái' : 'phải'}`;
+const DKT = {ma: '', ten: '', chon: null, daCo: [], tai: false, dang: false, tb: ''};
+function svgTay() {
+  const W = 560, cao = [70, 95, 108, 92], hinh = []; // út, áp út, giữa, trỏ
+  const ngon = (i, x, y, w, h, rot, px, py) => {
+    const co = DKT.daCo.includes(i), ch = DKT.chon === i, r = rot * Math.PI / 180, tx = px - (y + 20 - py) * Math.sin(r), ty = py + (y + 20 - py) * Math.cos(r);
+    hinh.push(`<g data-ngon="${i}"><title>Số ${i} – ${tenNgon(i)}${co ? ' (đã có vân tay)' : ''}</title><rect class="ng ${co ? 'co' : ''} ${ch ? 'chon' : ''}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${w / 2}"${rot ? ` transform="rotate(${rot} ${px} ${py})"` : ''}/>
+      <text class="so ${ch ? 'tr' : ''}" x="${rot ? tx : x + w / 2}" y="${(rot ? ty : y + 22) + 5}">${co ? '✓' : ''}${i}</text></g>`); };
+  // tay trái (bên trái hình): út → trỏ từ trái sang, ngón cái bên phải
+  hinh.push(`<rect class="ban" x="40" y="135" width="160" height="105" rx="30"/>`);
+  cao.forEach((h, k) => ngon(k, 45 + k * 38, 150 - h, 32, h + 15, 0));
+  ngon(4, 178, 118, 32, 78, 38, 194, 196);
+  // tay phải: đối xứng
+  hinh.push(`<rect class="ban" x="${W - 200}" y="135" width="160" height="105" rx="30"/>`);
+  cao.forEach((h, k) => ngon(9 - k, W - 45 - k * 38 - 32, 150 - h, 32, h + 15, 0));
+  ngon(5, W - 210, 118, 32, 78, -38, W - 194, 196);
+  hinh.push(`<text class="nh" x="120" y="262">TAY TRÁI</text><text class="nh" x="${W - 120}" y="262">TAY PHẢI</text>`);
+  return `<svg class="tay-svg" viewBox="0 0 ${W} 272" role="img" aria-label="Chọn ngón tay">${hinh.join('')}</svg>`;
+}
+const LY_DO = {trung: 'Vân tay này đã có trên máy (của người khác, hoặc ngón khác đã lấy rồi). Kiểm tra lại đúng ngón đang chọn.',
+  het_gio: 'Hết giờ chờ: chưa đặt ngón đủ 3 lần. Bấm lấy lại và đặt ngón ngay khi máy báo.',
+  da_co: 'Ngón này đã có vân tay. Muốn lấy lại thì bấm "Xoá vân tay ngón này" trước.',
+  khong_bat: 'Máy không vào chế độ lấy vân tay. Thử lại sau vài giây.'};
+function renderTay() {
+  const box = $('#dk-tay-hop'), c = DKT.chon, co = c != null && DKT.daCo.includes(c);
+  let tt;
+  if (DKT.dang) tt = `<div class="xoay" style="width:34px;height:34px;border:4px solid #eadfd6;border-top-color:#8a4b2f;border-radius:50%;margin:0 auto 8px;animation:dkx 1s linear infinite"></div>
+      👆 Mời <b>${esc(DKT.ten)}</b> đặt <b style="color:#b4506a">${tenNgon(c)}</b> (số ${c}) lên máy <b>3 lần</b><br><span class="muted small">Đặt – nhấc lên – đặt lại theo tiếng máy báo. Đặt đúng ngón đang chọn.</span>`;
+  else if (DKT.tai) tt = '<span class="muted">Đang đọc các ngón đã có trên máy…</span>';
+  else tt = (DKT.tb || '') + (c == null ? '<div class="muted">Bấm vào ngón muốn lấy vân tay trên hình.</div>'
+      : `<div>Đã chọn: <b>số ${c} – ${tenNgon(c)}</b>${co ? ' <span class="ok">✓ đã có vân tay</span>' : ''}</div>`);
+  box.innerHTML = `<div class="row" style="justify-content:space-between"><h3 style="margin:0">👆 Vân tay: ${esc(DKT.ten)} <span class="muted small" style="font-weight:400">mã ${esc(DKT.ma)}</span></h3>
+      <button class="sm ghost" data-tay="dong" ${DKT.dang ? 'disabled' : ''}>Đóng</button></div>
+    ${svgTay()}
+    <div class="small muted" style="text-align:center;margin-top:-4px">Số trên ngón là số máy chấm công dùng. <span style="color:#3c8d5a">✓ xanh</span> = đã có vân tay${DKT.daCo.length ? ` (${DKT.daCo.length} ngón)` : ''}.</div>
+    <div class="tay-tt">${tt}</div>
+    <div class="tay-nut">${c != null && !DKT.dang && !DKT.tai ? (co ? `<button class="danger" data-tay="xoa">Xoá vân tay ngón này</button>` : `<button class="pri" data-tay="lay">Lấy vân tay ${tenNgon(c)}</button>`) : ''}</div>`;
+}
+async function moTay(ma, ten) {
+  Object.assign(DKT, {ma: String(ma), ten, chon: null, daCo: [], tai: true, dang: false, tb: ''});
+  $('#dk-tay').hidden = false; renderTay();
+  try { const r = await mccGoi('/ngon', 40000); if (!r.ok) throw new Error(r.loi || 'không đọc được');
+    DKT.daCo = (r.ds || {})[DKT.ma] || []; DK.ngon = r.ds || {}; }
+  catch (e) { DKT.tb = `<div class="loi">Không đọc được các ngón đã có (${esc(e.name === 'AbortError' ? 'máy không trả lời' : e.message)}).</div>`; }
+  DKT.tai = false; DKT.chon = [6, 5, 7, 1, 3, 4, 2, 8, 0, 9].find(i => !DKT.daCo.includes(i)) ?? null; renderTay();
+}
+async function tayBam(e) {
+  const g = e.target.closest('[data-ngon]'); if (g && !DKT.dang && !DKT.tai) { DKT.chon = +g.dataset.ngon; DKT.tb = ''; renderTay(); return; }
+  const b = e.target.closest('[data-tay]'); if (!b || DKT.dang) return;
+  const a = b.dataset.tay, c = DKT.chon;
+  if (a === 'dong') { $('#dk-tay').hidden = true; renderDangKy(); return; }
+  if (a === 'lay') {
+    DKT.dang = true; DKT.tb = ''; renderTay();
+    try { const r = await mccGoi(`/van-tay?ma=${encodeURIComponent(DKT.ma)}&ngon=${c}`, 240000);
+      if (r.ngonDaCo) DKT.daCo = r.ngonDaCo;
+      DKT.tb = r.ok ? `<div class="ok">✅ Đã lưu vân tay ${tenNgon(c)}. Cho ${esc(DKT.ten)} thử chấm công trên máy.</div>`
+        : `<div class="loi">❌ Chưa lấy được ${tenNgon(c)}. ${esc(LY_DO[r.lyDo] || r.loi || '')}</div>`; }
+    catch (e2) { DKT.tb = `<div class="loi">${e2.name === 'AbortError' ? 'Máy chấm công không trả lời. Kiểm tra máy còn bật và cùng mạng.' : 'Lỗi: ' + esc(e2.message)}</div>`; }
+    DKT.dang = false; renderTay(); return;
+  }
+  if (a === 'xoa') {
+    if (!await confirmBox(`Xoá vân tay <b>${tenNgon(c)}</b> (số ${c}) của <b>${esc(DKT.ten)}</b> trên máy chấm công?<br><span class="muted small">Chỉ xoá ngón này, các ngón khác và lượt chấm công giữ nguyên.</span>`, 'Xoá')) return;
+    DKT.dang = true; renderTay();
+    try { const r = await mccGoi(`/xoa-ngon?ma=${encodeURIComponent(DKT.ma)}&ngon=${c}`, 40000);
+      if (r.ngonDaCo) DKT.daCo = r.ngonDaCo;
+      DKT.tb = r.ok ? `<div class="ok">Đã xoá vân tay ${tenNgon(c)}. Giờ có thể lấy lại ngón này.</div>` : `<div class="loi">Chưa xoá được: ${esc(r.loi || '')}</div>`; }
+    catch (e2) { DKT.tb = `<div class="loi">Lỗi: ${esc(e2.message)}</div>`; }
+    DKT.dang = false; renderTay();
+  }
 }
 async function dkLayVanTay(ma, ngon, ten) {
   dkCho(`👆 Mời <b>${esc(ten)}</b> đặt ngón tay lên máy chấm công <b>3 lần</b><br><span class="muted" style="font-size:15px">Đặt – nhấc lên – đặt lại theo tiếng máy báo. Máy chờ khoảng 1 phút cho mỗi lần.</span>`);
@@ -3377,8 +3460,9 @@ async function dkThem() {
     if (!r.ok) throw new Error(r.loi || 'máy không tạo được người mới');
     if (nv) { mccCfg().map[nv.id] = r.ma; await saveSettings(); }
     await taiMCC(); renderChamCong(); renderDangKy();
-    if (r.daCo) toast(`Trên máy đã có "${r.ten}" (mã ${r.ma}) – lấy thêm vân tay cho người này.`);
-    await dkLayVanTay(r.ma, 0, r.ten);
+    dkXong();
+    if (r.daCo) toast(`Trên máy đã có "${r.ten}" (mã ${r.ma}) – chọn ngón để lấy thêm vân tay.`);
+    DK.dang = false; await moTay(r.ma, r.ten); return;
   } catch (e) { dkXong(); toast('Lỗi: ' + (e.name === 'AbortError' ? 'máy chấm công không trả lời' : e.message), true); }
   DK.dang = false; await taiMCC(); renderChamCong(); renderDangKy();
 }
