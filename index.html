@@ -706,7 +706,7 @@ body.pc.nhom-don #nav{display:none}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.11.0 (13/11/2026)';
+const APP_VERSION = '2.11.1 (13/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -815,12 +815,12 @@ async function datPinMoi(tieuDe) {
   const salt = uid(); S.settings.pin = {salt, hash: await bamPin(pin, salt)}; await saveSettings();
   toast('Đã lưu mã PIN'); return true;
 }
-async function xinPin(viec) {
+async function xinPin(viec, tieuDe) {
   if (IPAD) return true;
   if (!S.settings.pin || !S.settings.pin.hash) return datPinMoi('Tạo mã PIN để ' + viec.toLowerCase());
   while (true) {
     if (Date.now() < PIN_SAI.den) { toast(`Nhập sai nhiều lần. Thử lại sau ${Math.ceil((PIN_SAI.den - Date.now()) / 1000)} giây`, true); return false; }
-    const pin = await hopPin('Nhập mã PIN', viec);
+    const pin = await hopPin(tieuDe || 'Nhập mã PIN', viec);
     if (pin == null) return false;
     if (await bamPin(pin, S.settings.pin.salt) === S.settings.pin.hash) { PIN_SAI.n = 0; return true; }
     PIN_SAI.n++; if (PIN_SAI.n >= 5) { PIN_SAI.n = 0; PIN_SAI.den = Date.now() + 60000; }
@@ -838,9 +838,9 @@ async function datPin2Moi(tieuDe) {
 async function xinPin2(viec) {
   if (IPAD) return false;
   if (!S.settings.pin2 || !S.settings.pin2.hash) {
-    if (!await confirmBox('Chưa có <b>mật khẩu cấp 2</b>. Tạo ngay bây giờ?<br><span class="muted small">Cần nhập mã PIN thường trước.</span>', 'Tạo')) return false;
-    if (!await xinPin('Nhập mã PIN thường để tạo mật khẩu cấp 2')) return false;
-    return datPin2Moi();
+    if (!await confirmBox('Chưa có <b>mật khẩu cấp 2</b>. Tạo ngay bây giờ?<br><span class="muted small">Bước 1: nhập mã PIN thường (mã số anh đang dùng để mở Cài đặt).<br>Bước 2: đặt mật khẩu cấp 2 dài 8–20 ký tự.</span>', 'Tạo')) return false;
+    if (!await xinPin('Đây là mã số anh đang dùng để mở Cài đặt (4–8 số), chưa phải mật khẩu cấp 2. Bấm Xác nhận xong mới tới bước đặt mật khẩu cấp 2.', 'Bước 1/2 · Mã PIN thường')) return false;
+    return datPin2Moi('Bước 2/2 · Tạo mật khẩu cấp 2');
   }
   while (true) {
     if (Date.now() < PIN_SAI.den) { toast(`Nhập sai nhiều lần. Thử lại sau ${Math.ceil((PIN_SAI.den - Date.now()) / 1000)} giây`, true); return false; }
@@ -855,7 +855,7 @@ async function xinPin2(viec) {
 }
 async function doiPin2() {
   if (S.settings.pin2 && S.settings.pin2.hash) { if (!await xinPin2('Nhập mật khẩu cấp 2 hiện tại để đổi')) return; await datPin2Moi('Mật khẩu cấp 2 mới'); }
-  else if (await xinPin('Nhập mã PIN thường để tạo mật khẩu cấp 2')) await datPin2Moi();
+  else await datPin2Moi(); // nút này nằm trong Cài đặt – đã nhập mã PIN thường để vào rồi, không hỏi lại
   renderCaiDat();
 }
 async function doiPin() {
