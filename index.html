@@ -110,7 +110,7 @@ body.ipad #cc-dk{display:none}
 .tay-svg .so{font:700 15px sans-serif;fill:#6b5a4c;pointer-events:none;text-anchor:middle} .tay-svg .so.tr{fill:#fff}
 .tay-svg .ban{fill:#efe5dc;stroke:#bba796;stroke-width:2} .tay-svg .nh{font:600 14px sans-serif;fill:#8a7f74;text-anchor:middle}
 .tay-tt{text-align:center;font-size:17px;margin:4px 0 10px} .tay-tt .loi{color:var(--bad)} .tay-tt .ok{color:#2f7a4a}
-.tay-nut{display:flex;gap:8px;justify-content:center;flex-wrap:wrap} #dk-cho .hop{background:#fff;border-radius:16px;padding:26px 30px;max-width:460px;text-align:center;font-size:18px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.tay-nut{display:flex;gap:8px;justify-content:center;flex-wrap:wrap} .tay-phu{text-align:center;margin-top:10px} .tay-tt .huy{color:var(--muted)} #dk-cho .hop{background:#fff;border-radius:16px;padding:26px 30px;max-width:460px;text-align:center;font-size:18px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 #dk-cho .xoay{width:42px;height:42px;border:4px solid #eadfd6;border-top-color:#8a4b2f;border-radius:50%;margin:0 auto 14px;animation:dkx 1s linear infinite}
 @keyframes dkx{to{transform:rotate(360deg)}}
 .cc-bang{font-size:14px;width:100%;max-width:640px} .cc-bang td,.cc-bang th{padding:5px 8px} .cc-bang tr.hn td{background:#fff4e5}
@@ -712,7 +712,7 @@ body.pc.nhom-don #nav{display:none}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.11.2 (13/11/2026)';
+const APP_VERSION = '2.11.3 (13/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -3424,7 +3424,7 @@ function renderDangKy() {
 /* Bàn tay chọn ngón – số ngón theo chuẩn máy ZKTeco (máy cũng hiện số này khi lấy vân tay) */
 const NGON = ['út', 'áp út', 'giữa', 'trỏ', 'cái', 'cái', 'trỏ', 'giữa', 'áp út', 'út'];
 const tenNgon = i => `ngón ${NGON[i]} tay ${i < 5 ? 'trái' : 'phải'}`;
-const DKT = {ma: '', ten: '', chon: null, daCo: [], tai: false, dang: false, tb: ''};
+const DKT = {ma: '', ten: '', chon: null, daCo: [], tai: false, dang: false, tb: '', viec: '', dangHuy: false};
 function svgTay() {
   const W = 560, cao = [70, 95, 108, 92], hinh = []; // út, áp út, giữa, trỏ
   const ngon = (i, x, y, w, h, rot, px, py) => {
@@ -3444,13 +3444,14 @@ function svgTay() {
 }
 const LY_DO = {trung: 'Vân tay này đã có trên máy (của người khác, hoặc ngón khác đã lấy rồi). Kiểm tra lại đúng ngón đang chọn.',
   het_gio: 'Hết giờ chờ: chưa đặt ngón đủ 3 lần. Bấm lấy lại và đặt ngón ngay khi máy báo.',
-  da_co: 'Ngón này đã có vân tay. Muốn lấy lại thì bấm "Xoá vân tay ngón này" trước.',
+  da_co: 'Ngón này đã có vân tay. Muốn lấy lại thì bấm "Huỷ vân tay ngón này" trước.',
   khong_bat: 'Máy không vào chế độ lấy vân tay. Thử lại sau vài giây.'};
 function renderTay() {
   const box = $('#dk-tay-hop'), c = DKT.chon, co = c != null && DKT.daCo.includes(c);
   let tt;
-  if (DKT.dang) tt = `<div class="xoay" style="width:34px;height:34px;border:4px solid #eadfd6;border-top-color:#8a4b2f;border-radius:50%;margin:0 auto 8px;animation:dkx 1s linear infinite"></div>
-      👆 Mời <b>${esc(DKT.ten)}</b> đặt <b style="color:#b4506a">${tenNgon(c)}</b> (số ${c}) lên máy <b>3 lần</b><br><span class="muted small">Đặt – nhấc lên – đặt lại theo tiếng máy báo. Đặt đúng ngón đang chọn.</span>`;
+  if (DKT.dang && DKT.viec === 'lay') tt = `<div class="xoay" style="width:34px;height:34px;border:4px solid #eadfd6;border-top-color:#8a4b2f;border-radius:50%;margin:0 auto 8px;animation:dkx 1s linear infinite"></div>
+      ${DKT.dangHuy ? '<span class="muted">Đang huỷ, chờ máy chấm công trở lại bình thường…</span>' : `👆 Mời <b>${esc(DKT.ten)}</b> đặt <b style="color:#b4506a">${tenNgon(c)}</b> (số ${c}) lên máy <b>3 lần</b><br><span class="muted small">Đặt – nhấc lên – đặt lại theo tiếng máy báo. Đặt đúng ngón đang chọn. Chọn nhầm thì bấm Huỷ.</span>`}`;
+  else if (DKT.dang) tt = '<span class="muted">Đang huỷ vân tay trên máy chấm công…</span>';
   else if (DKT.tai) tt = '<span class="muted">Đang đọc các ngón đã có trên máy…</span>';
   else tt = (DKT.tb || '') + (c == null ? '<div class="muted">Bấm vào ngón muốn lấy vân tay trên hình.</div>'
       : `<div>Đã chọn: <b>số ${c} – ${tenNgon(c)}</b>${co ? ' <span class="ok">✓ đã có vân tay</span>' : ''}</div>`);
@@ -3459,7 +3460,9 @@ function renderTay() {
     ${svgTay()}
     <div class="small muted" style="text-align:center;margin-top:-4px">Số trên ngón là số máy chấm công dùng. <span style="color:#3c8d5a">✓ xanh</span> = đã có vân tay${DKT.daCo.length ? ` (${DKT.daCo.length} ngón)` : ''}.</div>
     <div class="tay-tt">${tt}</div>
-    <div class="tay-nut">${c != null && !DKT.dang && !DKT.tai ? (co ? `<button class="danger" data-tay="xoa">Xoá vân tay ngón này</button>` : `<button class="pri" data-tay="lay">Lấy vân tay ${tenNgon(c)}</button>`) : ''}</div>`;
+    <div class="tay-nut">${DKT.dang && DKT.viec === 'lay' ? `<button class="danger" data-tay="huy" ${DKT.dangHuy ? 'disabled' : ''}>✕ Huỷ lấy vân tay</button>`
+      : c != null && !DKT.dang && !DKT.tai ? (co ? `<button class="danger" data-tay="xoa">🗑 Huỷ vân tay ngón này</button>` : `<button class="pri" data-tay="lay">Lấy vân tay ${tenNgon(c)}</button>`) : ''}</div>
+    <div class="tay-phu">${DKT.daCo.length && !DKT.dang && !DKT.tai ? `<button class="sm ghost danger" data-tay="xoahet">Huỷ hết vân tay của ${esc(DKT.ten)} (${DKT.daCo.length} ngón)</button>` : ''}</div>`;
 }
 async function moTay(ma, ten) {
   Object.assign(DKT, {ma: String(ma), ten, chon: null, daCo: [], tai: true, dang: false, tb: ''});
@@ -3471,26 +3474,46 @@ async function moTay(ma, ten) {
 }
 async function tayBam(e) {
   const g = e.target.closest('[data-ngon]'); if (g && !DKT.dang && !DKT.tai) { DKT.chon = +g.dataset.ngon; DKT.tb = ''; renderTay(); return; }
-  const b = e.target.closest('[data-tay]'); if (!b || DKT.dang) return;
+  const b = e.target.closest('[data-tay]'); if (!b) return;
   const a = b.dataset.tay, c = DKT.chon;
+  if (a === 'huy') { // máy đang chờ đặt ngón → báo chương trình chấm công dừng lại
+    if (!DKT.dang || DKT.viec !== 'lay' || DKT.dangHuy) return;
+    DKT.dangHuy = true; renderTay();
+    try { const r = await mccGoi('/huy', 8000); if (!r || r.phienBan) throw new Error('cu'); }
+    catch (e2) { DKT.dangHuy = false; renderTay(); toast('Chưa huỷ được từ app (chương trình chấm công chưa cập nhật). Bấm nút ESC trên máy chấm công để huỷ.', true); }
+    return;
+  }
+  if (DKT.dang) return;
   if (a === 'dong') { $('#dk-tay').hidden = true; renderDangKy(); return; }
   if (a === 'lay') {
-    DKT.dang = true; DKT.tb = ''; renderTay();
+    DKT.dang = true; DKT.viec = 'lay'; DKT.dangHuy = false; DKT.tb = ''; renderTay();
     try { const r = await mccGoi(`/van-tay?ma=${encodeURIComponent(DKT.ma)}&ngon=${c}`, 240000);
       if (r.ngonDaCo) DKT.daCo = r.ngonDaCo;
       DKT.tb = r.ok ? `<div class="ok">✅ Đã lưu vân tay ${tenNgon(c)}. Cho ${esc(DKT.ten)} thử chấm công trên máy.</div>`
+        : r.lyDo === 'huy' ? `<div class="huy">Đã huỷ lấy vân tay ${tenNgon(c)}. Máy chấm công trở lại bình thường – chọn lại ngón nếu cần.</div>`
         : `<div class="loi">❌ Chưa lấy được ${tenNgon(c)}. ${esc(LY_DO[r.lyDo] || r.loi || '')}</div>`; }
     catch (e2) { DKT.tb = `<div class="loi">${e2.name === 'AbortError' ? 'Máy chấm công không trả lời. Kiểm tra máy còn bật và cùng mạng.' : 'Lỗi: ' + esc(e2.message)}</div>`; }
-    DKT.dang = false; renderTay(); return;
+    DKT.dang = false; DKT.viec = ''; DKT.dangHuy = false; DK.ngon = Object.assign(DK.ngon || {}, {[DKT.ma]: DKT.daCo}); renderTay(); return;
+  }
+  if (a === 'xoahet') {
+    const n = DKT.daCo.length;
+    if (!await confirmBox(`Huỷ hết <b>${n} vân tay</b> của <b>${esc(DKT.ten)}</b> trên máy chấm công?<br><span class="muted small">Người này sẽ không chấm công bằng vân tay được nữa cho tới khi lấy lại. Tên trên máy và các lượt chấm công cũ vẫn giữ nguyên.</span>`, 'Huỷ hết vân tay', true)) return;
+    DKT.dang = true; DKT.viec = 'xoa'; renderTay();
+    try { const r = await mccGoi(`/xoa-het?ma=${encodeURIComponent(DKT.ma)}`, 60000);
+      if (!r || !Array.isArray(r.daXoa)) throw new Error('chương trình chấm công chưa cập nhật, tắt app rồi mở lại bằng biểu tượng GIANG');
+      if (r.ngonDaCo) DKT.daCo = r.ngonDaCo;
+      DKT.tb = r.ok ? `<div class="ok">Đã huỷ hết vân tay của ${esc(DKT.ten)} (${r.daXoa.length} ngón).</div>` : `<div class="loi">Chưa huỷ hết được: ${esc(r.loi || 'còn ' + (r.ngonDaCo || []).length + ' ngón')}</div>`; }
+    catch (e2) { DKT.tb = `<div class="loi">Lỗi: ${esc(e2.message)}</div>`; }
+    DKT.dang = false; DKT.viec = ''; DK.ngon = Object.assign(DK.ngon || {}, {[DKT.ma]: DKT.daCo}); renderTay(); return;
   }
   if (a === 'xoa') {
-    if (!await confirmBox(`Xoá vân tay <b>${tenNgon(c)}</b> (số ${c}) của <b>${esc(DKT.ten)}</b> trên máy chấm công?<br><span class="muted small">Chỉ xoá ngón này, các ngón khác và lượt chấm công giữ nguyên.</span>`, 'Xoá')) return;
-    DKT.dang = true; renderTay();
+    if (!await confirmBox(`Huỷ vân tay <b>${tenNgon(c)}</b> (số ${c}) của <b>${esc(DKT.ten)}</b> trên máy chấm công?<br><span class="muted small">Chỉ huỷ ngón này, các ngón khác và lượt chấm công giữ nguyên.</span>`, 'Huỷ vân tay')) return;
+    DKT.dang = true; DKT.viec = 'xoa'; renderTay();
     try { const r = await mccGoi(`/xoa-ngon?ma=${encodeURIComponent(DKT.ma)}&ngon=${c}`, 40000);
       if (r.ngonDaCo) DKT.daCo = r.ngonDaCo;
-      DKT.tb = r.ok ? `<div class="ok">Đã xoá vân tay ${tenNgon(c)}. Giờ có thể lấy lại ngón này.</div>` : `<div class="loi">Chưa xoá được: ${esc(r.loi || '')}</div>`; }
+      DKT.tb = r.ok ? `<div class="ok">Đã huỷ vân tay ${tenNgon(c)}. Giờ có thể lấy lại ngón này.</div>` : `<div class="loi">Chưa huỷ được: ${esc(r.loi || '')}</div>`; }
     catch (e2) { DKT.tb = `<div class="loi">Lỗi: ${esc(e2.message)}</div>`; }
-    DKT.dang = false; renderTay();
+    DKT.dang = false; DKT.viec = ''; DK.ngon = Object.assign(DK.ngon || {}, {[DKT.ma]: DKT.daCo}); renderTay();
   }
 }
 async function dkLayVanTay(ma, ngon, ten) {
