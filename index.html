@@ -338,6 +338,7 @@ th button.sx span{opacity:.45;font-size:11px} th button.sx.on{color:var(--brand)
 .line .gia input{width:96px;text-align:right;font-weight:700}
 .line .goc{text-decoration:line-through;color:var(--muted);font-size:14px}
 .line .sub{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:14px}
+.line .sub button[data-them]{padding:4px 10px;font-size:13px}
 button.more{border:0;background:var(--bg);color:var(--muted);border-radius:7px;padding:3px 9px;font-size:13px;white-space:nowrap}
 button.more.on,button.more:hover{color:var(--brand);background:var(--brand-soft)}
 .line .more{margin-left:auto}
@@ -715,7 +716,7 @@ body.pc.nhom-don #nav{display:none}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.11.7 (15/11/2026)';
+const APP_VERSION = '2.11.8 (15/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -747,10 +748,10 @@ const normPhone = s => { let d = String(s || '').replace(/\D/g, ''); if (d.start
 const bodau = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 const maskPhone = p => p && p.length >= 8 && !((window._moSdt || 0) > Date.now()) ? p.slice(0, 4) + '***' + p.slice(-3) : (p || '');
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
-const LOAI = {hoachat:'Hoá chất', cat:'Cắt', catnam:'Cắt nam', phuchoi:'Phục hồi', goi:'Gội', hap:'Hấp', khac:'Khác'};
-const MOT_NGUOI = ['cat', 'catnam', 'phuchoi', 'goi']; // chỉ 1 người làm, ai có tên đều tính mức "người làm"
+const LOAI = {hoachat:'Hoá chất', cat:'Cắt', catnam:'Cắt nam', phuchoi:'Phục hồi', goi:'Gội', hap:'Hấp', covai:'Cổ vai gáy (massage)', khac:'Khác'};
+const MOT_NGUOI = ['cat', 'catnam', 'phuchoi', 'goi', 'covai']; // chỉ 1 người làm, ai có tên đều tính mức "người làm"
 const HH_LOAI = Object.assign({}, LOAI, {goi: 'Gội dầu thường', goicap: 'Gội dầu cặp'}); // bảng hoa hồng: gội tách 2 loại dầu
-const hhKey = l => { if (l.loai !== 'goi') return l.loai;
+const hhKey = l => { if (l.loai !== 'goi') return l.loai; if (/cặp/i.test(l.ten || '')) return 'goicap';
   let v = l.v; if (v == null) { const d = S.settings.dichvu.find(x => x.id === l.dvId) || {};
     v = (d.nhan && l.hang && d.nhan.indexOf(l.hang) > 0) || (l.hang && S.settings.hang && l.hang === S.settings.hang[1]) || /cặp/i.test(l.hang || '') ? 1 : 0; }
   return v === 1 ? 'goicap' : 'goi'; };
@@ -947,6 +948,8 @@ const DV_GOC = [
   ['Cắt & chăm sóc','Phục hồi Napla','phuchoi',[400],0,0,'phục hồi'],
   ['Cắt & chăm sóc','Hấp nóng/lạnh','hap',[200],0,0,'hấp'],
   ['Cắt & chăm sóc','Gội','goi',[50,80],0,0,'gội'],
+  ['Cắt & chăm sóc','Thêm dầu cặp','goi',[30],0,0,'gội dầu cặp','Phụ thu khi cắt, tính lương như gội dầu cặp'],
+  ['Cắt & chăm sóc','Massage cổ vai gáy 15p','covai',[30],0,0,'massage','Phụ thu, tính lương loại Cổ vai gáy'],
 ];
 const dvGoc = () => DV_GOC.map(([nhom, ten, loai, gia, km, tangHap, tenTin, ghichu]) =>
   ({id: uid(), nhom, ten, loai, gia: gia.slice(), kmNhom: kmNhomGoc(ten, loai, km), tangHap: !!tangHap, tenTin: tenTin || '', ghichu: ghichu || '', ...(DV_THEM[ten] || {})}));
@@ -956,7 +959,7 @@ const DV_THEM = {'Cắt (anh chủ)': {tenBang: 'A Chủ'}, 'Cắt (thợ chính
   'Chấm chân (dưới 5cm)': {tenBang: 'Chấm chân (dưới 5cm)'}, 'Combo HS–SV': {}};
 // nhóm khuyến mãi của dịch vụ: lon = uốn/ép/nhuộm cả đầu · nho = chấm chân, ép chân, phồng chân, uốn nam, mái · khac = còn lại · khong = không bao giờ giảm (gói 699k)
 function kmNhomGoc(ten, loai, km) {
-  if (/699/.test(ten)) return 'khong';
+  if (/699/.test(ten) || /^Thêm dầu cặp|^Massage cổ vai/.test(ten)) return 'khong';
   if (km) return 'lon';
   if (/chấm chân|ép chân|phồng chân|uốn tóc nam|mái/i.test(ten)) return 'nho';
   return 'khac';
@@ -1197,6 +1200,20 @@ function renderPicker() {
   bgThanh(); ipBar(); apZoomBG();
 }
 
+const dvThem = re => S.settings.dichvu.find(d => re.test(d.ten));
+function themNut(l) { // 2.11.8: gắn thêm dầu cặp / massage vào dòng cắt, gội
+  const ds = [l.loai === 'goi' ? null : [dvThem(/^Thêm dầu cặp/), 'Dầu cặp'], [dvThem(/^Massage cổ vai/), 'Massage 15p']].filter(x => x && x[0]);
+  return ds.map(([d, t]) => { const co = HD.lines.some(x => x.dvId === d.id && x.gan === l.key);
+    return `<button class="sm ${co ? 'pri' : 'ghost'}" data-them="${d.id}" title="${co ? 'Bỏ' : 'Thêm'} ${esc(d.ten)}">${co ? '✓ ' : '+ '}${t} ${fmtK(num(d.gia[0]))}</button>`; }).join(' ');
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('#hd-lines [data-them]'); if (!b) return;
+  const key = b.closest('.line').dataset.key, k = HD.lines.findIndex(x => x.dvId === b.dataset.them && x.gan === key);
+  if (k >= 0) { HD.lines.splice(k, 1); renderLines(); saveDraft(); return; }
+  addLine(b.dataset.them, 0); const moi = HD.lines[HD.lines.length - 1]; moi.gan = key;
+  const i = HD.lines.findIndex(x => x.key === key); HD.lines.splice(HD.lines.length - 1, 1); HD.lines.splice(i + 1 + HD.lines.slice(i + 1).filter(x => x.gan === key).length, 0, moi);
+  renderLines(); saveDraft();
+});
 function addLine(dvId, v) {
   const d = S.settings.dichvu.find(x => x.id === dvId); if (!d) return;
   const giaGoc = num(d.gia[v]);
@@ -1271,6 +1288,7 @@ function renderLines() {
         <select data-f="chinh" class="${l.chinh ? '' : 'thieu'}">${l.chinh ? '' : '<option value="">– chọn người làm –</option>'}${staffOpts(l.chinh)}</select>
         ${MOT_NGUOI.includes(l.loai) ? '' : `<span class="muted">${l.loai === 'hap' ? 'Tư vấn' : 'Phụ'}</span>
         ${activeStaff().filter(n => n.id !== l.chinh).map(n => `<span class="chip ${l.phu.includes(n.id) ? 'on' : ''}" data-phu="${n.id}">${esc(n.ten)}</span>`).join(' ')}`}
+        ${['cat', 'catnam', 'goi'].includes(l.loai) && !/cặp|massage/i.test(l.ten) ? themNut(l) : ''}
         <button class="more ${moRong.has(l.key) || l.giamTayPct || l.giamTayK ? 'on' : ''}" data-more title="Giảm thêm, loại tính lương">Giảm thêm ⋯</button>
       </div>
       ${(l.loai === 'hoachat' && (l.lon ?? l.tangHap)) || (l.loai === 'hap' && (l.dungTang || hapConDung() > 0)) ? `<div class="sub">
@@ -2776,6 +2794,10 @@ async function init() {
     delete S.settings.luong.congChuan; S.settings.mig12 = true;
   }
   if (S.settings.luong && S.settings.luong.hh && !S.settings.luong.hh.goicap) S.settings.luong.hh.goicap = {cP: 0, cK: 10, pP: 0, pK: 0}; // 2.9.6
+  if (S.settings.luong && S.settings.luong.hh && !S.settings.luong.hh.covai) S.settings.luong.hh.covai = {cP: 0, cK: 0, pP: 0, pK: 0}; // 2.11.8
+  if (!S.settings.mig2118) { // 2.11.8: phụ thu dầu cặp / massage gắn với dòng cắt
+    const goi = S.settings.dichvu.findIndex(d => d.loai === 'goi'), moi = dvGoc().filter(d => /^Thêm dầu cặp|^Massage cổ vai/.test(d.ten) && !S.settings.dichvu.some(x => x.ten === d.ten));
+    S.settings.dichvu.splice(goi >= 0 ? goi + 1 : S.settings.dichvu.length, 0, ...moi); S.settings.mig2118 = true; }
   S.settings.nhanvien.forEach(n => { if (n.tinhLuong === undefined) n.tinhLuong = true; if (n.luongThang === undefined) n.luongThang = 0; if (n.chiaGoiHC === undefined) n.chiaGoiHC = false; });
   await saveSettings();
   try { S.backupDir = await DB.get('kv', 'backupDir') || null; } catch (e) { S.backupDir = null; }
