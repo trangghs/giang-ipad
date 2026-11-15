@@ -716,7 +716,7 @@ body.pc.nhom-don #nav{display:none}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.11.8 (15/11/2026)';
+const APP_VERSION = '2.11.9 (15/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -749,7 +749,8 @@ const bodau = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').repl
 const maskPhone = p => p && p.length >= 8 && !((window._moSdt || 0) > Date.now()) ? p.slice(0, 4) + '***' + p.slice(-3) : (p || '');
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const LOAI = {hoachat:'Hoá chất', cat:'Cắt', catnam:'Cắt nam', phuchoi:'Phục hồi', goi:'Gội', hap:'Hấp', covai:'Cổ vai gáy (massage)', khac:'Khác'};
-const MOT_NGUOI = ['cat', 'catnam', 'phuchoi', 'goi', 'covai']; // chỉ 1 người làm, ai có tên đều tính mức "người làm"
+const MOT_NGUOI = ['cat', 'catnam', 'goi', 'covai'];
+const CO_TU_VAN = ['hap', 'phuchoi']; // người thứ 2 là "tư vấn" (không phải phụ) // chỉ 1 người làm, ai có tên đều tính mức "người làm"
 const HH_LOAI = Object.assign({}, LOAI, {goi: 'Gội dầu thường', goicap: 'Gội dầu cặp'}); // bảng hoa hồng: gội tách 2 loại dầu
 const hhKey = l => { if (l.loai !== 'goi') return l.loai; if (/cặp/i.test(l.ten || '')) return 'goicap';
   let v = l.v; if (v == null) { const d = S.settings.dichvu.find(x => x.id === l.dvId) || {};
@@ -1016,7 +1017,7 @@ const kmHienTai = () => (S.settings.kmList || []).find(k => k.id === S.settings.
 const kmPctDv = (d, date = today()) => { const k = kmHienTai(); if (!k || !d || d.kmNhom === 'khong') return 0;
   const r = k[d.kmNhom || 'khac']; return r ? num(isWeekend(date) ? r.cuoituan : r.thuong) : 0; };
 const staffName = id => (S.settings.nhanvien.find(n => n.id === id) || {}).ten || '?';
-const thoText = l => staffName(l.tho[0]) + (l.tho.length > 1 ? ` · ${l.loai === 'hap' ? 'tư vấn' : 'phụ'} ${l.tho.slice(1).map(staffName).join(', ')}` : '');
+const thoText = l => staffName(l.tho[0]) + (l.tho.length > 1 ? ` · ${CO_TU_VAN.includes(l.loai) ? 'tư vấn' : 'phụ'} ${l.tho.slice(1).map(staffName).join(', ')}` : '');
 const activeStaff = () => S.settings.nhanvien.filter(n => n.active);
 
 /* =========================================================
@@ -1286,7 +1287,7 @@ function renderLines() {
       <div class="sub">
         <span class="muted">${MOT_NGUOI.includes(l.loai) ? 'Người làm' : 'Làm'}</span>
         <select data-f="chinh" class="${l.chinh ? '' : 'thieu'}">${l.chinh ? '' : '<option value="">– chọn người làm –</option>'}${staffOpts(l.chinh)}</select>
-        ${MOT_NGUOI.includes(l.loai) ? '' : `<span class="muted">${l.loai === 'hap' ? 'Tư vấn' : 'Phụ'}</span>
+        ${MOT_NGUOI.includes(l.loai) ? '' : `<span class="muted">${CO_TU_VAN.includes(l.loai) ? 'Tư vấn' : 'Phụ'}</span>
         ${activeStaff().filter(n => n.id !== l.chinh).map(n => `<span class="chip ${l.phu.includes(n.id) ? 'on' : ''}" data-phu="${n.id}">${esc(n.ten)}</span>`).join(' ')}`}
         ${['cat', 'catnam', 'goi'].includes(l.loai) && !/cặp|massage/i.test(l.ten) ? themNut(l) : ''}
         <button class="more ${moRong.has(l.key) || l.giamTayPct || l.giamTayK ? 'on' : ''}" data-more title="Giảm thêm, loại tính lương">Giảm thêm ⋯</button>
@@ -2094,7 +2095,7 @@ function renderCaiDat() {
     </div>
     <table style="margin-top:10px"><tr><th>Loại</th><th class="num">Làm chính %</th><th class="num">+ k/lần</th><th class="num">Phụ / tư vấn %</th><th class="num">+ k/lần</th></tr>
     ${Object.keys(HH_LOAI).map(k => `<tr><td>${HH_LOAI[k]}</td><td class="num">${hhIn(k, 'cP')}</td><td class="num">${hhIn(k, 'cK')}</td>${MOT_NGUOI.includes(k) || k === 'goicap' ? '<td class="num muted" colspan="2" style="text-align:center">chỉ người làm</td>' : `<td class="num">${hhIn(k, 'pP')}</td><td class="num">${hhIn(k, 'pK')}</td>`}</tr>`).join('')}</table>
-    <p class="small muted gc">Tính trên doanh số mỗi dịch vụ người đó làm. Với hấp: cột "phụ" là người tư vấn.</p>
+    <p class="small muted gc">Tính trên doanh số mỗi dịch vụ người đó làm. Với hấp và phục hồi: cột "phụ" là người tư vấn.</p>
     <div class="form-grid" style="margin-top:10px">
     <label>Tiền nhà</label><div class="row"><input type="number" data-s="chiphi.nha" data-num value="${st.chiphi.nha}" style="width:100px"> k/tháng (cố định)</div>
     <label>Hoá chất</label><div class="row"><input type="number" data-s="chiphi.hoachatPct" data-num value="${st.chiphi.hoachatPct}" style="width:70px"> % doanh thu (ước)</div>
@@ -3086,7 +3087,7 @@ function luongCuaNV(thang, nvId) {
       const base = l.loai === 'hap' && l.dungTang && L.hapTheoGiaGoc ? num(l.giaGoc) : thuc;
       const lam = idx === 0 || MOT_NGUOI.includes(l.loai), lk = hhKey(l), r = o.Ln.hh[lk] || {}, v = base * num(lam ? r.cP : r.pP) / 100 + num(lam ? r.cK : r.pK);
       don.push({ngay: i.date, khach: i.ten || 'Khách lẻ', dv: l.ten + (l.hang ? ' · ' + l.hang : ''),
-        vai: MOT_NGUOI.includes(l.loai) ? 'Làm' : idx === 0 ? (l.loai === 'hap' ? 'Làm' : 'Chính') : (l.loai === 'hap' ? 'Tư vấn' : 'Phụ'), tien: Math.round(thuc), hh: Math.round(v * 10) / 10});
+        vai: MOT_NGUOI.includes(l.loai) ? 'Làm' : idx === 0 ? (CO_TU_VAN.includes(l.loai) ? 'Làm' : 'Chính') : (CO_TU_VAN.includes(l.loai) ? 'Tư vấn' : 'Phụ'), tien: Math.round(thuc), hh: Math.round(v * 10) / 10});
     });
   });
   don.sort((a, b) => b.ngay < a.ngay ? -1 : b.ngay > a.ngay ? 1 : 0);
