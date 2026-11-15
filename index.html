@@ -392,6 +392,17 @@ button.more.on,button.more:hover{color:var(--brand);background:var(--brand-soft)
 .pay-btns .pri{flex:1;font-size:19px;padding:14px}
 .empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
 .qr-screen{text-align:center;margin-top:10px}
+.sodu-tt{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:14px;background:#eef7ee;color:#24602a}
+.sodu-tt.bad{background:#fdf0ec;color:#8a3a1e}
+.sodu-cho{display:flex;gap:16px;align-items:center}.sodu-cho .qr-link svg{width:150px;height:150px;display:block}
+.ka-qr svg{width:220px;height:220px;display:block;margin:6px auto}
+.ka-link{width:100%;font-size:12px}
+.ka-gd{width:100%;font-size:13px}.ka-gd td{padding:3px 4px;border-bottom:1px solid #eee}.ka-gd .r{text-align:right}
+.ka-gd .am{color:#a3401f}.ka-gd .duong{color:#2b7a32}
+.banner.nap{background:#eef4ff;border-color:#b9cdf5}
+.chi-ipad{display:none!important}body.ipad .chi-ipad{display:inline-flex!important}
+#hd-quet .tag{font-size:14px}
+.quet-hop video{width:100%;max-height:60vh;border-radius:12px;background:#000;display:block}
 .qr-screen img{width:190px;height:auto}
 
 /* Nhắc hấp */
@@ -541,6 +552,7 @@ body.pc.nhom-don #nav{display:none}
           <label>Sinh nhật<input id="hd-ns" type="date"></label>
           <label>Mã thẻ<input id="hd-mathe" placeholder="VD 0195" autocomplete="off" title="Mã khách hàng in trên thẻ thành viên"></label>
         </div>
+        <div class="row chi-ipad" style="margin-top:8px;gap:8px;align-items:center"><button type="button" class="sm" id="btn-quet">📷 Quét QR app khách</button><span id="hd-quet"></span></div>
         <div id="hd-the-msg"></div>
         <div id="hd-khach"></div>
       </div>
@@ -574,6 +586,7 @@ body.pc.nhom-don #nav{display:none}
         <div class="seg" style="margin-top:12px" id="hd-tt">
           <button data-tt="tienmat" class="on">Tiền mặt</button>
           <button data-tt="ck">Chuyển khoản</button>
+          <button data-tt="sodu" title="Trừ vào số dư app GIANG của khách">Số dư app</button>
         </div>
         <div id="hd-qr"></div>
         <div class="tong"><span class="muted">Khách trả</span><b id="hd-tong">0đ</b></div>
@@ -696,6 +709,7 @@ body.pc.nhom-don #nav{display:none}
     <div class="card" id="cd-km"></div>
     <div class="card" id="cd-nhac"></div>
     <div class="card" id="cd-in"></div>
+    <div class="card" id="cd-app"></div>
     <div class="card" id="cd-luong"></div>
   </div>
   <div class="card" id="cd-gia"></div>
@@ -709,6 +723,1631 @@ body.pc.nhom-don #nav{display:none}
 <input type="file" id="file-import" accept=".json,application/json" hidden>
 
 <script>
+/* qrcode-generator 1.4.4 · (c) 2009 Kazuhiko Arase · MIT License */
+var qrcode = function() {
+/**
+* qrcode
+* @param typeNumber 1 to 40
+* @param errorCorrectionLevel 'L','M','Q','H'
+*/
+var qrcode = function(typeNumber, errorCorrectionLevel) {
+var PAD0 = 0xEC;
+var PAD1 = 0x11;
+var _typeNumber = typeNumber;
+var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+var _modules = null;
+var _moduleCount = 0;
+var _dataCache = null;
+var _dataList = [];
+var _this = {};
+var makeImpl = function(test, maskPattern) {
+_moduleCount = _typeNumber * 4 + 17;
+_modules = function(moduleCount) {
+var modules = new Array(moduleCount);
+for (var row = 0; row < moduleCount; row += 1) {
+modules[row] = new Array(moduleCount);
+for (var col = 0; col < moduleCount; col += 1) {
+modules[row][col] = null;
+}
+}
+return modules;
+}(_moduleCount);
+setupPositionProbePattern(0, 0);
+setupPositionProbePattern(_moduleCount - 7, 0);
+setupPositionProbePattern(0, _moduleCount - 7);
+setupPositionAdjustPattern();
+setupTimingPattern();
+setupTypeInfo(test, maskPattern);
+if (_typeNumber >= 7) {
+setupTypeNumber(test);
+}
+if (_dataCache == null) {
+_dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+}
+mapData(_dataCache, maskPattern);
+};
+var setupPositionProbePattern = function(row, col) {
+for (var r = -1; r <= 7; r += 1) {
+if (row + r <= -1 || _moduleCount <= row + r) continue;
+for (var c = -1; c <= 7; c += 1) {
+if (col + c <= -1 || _moduleCount <= col + c) continue;
+if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+|| (0 <= c && c <= 6 && (r == 0 || r == 6) )
+|| (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+_modules[row + r][col + c] = true;
+} else {
+_modules[row + r][col + c] = false;
+}
+}
+}
+};
+var getBestMaskPattern = function() {
+var minLostPoint = 0;
+var pattern = 0;
+for (var i = 0; i < 8; i += 1) {
+makeImpl(true, i);
+var lostPoint = QRUtil.getLostPoint(_this);
+if (i == 0 || minLostPoint > lostPoint) {
+minLostPoint = lostPoint;
+pattern = i;
+}
+}
+return pattern;
+};
+var setupTimingPattern = function() {
+for (var r = 8; r < _moduleCount - 8; r += 1) {
+if (_modules[r][6] != null) {
+continue;
+}
+_modules[r][6] = (r % 2 == 0);
+}
+for (var c = 8; c < _moduleCount - 8; c += 1) {
+if (_modules[6][c] != null) {
+continue;
+}
+_modules[6][c] = (c % 2 == 0);
+}
+};
+var setupPositionAdjustPattern = function() {
+var pos = QRUtil.getPatternPosition(_typeNumber);
+for (var i = 0; i < pos.length; i += 1) {
+for (var j = 0; j < pos.length; j += 1) {
+var row = pos[i];
+var col = pos[j];
+if (_modules[row][col] != null) {
+continue;
+}
+for (var r = -2; r <= 2; r += 1) {
+for (var c = -2; c <= 2; c += 1) {
+if (r == -2 || r == 2 || c == -2 || c == 2
+|| (r == 0 && c == 0) ) {
+_modules[row + r][col + c] = true;
+} else {
+_modules[row + r][col + c] = false;
+}
+}
+}
+}
+}
+};
+var setupTypeNumber = function(test) {
+var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+for (var i = 0; i < 18; i += 1) {
+var mod = (!test && ( (bits >> i) & 1) == 1);
+_modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+}
+for (var i = 0; i < 18; i += 1) {
+var mod = (!test && ( (bits >> i) & 1) == 1);
+_modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+}
+};
+var setupTypeInfo = function(test, maskPattern) {
+var data = (_errorCorrectionLevel << 3) | maskPattern;
+var bits = QRUtil.getBCHTypeInfo(data);
+for (var i = 0; i < 15; i += 1) {
+var mod = (!test && ( (bits >> i) & 1) == 1);
+if (i < 6) {
+_modules[i][8] = mod;
+} else if (i < 8) {
+_modules[i + 1][8] = mod;
+} else {
+_modules[_moduleCount - 15 + i][8] = mod;
+}
+}
+for (var i = 0; i < 15; i += 1) {
+var mod = (!test && ( (bits >> i) & 1) == 1);
+if (i < 8) {
+_modules[8][_moduleCount - i - 1] = mod;
+} else if (i < 9) {
+_modules[8][15 - i - 1 + 1] = mod;
+} else {
+_modules[8][15 - i - 1] = mod;
+}
+}
+_modules[_moduleCount - 8][8] = (!test);
+};
+var mapData = function(data, maskPattern) {
+var inc = -1;
+var row = _moduleCount - 1;
+var bitIndex = 7;
+var byteIndex = 0;
+var maskFunc = QRUtil.getMaskFunction(maskPattern);
+for (var col = _moduleCount - 1; col > 0; col -= 2) {
+if (col == 6) col -= 1;
+while (true) {
+for (var c = 0; c < 2; c += 1) {
+if (_modules[row][col - c] == null) {
+var dark = false;
+if (byteIndex < data.length) {
+dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+}
+var mask = maskFunc(row, col - c);
+if (mask) {
+dark = !dark;
+}
+_modules[row][col - c] = dark;
+bitIndex -= 1;
+if (bitIndex == -1) {
+byteIndex += 1;
+bitIndex = 7;
+}
+}
+}
+row += inc;
+if (row < 0 || _moduleCount <= row) {
+row -= inc;
+inc = -inc;
+break;
+}
+}
+}
+};
+var createBytes = function(buffer, rsBlocks) {
+var offset = 0;
+var maxDcCount = 0;
+var maxEcCount = 0;
+var dcdata = new Array(rsBlocks.length);
+var ecdata = new Array(rsBlocks.length);
+for (var r = 0; r < rsBlocks.length; r += 1) {
+var dcCount = rsBlocks[r].dataCount;
+var ecCount = rsBlocks[r].totalCount - dcCount;
+maxDcCount = Math.max(maxDcCount, dcCount);
+maxEcCount = Math.max(maxEcCount, ecCount);
+dcdata[r] = new Array(dcCount);
+for (var i = 0; i < dcdata[r].length; i += 1) {
+dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+}
+offset += dcCount;
+var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+var modPoly = rawPoly.mod(rsPoly);
+ecdata[r] = new Array(rsPoly.getLength() - 1);
+for (var i = 0; i < ecdata[r].length; i += 1) {
+var modIndex = i + modPoly.getLength() - ecdata[r].length;
+ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+}
+}
+var totalCodeCount = 0;
+for (var i = 0; i < rsBlocks.length; i += 1) {
+totalCodeCount += rsBlocks[i].totalCount;
+}
+var data = new Array(totalCodeCount);
+var index = 0;
+for (var i = 0; i < maxDcCount; i += 1) {
+for (var r = 0; r < rsBlocks.length; r += 1) {
+if (i < dcdata[r].length) {
+data[index] = dcdata[r][i];
+index += 1;
+}
+}
+}
+for (var i = 0; i < maxEcCount; i += 1) {
+for (var r = 0; r < rsBlocks.length; r += 1) {
+if (i < ecdata[r].length) {
+data[index] = ecdata[r][i];
+index += 1;
+}
+}
+}
+return data;
+};
+var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+var buffer = qrBitBuffer();
+for (var i = 0; i < dataList.length; i += 1) {
+var data = dataList[i];
+buffer.put(data.getMode(), 4);
+buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+data.write(buffer);
+}
+var totalDataCount = 0;
+for (var i = 0; i < rsBlocks.length; i += 1) {
+totalDataCount += rsBlocks[i].dataCount;
+}
+if (buffer.getLengthInBits() > totalDataCount * 8) {
+throw 'code length overflow. ('
++ buffer.getLengthInBits()
++ '>'
++ totalDataCount * 8
++ ')';
+}
+if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+buffer.put(0, 4);
+}
+while (buffer.getLengthInBits() % 8 != 0) {
+buffer.putBit(false);
+}
+while (true) {
+if (buffer.getLengthInBits() >= totalDataCount * 8) {
+break;
+}
+buffer.put(PAD0, 8);
+if (buffer.getLengthInBits() >= totalDataCount * 8) {
+break;
+}
+buffer.put(PAD1, 8);
+}
+return createBytes(buffer, rsBlocks);
+};
+_this.addData = function(data, mode) {
+mode = mode || 'Byte';
+var newData = null;
+switch(mode) {
+case 'Numeric' :
+newData = qrNumber(data);
+break;
+case 'Alphanumeric' :
+newData = qrAlphaNum(data);
+break;
+case 'Byte' :
+newData = qr8BitByte(data);
+break;
+case 'Kanji' :
+newData = qrKanji(data);
+break;
+default :
+throw 'mode:' + mode;
+}
+_dataList.push(newData);
+_dataCache = null;
+};
+_this.isDark = function(row, col) {
+if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+throw row + ',' + col;
+}
+return _modules[row][col];
+};
+_this.getModuleCount = function() {
+return _moduleCount;
+};
+_this.make = function() {
+if (_typeNumber < 1) {
+var typeNumber = 1;
+for (; typeNumber < 40; typeNumber++) {
+var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+var buffer = qrBitBuffer();
+for (var i = 0; i < _dataList.length; i++) {
+var data = _dataList[i];
+buffer.put(data.getMode(), 4);
+buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+data.write(buffer);
+}
+var totalDataCount = 0;
+for (var i = 0; i < rsBlocks.length; i++) {
+totalDataCount += rsBlocks[i].dataCount;
+}
+if (buffer.getLengthInBits() <= totalDataCount * 8) {
+break;
+}
+}
+_typeNumber = typeNumber;
+}
+makeImpl(false, getBestMaskPattern() );
+};
+_this.createTableTag = function(cellSize, margin) {
+cellSize = cellSize || 2;
+margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+var qrHtml = '';
+qrHtml += '<table style="';
+qrHtml += ' border-width: 0px; border-style: none;';
+qrHtml += ' border-collapse: collapse;';
+qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+qrHtml += '">';
+qrHtml += '<tbody>';
+for (var r = 0; r < _this.getModuleCount(); r += 1) {
+qrHtml += '<tr>';
+for (var c = 0; c < _this.getModuleCount(); c += 1) {
+qrHtml += '<td style="';
+qrHtml += ' border-width: 0px; border-style: none;';
+qrHtml += ' border-collapse: collapse;';
+qrHtml += ' padding: 0px; margin: 0px;';
+qrHtml += ' width: ' + cellSize + 'px;';
+qrHtml += ' height: ' + cellSize + 'px;';
+qrHtml += ' background-color: ';
+qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+qrHtml += ';';
+qrHtml += '"/>';
+}
+qrHtml += '</tr>';
+}
+qrHtml += '</tbody>';
+qrHtml += '</table>';
+return qrHtml;
+};
+_this.createSvgTag = function(cellSize, margin, alt, title) {
+var opts = {};
+if (typeof arguments[0] == 'object') {
+opts = arguments[0];
+cellSize = opts.cellSize;
+margin = opts.margin;
+alt = opts.alt;
+title = opts.title;
+}
+cellSize = cellSize || 2;
+margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+alt.text = alt.text || null;
+alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+title = (typeof title === 'string') ? {text: title} : title || {};
+title.text = title.text || null;
+title.id = (title.text) ? title.id || 'qrcode-title' : null;
+var size = _this.getModuleCount() * cellSize + margin * 2;
+var c, mc, r, mr, qrSvg='', rect;
+rect = 'l' + cellSize + ',0 0,' + cellSize +
+' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+qrSvg += '>';
+qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+escapeXml(title.text) + '</title>' : '';
+qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+escapeXml(alt.text) + '</description>' : '';
+qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+qrSvg += '<path d="';
+for (r = 0; r < _this.getModuleCount(); r += 1) {
+mr = r * cellSize + margin;
+for (c = 0; c < _this.getModuleCount(); c += 1) {
+if (_this.isDark(r, c) ) {
+mc = c*cellSize+margin;
+qrSvg += 'M' + mc + ',' + mr + rect;
+}
+}
+}
+qrSvg += '" stroke="transparent" fill="black"/>';
+qrSvg += '</svg>';
+return qrSvg;
+};
+_this.createDataURL = function(cellSize, margin) {
+cellSize = cellSize || 2;
+margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+var size = _this.getModuleCount() * cellSize + margin * 2;
+var min = margin;
+var max = size - margin;
+return createDataURL(size, size, function(x, y) {
+if (min <= x && x < max && min <= y && y < max) {
+var c = Math.floor( (x - min) / cellSize);
+var r = Math.floor( (y - min) / cellSize);
+return _this.isDark(r, c)? 0 : 1;
+} else {
+return 1;
+}
+} );
+};
+_this.createImgTag = function(cellSize, margin, alt) {
+cellSize = cellSize || 2;
+margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+var size = _this.getModuleCount() * cellSize + margin * 2;
+var img = '';
+img += '<img';
+img += '\u0020src="';
+img += _this.createDataURL(cellSize, margin);
+img += '"';
+img += '\u0020width="';
+img += size;
+img += '"';
+img += '\u0020height="';
+img += size;
+img += '"';
+if (alt) {
+img += '\u0020alt="';
+img += escapeXml(alt);
+img += '"';
+}
+img += '/>';
+return img;
+};
+var escapeXml = function(s) {
+var escaped = '';
+for (var i = 0; i < s.length; i += 1) {
+var c = s.charAt(i);
+switch(c) {
+case '<': escaped += '&lt;'; break;
+case '>': escaped += '&gt;'; break;
+case '&': escaped += '&amp;'; break;
+case '"': escaped += '&quot;'; break;
+default : escaped += c; break;
+}
+}
+return escaped;
+};
+var _createHalfASCII = function(margin) {
+var cellSize = 1;
+margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+var size = _this.getModuleCount() * cellSize + margin * 2;
+var min = margin;
+var max = size - margin;
+var y, x, r1, r2, p;
+var blocks = {
+'██': '█',
+'█ ': '▀',
+' █': '▄',
+'  ': ' '
+};
+var blocksLastLineNoMargin = {
+'██': '▀',
+'█ ': '▀',
+' █': ' ',
+'  ': ' '
+};
+var ascii = '';
+for (y = 0; y < size; y += 2) {
+r1 = Math.floor((y - min) / cellSize);
+r2 = Math.floor((y + 1 - min) / cellSize);
+for (x = 0; x < size; x += 1) {
+p = '█';
+if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+p = ' ';
+}
+if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+p += ' ';
+}
+else {
+p += '█';
+}
+ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+}
+ascii += '\n';
+}
+if (size % 2 && margin > 0) {
+return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+}
+return ascii.substring(0, ascii.length-1);
+};
+_this.createASCII = function(cellSize, margin) {
+cellSize = cellSize || 1;
+if (cellSize < 2) {
+return _createHalfASCII(margin);
+}
+cellSize -= 1;
+margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+var size = _this.getModuleCount() * cellSize + margin * 2;
+var min = margin;
+var max = size - margin;
+var y, x, r, p;
+var white = Array(cellSize+1).join('██');
+var black = Array(cellSize+1).join('  ');
+var ascii = '';
+var line = '';
+for (y = 0; y < size; y += 1) {
+r = Math.floor( (y - min) / cellSize);
+line = '';
+for (x = 0; x < size; x += 1) {
+p = 1;
+if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+p = 0;
+}
+line += p ? white : black;
+}
+for (r = 0; r < cellSize; r += 1) {
+ascii += line + '\n';
+}
+}
+return ascii.substring(0, ascii.length-1);
+};
+_this.renderTo2dContext = function(context, cellSize) {
+cellSize = cellSize || 2;
+var length = _this.getModuleCount();
+for (var row = 0; row < length; row++) {
+for (var col = 0; col < length; col++) {
+context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+context.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+}
+}
+}
+return _this;
+};
+qrcode.stringToBytesFuncs = {
+'default' : function(s) {
+var bytes = [];
+for (var i = 0; i < s.length; i += 1) {
+var c = s.charCodeAt(i);
+bytes.push(c & 0xff);
+}
+return bytes;
+}
+};
+qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+/**
+* @param unicodeData base64 string of byte array.
+* [16bit Unicode],[16bit Bytes], ...
+* @param numChars
+*/
+qrcode.createStringToBytes = function(unicodeData, numChars) {
+var unicodeMap = function() {
+var bin = base64DecodeInputStream(unicodeData);
+var read = function() {
+var b = bin.read();
+if (b == -1) throw 'eof';
+return b;
+};
+var count = 0;
+var unicodeMap = {};
+while (true) {
+var b0 = bin.read();
+if (b0 == -1) break;
+var b1 = read();
+var b2 = read();
+var b3 = read();
+var k = String.fromCharCode( (b0 << 8) | b1);
+var v = (b2 << 8) | b3;
+unicodeMap[k] = v;
+count += 1;
+}
+if (count != numChars) {
+throw count + ' != ' + numChars;
+}
+return unicodeMap;
+}();
+var unknownChar = '?'.charCodeAt(0);
+return function(s) {
+var bytes = [];
+for (var i = 0; i < s.length; i += 1) {
+var c = s.charCodeAt(i);
+if (c < 128) {
+bytes.push(c);
+} else {
+var b = unicodeMap[s.charAt(i)];
+if (typeof b == 'number') {
+if ( (b & 0xff) == b) {
+bytes.push(b);
+} else {
+bytes.push(b >>> 8);
+bytes.push(b & 0xff);
+}
+} else {
+bytes.push(unknownChar);
+}
+}
+}
+return bytes;
+};
+};
+var QRMode = {
+MODE_NUMBER :    1 << 0,
+MODE_ALPHA_NUM : 1 << 1,
+MODE_8BIT_BYTE : 1 << 2,
+MODE_KANJI :     1 << 3
+};
+var QRErrorCorrectionLevel = {
+L : 1,
+M : 0,
+Q : 3,
+H : 2
+};
+var QRMaskPattern = {
+PATTERN000 : 0,
+PATTERN001 : 1,
+PATTERN010 : 2,
+PATTERN011 : 3,
+PATTERN100 : 4,
+PATTERN101 : 5,
+PATTERN110 : 6,
+PATTERN111 : 7
+};
+var QRUtil = function() {
+var PATTERN_POSITION_TABLE = [
+[],
+[6, 18],
+[6, 22],
+[6, 26],
+[6, 30],
+[6, 34],
+[6, 22, 38],
+[6, 24, 42],
+[6, 26, 46],
+[6, 28, 50],
+[6, 30, 54],
+[6, 32, 58],
+[6, 34, 62],
+[6, 26, 46, 66],
+[6, 26, 48, 70],
+[6, 26, 50, 74],
+[6, 30, 54, 78],
+[6, 30, 56, 82],
+[6, 30, 58, 86],
+[6, 34, 62, 90],
+[6, 28, 50, 72, 94],
+[6, 26, 50, 74, 98],
+[6, 30, 54, 78, 102],
+[6, 28, 54, 80, 106],
+[6, 32, 58, 84, 110],
+[6, 30, 58, 86, 114],
+[6, 34, 62, 90, 118],
+[6, 26, 50, 74, 98, 122],
+[6, 30, 54, 78, 102, 126],
+[6, 26, 52, 78, 104, 130],
+[6, 30, 56, 82, 108, 134],
+[6, 34, 60, 86, 112, 138],
+[6, 30, 58, 86, 114, 142],
+[6, 34, 62, 90, 118, 146],
+[6, 30, 54, 78, 102, 126, 150],
+[6, 24, 50, 76, 102, 128, 154],
+[6, 28, 54, 80, 106, 132, 158],
+[6, 32, 58, 84, 110, 136, 162],
+[6, 26, 54, 82, 110, 138, 166],
+[6, 30, 58, 86, 114, 142, 170]
+];
+var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+var _this = {};
+var getBCHDigit = function(data) {
+var digit = 0;
+while (data != 0) {
+digit += 1;
+data >>>= 1;
+}
+return digit;
+};
+_this.getBCHTypeInfo = function(data) {
+var d = data << 10;
+while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+}
+return ( (data << 10) | d) ^ G15_MASK;
+};
+_this.getBCHTypeNumber = function(data) {
+var d = data << 12;
+while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+}
+return (data << 12) | d;
+};
+_this.getPatternPosition = function(typeNumber) {
+return PATTERN_POSITION_TABLE[typeNumber - 1];
+};
+_this.getMaskFunction = function(maskPattern) {
+switch (maskPattern) {
+case QRMaskPattern.PATTERN000 :
+return function(i, j) { return (i + j) % 2 == 0; };
+case QRMaskPattern.PATTERN001 :
+return function(i, j) { return i % 2 == 0; };
+case QRMaskPattern.PATTERN010 :
+return function(i, j) { return j % 3 == 0; };
+case QRMaskPattern.PATTERN011 :
+return function(i, j) { return (i + j) % 3 == 0; };
+case QRMaskPattern.PATTERN100 :
+return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+case QRMaskPattern.PATTERN101 :
+return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+case QRMaskPattern.PATTERN110 :
+return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+case QRMaskPattern.PATTERN111 :
+return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+default :
+throw 'bad maskPattern:' + maskPattern;
+}
+};
+_this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+var a = qrPolynomial([1], 0);
+for (var i = 0; i < errorCorrectLength; i += 1) {
+a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+}
+return a;
+};
+_this.getLengthInBits = function(mode, type) {
+if (1 <= type && type < 10) {
+switch(mode) {
+case QRMode.MODE_NUMBER    : return 10;
+case QRMode.MODE_ALPHA_NUM : return 9;
+case QRMode.MODE_8BIT_BYTE : return 8;
+case QRMode.MODE_KANJI     : return 8;
+default :
+throw 'mode:' + mode;
+}
+} else if (type < 27) {
+switch(mode) {
+case QRMode.MODE_NUMBER    : return 12;
+case QRMode.MODE_ALPHA_NUM : return 11;
+case QRMode.MODE_8BIT_BYTE : return 16;
+case QRMode.MODE_KANJI     : return 10;
+default :
+throw 'mode:' + mode;
+}
+} else if (type < 41) {
+switch(mode) {
+case QRMode.MODE_NUMBER    : return 14;
+case QRMode.MODE_ALPHA_NUM : return 13;
+case QRMode.MODE_8BIT_BYTE : return 16;
+case QRMode.MODE_KANJI     : return 12;
+default :
+throw 'mode:' + mode;
+}
+} else {
+throw 'type:' + type;
+}
+};
+_this.getLostPoint = function(qrcode) {
+var moduleCount = qrcode.getModuleCount();
+var lostPoint = 0;
+for (var row = 0; row < moduleCount; row += 1) {
+for (var col = 0; col < moduleCount; col += 1) {
+var sameCount = 0;
+var dark = qrcode.isDark(row, col);
+for (var r = -1; r <= 1; r += 1) {
+if (row + r < 0 || moduleCount <= row + r) {
+continue;
+}
+for (var c = -1; c <= 1; c += 1) {
+if (col + c < 0 || moduleCount <= col + c) {
+continue;
+}
+if (r == 0 && c == 0) {
+continue;
+}
+if (dark == qrcode.isDark(row + r, col + c) ) {
+sameCount += 1;
+}
+}
+}
+if (sameCount > 5) {
+lostPoint += (3 + sameCount - 5);
+}
+}
+};
+for (var row = 0; row < moduleCount - 1; row += 1) {
+for (var col = 0; col < moduleCount - 1; col += 1) {
+var count = 0;
+if (qrcode.isDark(row, col) ) count += 1;
+if (qrcode.isDark(row + 1, col) ) count += 1;
+if (qrcode.isDark(row, col + 1) ) count += 1;
+if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+if (count == 0 || count == 4) {
+lostPoint += 3;
+}
+}
+}
+for (var row = 0; row < moduleCount; row += 1) {
+for (var col = 0; col < moduleCount - 6; col += 1) {
+if (qrcode.isDark(row, col)
+&& !qrcode.isDark(row, col + 1)
+&&  qrcode.isDark(row, col + 2)
+&&  qrcode.isDark(row, col + 3)
+&&  qrcode.isDark(row, col + 4)
+&& !qrcode.isDark(row, col + 5)
+&&  qrcode.isDark(row, col + 6) ) {
+lostPoint += 40;
+}
+}
+}
+for (var col = 0; col < moduleCount; col += 1) {
+for (var row = 0; row < moduleCount - 6; row += 1) {
+if (qrcode.isDark(row, col)
+&& !qrcode.isDark(row + 1, col)
+&&  qrcode.isDark(row + 2, col)
+&&  qrcode.isDark(row + 3, col)
+&&  qrcode.isDark(row + 4, col)
+&& !qrcode.isDark(row + 5, col)
+&&  qrcode.isDark(row + 6, col) ) {
+lostPoint += 40;
+}
+}
+}
+var darkCount = 0;
+for (var col = 0; col < moduleCount; col += 1) {
+for (var row = 0; row < moduleCount; row += 1) {
+if (qrcode.isDark(row, col) ) {
+darkCount += 1;
+}
+}
+}
+var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+lostPoint += ratio * 10;
+return lostPoint;
+};
+return _this;
+}();
+var QRMath = function() {
+var EXP_TABLE = new Array(256);
+var LOG_TABLE = new Array(256);
+for (var i = 0; i < 8; i += 1) {
+EXP_TABLE[i] = 1 << i;
+}
+for (var i = 8; i < 256; i += 1) {
+EXP_TABLE[i] = EXP_TABLE[i - 4]
+^ EXP_TABLE[i - 5]
+^ EXP_TABLE[i - 6]
+^ EXP_TABLE[i - 8];
+}
+for (var i = 0; i < 255; i += 1) {
+LOG_TABLE[EXP_TABLE[i] ] = i;
+}
+var _this = {};
+_this.glog = function(n) {
+if (n < 1) {
+throw 'glog(' + n + ')';
+}
+return LOG_TABLE[n];
+};
+_this.gexp = function(n) {
+while (n < 0) {
+n += 255;
+}
+while (n >= 256) {
+n -= 255;
+}
+return EXP_TABLE[n];
+};
+return _this;
+}();
+function qrPolynomial(num, shift) {
+if (typeof num.length == 'undefined') {
+throw num.length + '/' + shift;
+}
+var _num = function() {
+var offset = 0;
+while (offset < num.length && num[offset] == 0) {
+offset += 1;
+}
+var _num = new Array(num.length - offset + shift);
+for (var i = 0; i < num.length - offset; i += 1) {
+_num[i] = num[i + offset];
+}
+return _num;
+}();
+var _this = {};
+_this.getAt = function(index) {
+return _num[index];
+};
+_this.getLength = function() {
+return _num.length;
+};
+_this.multiply = function(e) {
+var num = new Array(_this.getLength() + e.getLength() - 1);
+for (var i = 0; i < _this.getLength(); i += 1) {
+for (var j = 0; j < e.getLength(); j += 1) {
+num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+}
+}
+return qrPolynomial(num, 0);
+};
+_this.mod = function(e) {
+if (_this.getLength() - e.getLength() < 0) {
+return _this;
+}
+var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+var num = new Array(_this.getLength() );
+for (var i = 0; i < _this.getLength(); i += 1) {
+num[i] = _this.getAt(i);
+}
+for (var i = 0; i < e.getLength(); i += 1) {
+num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+}
+return qrPolynomial(num, 0).mod(e);
+};
+return _this;
+};
+var QRRSBlock = function() {
+var RS_BLOCK_TABLE = [
+[1, 26, 19],
+[1, 26, 16],
+[1, 26, 13],
+[1, 26, 9],
+[1, 44, 34],
+[1, 44, 28],
+[1, 44, 22],
+[1, 44, 16],
+[1, 70, 55],
+[1, 70, 44],
+[2, 35, 17],
+[2, 35, 13],
+[1, 100, 80],
+[2, 50, 32],
+[2, 50, 24],
+[4, 25, 9],
+[1, 134, 108],
+[2, 67, 43],
+[2, 33, 15, 2, 34, 16],
+[2, 33, 11, 2, 34, 12],
+[2, 86, 68],
+[4, 43, 27],
+[4, 43, 19],
+[4, 43, 15],
+[2, 98, 78],
+[4, 49, 31],
+[2, 32, 14, 4, 33, 15],
+[4, 39, 13, 1, 40, 14],
+[2, 121, 97],
+[2, 60, 38, 2, 61, 39],
+[4, 40, 18, 2, 41, 19],
+[4, 40, 14, 2, 41, 15],
+[2, 146, 116],
+[3, 58, 36, 2, 59, 37],
+[4, 36, 16, 4, 37, 17],
+[4, 36, 12, 4, 37, 13],
+[2, 86, 68, 2, 87, 69],
+[4, 69, 43, 1, 70, 44],
+[6, 43, 19, 2, 44, 20],
+[6, 43, 15, 2, 44, 16],
+[4, 101, 81],
+[1, 80, 50, 4, 81, 51],
+[4, 50, 22, 4, 51, 23],
+[3, 36, 12, 8, 37, 13],
+[2, 116, 92, 2, 117, 93],
+[6, 58, 36, 2, 59, 37],
+[4, 46, 20, 6, 47, 21],
+[7, 42, 14, 4, 43, 15],
+[4, 133, 107],
+[8, 59, 37, 1, 60, 38],
+[8, 44, 20, 4, 45, 21],
+[12, 33, 11, 4, 34, 12],
+[3, 145, 115, 1, 146, 116],
+[4, 64, 40, 5, 65, 41],
+[11, 36, 16, 5, 37, 17],
+[11, 36, 12, 5, 37, 13],
+[5, 109, 87, 1, 110, 88],
+[5, 65, 41, 5, 66, 42],
+[5, 54, 24, 7, 55, 25],
+[11, 36, 12, 7, 37, 13],
+[5, 122, 98, 1, 123, 99],
+[7, 73, 45, 3, 74, 46],
+[15, 43, 19, 2, 44, 20],
+[3, 45, 15, 13, 46, 16],
+[1, 135, 107, 5, 136, 108],
+[10, 74, 46, 1, 75, 47],
+[1, 50, 22, 15, 51, 23],
+[2, 42, 14, 17, 43, 15],
+[5, 150, 120, 1, 151, 121],
+[9, 69, 43, 4, 70, 44],
+[17, 50, 22, 1, 51, 23],
+[2, 42, 14, 19, 43, 15],
+[3, 141, 113, 4, 142, 114],
+[3, 70, 44, 11, 71, 45],
+[17, 47, 21, 4, 48, 22],
+[9, 39, 13, 16, 40, 14],
+[3, 135, 107, 5, 136, 108],
+[3, 67, 41, 13, 68, 42],
+[15, 54, 24, 5, 55, 25],
+[15, 43, 15, 10, 44, 16],
+[4, 144, 116, 4, 145, 117],
+[17, 68, 42],
+[17, 50, 22, 6, 51, 23],
+[19, 46, 16, 6, 47, 17],
+[2, 139, 111, 7, 140, 112],
+[17, 74, 46],
+[7, 54, 24, 16, 55, 25],
+[34, 37, 13],
+[4, 151, 121, 5, 152, 122],
+[4, 75, 47, 14, 76, 48],
+[11, 54, 24, 14, 55, 25],
+[16, 45, 15, 14, 46, 16],
+[6, 147, 117, 4, 148, 118],
+[6, 73, 45, 14, 74, 46],
+[11, 54, 24, 16, 55, 25],
+[30, 46, 16, 2, 47, 17],
+[8, 132, 106, 4, 133, 107],
+[8, 75, 47, 13, 76, 48],
+[7, 54, 24, 22, 55, 25],
+[22, 45, 15, 13, 46, 16],
+[10, 142, 114, 2, 143, 115],
+[19, 74, 46, 4, 75, 47],
+[28, 50, 22, 6, 51, 23],
+[33, 46, 16, 4, 47, 17],
+[8, 152, 122, 4, 153, 123],
+[22, 73, 45, 3, 74, 46],
+[8, 53, 23, 26, 54, 24],
+[12, 45, 15, 28, 46, 16],
+[3, 147, 117, 10, 148, 118],
+[3, 73, 45, 23, 74, 46],
+[4, 54, 24, 31, 55, 25],
+[11, 45, 15, 31, 46, 16],
+[7, 146, 116, 7, 147, 117],
+[21, 73, 45, 7, 74, 46],
+[1, 53, 23, 37, 54, 24],
+[19, 45, 15, 26, 46, 16],
+[5, 145, 115, 10, 146, 116],
+[19, 75, 47, 10, 76, 48],
+[15, 54, 24, 25, 55, 25],
+[23, 45, 15, 25, 46, 16],
+[13, 145, 115, 3, 146, 116],
+[2, 74, 46, 29, 75, 47],
+[42, 54, 24, 1, 55, 25],
+[23, 45, 15, 28, 46, 16],
+[17, 145, 115],
+[10, 74, 46, 23, 75, 47],
+[10, 54, 24, 35, 55, 25],
+[19, 45, 15, 35, 46, 16],
+[17, 145, 115, 1, 146, 116],
+[14, 74, 46, 21, 75, 47],
+[29, 54, 24, 19, 55, 25],
+[11, 45, 15, 46, 46, 16],
+[13, 145, 115, 6, 146, 116],
+[14, 74, 46, 23, 75, 47],
+[44, 54, 24, 7, 55, 25],
+[59, 46, 16, 1, 47, 17],
+[12, 151, 121, 7, 152, 122],
+[12, 75, 47, 26, 76, 48],
+[39, 54, 24, 14, 55, 25],
+[22, 45, 15, 41, 46, 16],
+[6, 151, 121, 14, 152, 122],
+[6, 75, 47, 34, 76, 48],
+[46, 54, 24, 10, 55, 25],
+[2, 45, 15, 64, 46, 16],
+[17, 152, 122, 4, 153, 123],
+[29, 74, 46, 14, 75, 47],
+[49, 54, 24, 10, 55, 25],
+[24, 45, 15, 46, 46, 16],
+[4, 152, 122, 18, 153, 123],
+[13, 74, 46, 32, 75, 47],
+[48, 54, 24, 14, 55, 25],
+[42, 45, 15, 32, 46, 16],
+[20, 147, 117, 4, 148, 118],
+[40, 75, 47, 7, 76, 48],
+[43, 54, 24, 22, 55, 25],
+[10, 45, 15, 67, 46, 16],
+[19, 148, 118, 6, 149, 119],
+[18, 75, 47, 31, 76, 48],
+[34, 54, 24, 34, 55, 25],
+[20, 45, 15, 61, 46, 16]
+];
+var qrRSBlock = function(totalCount, dataCount) {
+var _this = {};
+_this.totalCount = totalCount;
+_this.dataCount = dataCount;
+return _this;
+};
+var _this = {};
+var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+switch(errorCorrectionLevel) {
+case QRErrorCorrectionLevel.L :
+return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+case QRErrorCorrectionLevel.M :
+return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+case QRErrorCorrectionLevel.Q :
+return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+case QRErrorCorrectionLevel.H :
+return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+default :
+return undefined;
+}
+};
+_this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+if (typeof rsBlock == 'undefined') {
+throw 'bad rs block @ typeNumber:' + typeNumber +
+'/errorCorrectionLevel:' + errorCorrectionLevel;
+}
+var length = rsBlock.length / 3;
+var list = [];
+for (var i = 0; i < length; i += 1) {
+var count = rsBlock[i * 3 + 0];
+var totalCount = rsBlock[i * 3 + 1];
+var dataCount = rsBlock[i * 3 + 2];
+for (var j = 0; j < count; j += 1) {
+list.push(qrRSBlock(totalCount, dataCount) );
+}
+}
+return list;
+};
+return _this;
+}();
+var qrBitBuffer = function() {
+var _buffer = [];
+var _length = 0;
+var _this = {};
+_this.getBuffer = function() {
+return _buffer;
+};
+_this.getAt = function(index) {
+var bufIndex = Math.floor(index / 8);
+return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+};
+_this.put = function(num, length) {
+for (var i = 0; i < length; i += 1) {
+_this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+}
+};
+_this.getLengthInBits = function() {
+return _length;
+};
+_this.putBit = function(bit) {
+var bufIndex = Math.floor(_length / 8);
+if (_buffer.length <= bufIndex) {
+_buffer.push(0);
+}
+if (bit) {
+_buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+}
+_length += 1;
+};
+return _this;
+};
+var qrNumber = function(data) {
+var _mode = QRMode.MODE_NUMBER;
+var _data = data;
+var _this = {};
+_this.getMode = function() {
+return _mode;
+};
+_this.getLength = function(buffer) {
+return _data.length;
+};
+_this.write = function(buffer) {
+var data = _data;
+var i = 0;
+while (i + 2 < data.length) {
+buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+i += 3;
+}
+if (i < data.length) {
+if (data.length - i == 1) {
+buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+} else if (data.length - i == 2) {
+buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+}
+}
+};
+var strToNum = function(s) {
+var num = 0;
+for (var i = 0; i < s.length; i += 1) {
+num = num * 10 + chatToNum(s.charAt(i) );
+}
+return num;
+};
+var chatToNum = function(c) {
+if ('0' <= c && c <= '9') {
+return c.charCodeAt(0) - '0'.charCodeAt(0);
+}
+throw 'illegal char :' + c;
+};
+return _this;
+};
+var qrAlphaNum = function(data) {
+var _mode = QRMode.MODE_ALPHA_NUM;
+var _data = data;
+var _this = {};
+_this.getMode = function() {
+return _mode;
+};
+_this.getLength = function(buffer) {
+return _data.length;
+};
+_this.write = function(buffer) {
+var s = _data;
+var i = 0;
+while (i + 1 < s.length) {
+buffer.put(
+getCode(s.charAt(i) ) * 45 +
+getCode(s.charAt(i + 1) ), 11);
+i += 2;
+}
+if (i < s.length) {
+buffer.put(getCode(s.charAt(i) ), 6);
+}
+};
+var getCode = function(c) {
+if ('0' <= c && c <= '9') {
+return c.charCodeAt(0) - '0'.charCodeAt(0);
+} else if ('A' <= c && c <= 'Z') {
+return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+} else {
+switch (c) {
+case ' ' : return 36;
+case '$' : return 37;
+case '%' : return 38;
+case '*' : return 39;
+case '+' : return 40;
+case '-' : return 41;
+case '.' : return 42;
+case '/' : return 43;
+case ':' : return 44;
+default :
+throw 'illegal char :' + c;
+}
+}
+};
+return _this;
+};
+var qr8BitByte = function(data) {
+var _mode = QRMode.MODE_8BIT_BYTE;
+var _data = data;
+var _bytes = qrcode.stringToBytes(data);
+var _this = {};
+_this.getMode = function() {
+return _mode;
+};
+_this.getLength = function(buffer) {
+return _bytes.length;
+};
+_this.write = function(buffer) {
+for (var i = 0; i < _bytes.length; i += 1) {
+buffer.put(_bytes[i], 8);
+}
+};
+return _this;
+};
+var qrKanji = function(data) {
+var _mode = QRMode.MODE_KANJI;
+var _data = data;
+var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+if (!stringToBytes) {
+throw 'sjis not supported.';
+}
+!function(c, code) {
+var test = stringToBytes(c);
+if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+throw 'sjis not supported.';
+}
+}('\u53cb', 0x9746);
+var _bytes = stringToBytes(data);
+var _this = {};
+_this.getMode = function() {
+return _mode;
+};
+_this.getLength = function(buffer) {
+return ~~(_bytes.length / 2);
+};
+_this.write = function(buffer) {
+var data = _bytes;
+var i = 0;
+while (i + 1 < data.length) {
+var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+if (0x8140 <= c && c <= 0x9FFC) {
+c -= 0x8140;
+} else if (0xE040 <= c && c <= 0xEBBF) {
+c -= 0xC140;
+} else {
+throw 'illegal char at ' + (i + 1) + '/' + c;
+}
+c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+buffer.put(c, 13);
+i += 2;
+}
+if (i < data.length) {
+throw 'illegal char at ' + (i + 1);
+}
+};
+return _this;
+};
+var byteArrayOutputStream = function() {
+var _bytes = [];
+var _this = {};
+_this.writeByte = function(b) {
+_bytes.push(b & 0xff);
+};
+_this.writeShort = function(i) {
+_this.writeByte(i);
+_this.writeByte(i >>> 8);
+};
+_this.writeBytes = function(b, off, len) {
+off = off || 0;
+len = len || b.length;
+for (var i = 0; i < len; i += 1) {
+_this.writeByte(b[i + off]);
+}
+};
+_this.writeString = function(s) {
+for (var i = 0; i < s.length; i += 1) {
+_this.writeByte(s.charCodeAt(i) );
+}
+};
+_this.toByteArray = function() {
+return _bytes;
+};
+_this.toString = function() {
+var s = '';
+s += '[';
+for (var i = 0; i < _bytes.length; i += 1) {
+if (i > 0) {
+s += ',';
+}
+s += _bytes[i];
+}
+s += ']';
+return s;
+};
+return _this;
+};
+var base64EncodeOutputStream = function() {
+var _buffer = 0;
+var _buflen = 0;
+var _length = 0;
+var _base64 = '';
+var _this = {};
+var writeEncoded = function(b) {
+_base64 += String.fromCharCode(encode(b & 0x3f) );
+};
+var encode = function(n) {
+if (n < 0) {
+} else if (n < 26) {
+return 0x41 + n;
+} else if (n < 52) {
+return 0x61 + (n - 26);
+} else if (n < 62) {
+return 0x30 + (n - 52);
+} else if (n == 62) {
+return 0x2b;
+} else if (n == 63) {
+return 0x2f;
+}
+throw 'n:' + n;
+};
+_this.writeByte = function(n) {
+_buffer = (_buffer << 8) | (n & 0xff);
+_buflen += 8;
+_length += 1;
+while (_buflen >= 6) {
+writeEncoded(_buffer >>> (_buflen - 6) );
+_buflen -= 6;
+}
+};
+_this.flush = function() {
+if (_buflen > 0) {
+writeEncoded(_buffer << (6 - _buflen) );
+_buffer = 0;
+_buflen = 0;
+}
+if (_length % 3 != 0) {
+var padlen = 3 - _length % 3;
+for (var i = 0; i < padlen; i += 1) {
+_base64 += '=';
+}
+}
+};
+_this.toString = function() {
+return _base64;
+};
+return _this;
+};
+var base64DecodeInputStream = function(str) {
+var _str = str;
+var _pos = 0;
+var _buffer = 0;
+var _buflen = 0;
+var _this = {};
+_this.read = function() {
+while (_buflen < 8) {
+if (_pos >= _str.length) {
+if (_buflen == 0) {
+return -1;
+}
+throw 'unexpected end of file./' + _buflen;
+}
+var c = _str.charAt(_pos);
+_pos += 1;
+if (c == '=') {
+_buflen = 0;
+return -1;
+} else if (c.match(/^\s$/) ) {
+continue;
+}
+_buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+_buflen += 6;
+}
+var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+_buflen -= 8;
+return n;
+};
+var decode = function(c) {
+if (0x41 <= c && c <= 0x5a) {
+return c - 0x41;
+} else if (0x61 <= c && c <= 0x7a) {
+return c - 0x61 + 26;
+} else if (0x30 <= c && c <= 0x39) {
+return c - 0x30 + 52;
+} else if (c == 0x2b) {
+return 62;
+} else if (c == 0x2f) {
+return 63;
+} else {
+throw 'c:' + c;
+}
+};
+return _this;
+};
+var gifImage = function(width, height) {
+var _width = width;
+var _height = height;
+var _data = new Array(width * height);
+var _this = {};
+_this.setPixel = function(x, y, pixel) {
+_data[y * _width + x] = pixel;
+};
+_this.write = function(out) {
+out.writeString('GIF87a');
+out.writeShort(_width);
+out.writeShort(_height);
+out.writeByte(0x80); // 2bit
+out.writeByte(0);
+out.writeByte(0);
+out.writeByte(0x00);
+out.writeByte(0x00);
+out.writeByte(0x00);
+out.writeByte(0xff);
+out.writeByte(0xff);
+out.writeByte(0xff);
+out.writeString(',');
+out.writeShort(0);
+out.writeShort(0);
+out.writeShort(_width);
+out.writeShort(_height);
+out.writeByte(0);
+var lzwMinCodeSize = 2;
+var raster = getLZWRaster(lzwMinCodeSize);
+out.writeByte(lzwMinCodeSize);
+var offset = 0;
+while (raster.length - offset > 255) {
+out.writeByte(255);
+out.writeBytes(raster, offset, 255);
+offset += 255;
+}
+out.writeByte(raster.length - offset);
+out.writeBytes(raster, offset, raster.length - offset);
+out.writeByte(0x00);
+out.writeString(';');
+};
+var bitOutputStream = function(out) {
+var _out = out;
+var _bitLength = 0;
+var _bitBuffer = 0;
+var _this = {};
+_this.write = function(data, length) {
+if ( (data >>> length) != 0) {
+throw 'length over';
+}
+while (_bitLength + length >= 8) {
+_out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+length -= (8 - _bitLength);
+data >>>= (8 - _bitLength);
+_bitBuffer = 0;
+_bitLength = 0;
+}
+_bitBuffer = (data << _bitLength) | _bitBuffer;
+_bitLength = _bitLength + length;
+};
+_this.flush = function() {
+if (_bitLength > 0) {
+_out.writeByte(_bitBuffer);
+}
+};
+return _this;
+};
+var getLZWRaster = function(lzwMinCodeSize) {
+var clearCode = 1 << lzwMinCodeSize;
+var endCode = (1 << lzwMinCodeSize) + 1;
+var bitLength = lzwMinCodeSize + 1;
+var table = lzwTable();
+for (var i = 0; i < clearCode; i += 1) {
+table.add(String.fromCharCode(i) );
+}
+table.add(String.fromCharCode(clearCode) );
+table.add(String.fromCharCode(endCode) );
+var byteOut = byteArrayOutputStream();
+var bitOut = bitOutputStream(byteOut);
+bitOut.write(clearCode, bitLength);
+var dataIndex = 0;
+var s = String.fromCharCode(_data[dataIndex]);
+dataIndex += 1;
+while (dataIndex < _data.length) {
+var c = String.fromCharCode(_data[dataIndex]);
+dataIndex += 1;
+if (table.contains(s + c) ) {
+s = s + c;
+} else {
+bitOut.write(table.indexOf(s), bitLength);
+if (table.size() < 0xfff) {
+if (table.size() == (1 << bitLength) ) {
+bitLength += 1;
+}
+table.add(s + c);
+}
+s = c;
+}
+}
+bitOut.write(table.indexOf(s), bitLength);
+bitOut.write(endCode, bitLength);
+bitOut.flush();
+return byteOut.toByteArray();
+};
+var lzwTable = function() {
+var _map = {};
+var _size = 0;
+var _this = {};
+_this.add = function(key) {
+if (_this.contains(key) ) {
+throw 'dup key:' + key;
+}
+_map[key] = _size;
+_size += 1;
+};
+_this.size = function() {
+return _size;
+};
+_this.indexOf = function(key) {
+return _map[key];
+};
+_this.contains = function(key) {
+return typeof _map[key] != 'undefined';
+};
+return _this;
+};
+return _this;
+};
+var createDataURL = function(width, height, getPixel) {
+var gif = gifImage(width, height);
+for (var y = 0; y < height; y += 1) {
+for (var x = 0; x < width; x += 1) {
+gif.setPixel(x, y, getPixel(x, y) );
+}
+}
+var b = byteArrayOutputStream();
+gif.write(b);
+var base64 = base64EncodeOutputStream();
+var bytes = b.toByteArray();
+for (var i = 0; i < bytes.length; i += 1) {
+base64.writeByte(bytes[i]);
+}
+base64.flush();
+return 'data:image/gif;base64,' + base64;
+};
+return qrcode;
+}();
+!function() {
+qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+function toUTF8Array(str) {
+var utf8 = [];
+for (var i=0; i < str.length; i++) {
+var charcode = str.charCodeAt(i);
+if (charcode < 0x80) utf8.push(charcode);
+else if (charcode < 0x800) {
+utf8.push(0xc0 | (charcode >> 6),
+0x80 | (charcode & 0x3f));
+}
+else if (charcode < 0xd800 || charcode >= 0xe000) {
+utf8.push(0xe0 | (charcode >> 12),
+0x80 | ((charcode>>6) & 0x3f),
+0x80 | (charcode & 0x3f));
+}
+else {
+i++;
+charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+| (str.charCodeAt(i) & 0x3ff));
+utf8.push(0xf0 | (charcode >>18),
+0x80 | ((charcode>>12) & 0x3f),
+0x80 | ((charcode>>6) & 0x3f),
+0x80 | (charcode & 0x3f));
+}
+}
+return utf8;
+}
+return toUTF8Array(s);
+};
+}();
+(function (factory) {
+if (typeof define === 'function' && define.amd) {
+define([], factory);
+} else if (typeof exports === 'object') {
+module.exports = factory();
+}
+}(function () {
+return qrcode;
+}));
+</script>
+<script>
 'use strict';
 /* =========================================================
    GIANG Hair-Salon – App quầy thu ngân
@@ -716,7 +2355,7 @@ body.pc.nhom-don #nav{display:none}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.11.9 (15/11/2026)';
+const APP_VERSION = '2.12.0 (15/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -756,7 +2395,7 @@ const hhKey = l => { if (l.loai !== 'goi') return l.loai; if (/cặp/i.test(l.te
   let v = l.v; if (v == null) { const d = S.settings.dichvu.find(x => x.id === l.dvId) || {};
     v = (d.nhan && l.hang && d.nhan.indexOf(l.hang) > 0) || (l.hang && S.settings.hang && l.hang === S.settings.hang[1]) || /cặp/i.test(l.hang || '') ? 1 : 0; }
   return v === 1 ? 'goicap' : 'goi'; };
-const TT = {tienmat:'Tiền mặt', ck:'Chuyển khoản'};
+const TT = {tienmat:'Tiền mặt', ck:'Chuyển khoản', sodu: 'Số dư app'};
 
 function toast(msg, bad) {
   const t = $('#toast'); t.textContent = msg; t.className = 'on' + (bad ? ' bad' : '');
@@ -996,7 +2635,8 @@ function defaultSettings() {
       lon: {thuong: 20, cuoituan: 15}, nho: {thuong: 0, cuoituan: 0}, khac: {thuong: 0, cuoituan: 0}, ghichu: 'Uốn/ép/nhuộm cả đầu: T2–T6 giảm 20%, T7–CN giảm 15%'}],
     kmChon: 'km-2026-10',
     sticker: STICKER_GOC.map(x => ({...x})),
-    nhac: {v: 2, soHapTang: 2, ngay1: 2, lan2: false, ngay2: 5, mau1: MAU1, mauThem: MAU_THEM},
+    khachApp: {bat: true, muc: [{tien: 500, thuong: 50}, {tien: 1000, thuong: 100}, {tien: 2000, thuong: 300}]},
+    nhac: {v: 2, soHapTang: 2, hapToiDa: 2, ngay1: 2, lan2: false, ngay2: 5, mau1: MAU1, mauThem: MAU_THEM},
     inbill: {kho: 80, qr: true, nganhang: '970407', tenNH: 'Techcombank', stk: '19033436834019', tentk: 'NGUYEN XUAN YEN'},
     luong: {nghiCoLuong: 2, gioNgay: 11, anNgay: 30, heSoLamThem: 2, goiHC: 10, hapTheoGiaGoc: false, phatMuon: 0,
       // hoa hồng theo loại: % hoặc nghìn/lần, cho người làm chính và người phụ (với hấp: người tư vấn)
@@ -1024,7 +2664,7 @@ const activeStaff = () => S.settings.nhanvien.filter(n => n.active);
    THANH TOÁN
    ========================================================= */
 let HD = blankHD();
-function blankHD() { return {quay: null, bonus: {}, phone: '', ten: '', danhxung: 'chị', lines: [], choId: '', giamThem: 0, giamPctHD: 0, maThe: '', ngaysinh: '', stkDung: [], stkMoi: '', stkMoiDungLuon: false, lydo: '', ghichu: '', tt: 'tienmat'}; }
+function blankHD() { return {quay: null, bonus: {}, phone: '', ten: '', danhxung: 'chị', lines: [], choId: '', giamThem: 0, giamPctHD: 0, maThe: '', ngaysinh: '', stkDung: [], stkMoi: '', stkMoiDungLuon: false, lydo: '', ghichu: '', tt: 'tienmat', quetKhach: null}; }
 const saveDraft = () => { try { localStorage.setItem('giang-draft', JSON.stringify(HD)); } catch (e) {} capNhatChoDangMo(); };
 
 /* ---------- ĐƠN CHỜ THANH TOÁN ---------- */
@@ -1094,7 +2734,8 @@ function loadDraft() { try { const d = JSON.parse(localStorage.getItem('giang-dr
   HD.lines.forEach(l => { if (l.chinh === undefined) { l.chinh = l.tho1 || ''; l.phu = l.tho2 ? [l.tho2] : []; } }); } } catch (e) {} }
 
 function hdCustomer() { const p = normPhone(HD.phone); return p ? S.customers.get(p) : null; }
-function hapConDung() { const c = hdCustomer(); return c ? c.hapTang - HD.lines.filter(l => l.dungTang).length : 0; }
+function hapCo() { const c = hdCustomer(); return c ? num(c.hapTang) : (IPAD && HD.quetKhach ? num(HD.quetKhach.hap) : 0); }
+function hapConDung() { return hapCo() - HD.lines.filter(l => l.dungTang).length; }
 const hdTamTinh = () => HD.lines.reduce((s, l) => s + num(l.gia), 0);
 const hdGiamThem = () => Math.round(hdTamTinh() * num(HD.giamPctHD) / 100) + num(HD.giamThem);
 const hdTruocSticker = () => Math.max(0, hdTamTinh() - hdGiamThem());
@@ -1289,12 +2930,12 @@ function renderLines() {
         <select data-f="chinh" class="${l.chinh ? '' : 'thieu'}">${l.chinh ? '' : '<option value="">– chọn người làm –</option>'}${staffOpts(l.chinh)}</select>
         ${MOT_NGUOI.includes(l.loai) ? '' : `<span class="muted">${CO_TU_VAN.includes(l.loai) ? 'Tư vấn' : 'Phụ'}</span>
         ${activeStaff().filter(n => n.id !== l.chinh).map(n => `<span class="chip ${l.phu.includes(n.id) ? 'on' : ''}" data-phu="${n.id}">${esc(n.ten)}</span>`).join(' ')}`}
-        ${['cat', 'catnam', 'goi'].includes(l.loai) && !/cặp|massage/i.test(l.ten) ? themNut(l) : ''}
+        ${(['cat', 'catnam', 'goi'].includes(l.loai) || (l.loai === 'hap' && l.dungTang)) && !/cặp|massage/i.test(l.ten) ? themNut(l) : ''}
         <button class="more ${moRong.has(l.key) || l.giamTayPct || l.giamTayK ? 'on' : ''}" data-more title="Giảm thêm, loại tính lương">Giảm thêm ⋯</button>
       </div>
       ${(l.loai === 'hoachat' && (l.lon ?? l.tangHap)) || (l.loai === 'hap' && (l.dungTang || hapConDung() > 0)) ? `<div class="sub">
         ${l.loai === 'hoachat' ? `<label class="tick ${l.tangHap ? '' : 'off'}"><input type="checkbox" data-f="tangHap" ${l.tangHap ? 'checked' : ''}> Tặng ${num(S.settings.nhac.soHapTang)} buổi hấp</label>` : ''}
-        ${l.loai === 'hap' && (l.dungTang || hapConDung() > 0) ? `<label class="tick ${l.dungTang ? '' : 'off'}"><input type="checkbox" data-f="dungTang" ${l.dungTang ? 'checked' : ''}> Dùng buổi hấp tặng (còn ${hdCustomer() ? hdCustomer().hapTang : 0})</label>` : ''}
+        ${l.loai === 'hap' && (l.dungTang || hapConDung() > 0) ? `<label class="tick ${l.dungTang ? '' : 'off'}"><input type="checkbox" data-f="dungTang" ${l.dungTang ? 'checked' : ''}> Dùng buổi hấp tặng (còn ${hapCo()})</label>` : ''}
       </div>` : ''}
       ${moRong.has(l.key) || l.giamTayPct || l.giamTayK ? `<div class="sub-more">
         ${l.dungTang ? '' : `<span class="giamtay" title="Giảm thêm cho riêng dịch vụ này (sau khuyến mãi tháng)">Giảm thêm <input type="number" min="0" max="100" data-f="giamTayPct" value="${l.giamTayPct || ''}" placeholder="0">% <input type="number" min="0" data-f="giamTayK" value="${l.giamTayK || ''}" placeholder="0">k</span>`}
@@ -1394,6 +3035,7 @@ function qrUrl(amountK, info) {
 }
 function renderQRScreen() {
   const box = $('#hd-qr');
+  if (HD.tt === 'sodu') { box.dataset.url = ''; box.innerHTML = kaHopTT(); return; }
   const url = HD.tt === 'ck' && hdTong() > 0 ? qrUrl(hdTong(), 'GIANG ' + (normPhone(HD.phone).slice(-4) || '')) : '';
   if (!url) { box.innerHTML = HD.tt === 'ck' && !S.settings.inbill.qr ? '<div class="muted small" style="margin-top:8px">Muốn hiện mã QR chuyển khoản: vào Cài đặt → In bill.</div>' : ''; return; }
   if (box.dataset.url === url) return;
@@ -1490,7 +3132,7 @@ function ghiChuGo(t, e) {
 function gianGhiChu() { const t = $('#hd-ghichu'); t.style.height = 'auto'; t.style.height = Math.min(260, Math.max(62, t.scrollHeight + 2)) + 'px'; }
 function fillHDForm() {
   fillKhachForm(); $('#hd-q').value = ''; $('#hd-the-msg').innerHTML = ''; $('#hd-giam').value = HD.giamThem || ''; $('#hd-giampct').value = HD.giamPctHD || ''; $('#hd-lydo').value = HD.lydo; $('#hd-ghichu').value = HD.ghichu;
-  capNhatGiamHD(false); gianGhiChu(); renderLines();
+  capNhatGiamHD(false); gianGhiChu(); renderLines(); renderQuet();
 }
 
 function nextInvoiceId(date) {
@@ -1538,6 +3180,16 @@ async function thanhToan(print) {
     inv.giamSticker = Math.min(Math.max(0, inv.lines.reduce((s, l) => s + l.gia, 0) - inv.giamThem), num(goc.giamSticker));
   }
   inv.tong = Math.max(0, inv.lines.reduce((s, l) => s + l.gia, 0) - inv.giamThem - inv.giamSticker);
+  if (inv.tt === 'sodu' || (goc && goc.tt === 'sodu')) { // 2.12: trả bằng số dư app khách
+    if (goc) {
+      if (goc.tt !== inv.tt || num(goc.tong) !== inv.tong || (goc.phone || '') !== phone) { toast('Hoá đơn này trả bằng số dư app nên không đổi tiền, cách trả hay khách được. Muốn sửa: xoá hoá đơn (tiền tự hoàn vào ví khách) rồi nhập lại.', true); return; }
+      inv.soDuTru = num(goc.soDuTru); inv.soDuCon = goc.soDuCon;
+    } else {
+      const loi = kaKiemTra(phone, inv.tong); if (loi) { toast(loi, true); return; }
+      const kq = await xinTraSoDu(S.customers.get(phone), inv.tong); if (!kq) return;
+      inv.soDuTru = inv.tong; if (kq === 'pin') inv.soDuKhongHoi = true;
+    }
+  }
   if (goc) { // trả lại buổi hấp tặng + bỏ lịch nhắc của HĐ gốc, lát nữa tính lại theo nội dung mới
     const cg = goc.phone && S.customers.get(goc.phone);
     if (cg) { cg.hapTang = Math.max(0, (cg.hapTang || 0) - (goc.hapTangCong || 0) + (goc.hapTangDung || 0)); await DB.put('customers', cg); }
@@ -1556,6 +3208,7 @@ async function thanhToan(print) {
     if (inv.stickerNhan && !goc) c.stickers.push({id: uid(), loai: inv.stickerNhan.loai, ten: inv.stickerNhan.ten, kieu: inv.stickerNhan.kieu, giaTri: inv.stickerNhan.giaTri, ngayNhan: date, hdNhan: inv.id,
       dung: inv.stickerNhan.dungLuon ? {ngay: date, hd: inv.id} : null});
     inv.stickerCon = c.stickers.filter(x => !x.dung).length;
+    if (inv.soDuTru && !goc) { viGhi(c, {loai: 'tra', tien: -inv.soDuTru, hd: inv.id}); inv.soDuCon = c.soDu; }
     inv.hapTangDung = inv.lines.filter(l => l.dungTang).length;
     c.hapTang = Math.max(0, (c.hapTang || 0) - inv.hapTangDung);
     // khách quay lại hấp → đóng các lời nhắc đang mở
@@ -1565,13 +3218,15 @@ async function thanhToan(print) {
     }
     if (chemLines.length) {
       const nh = S.settings.nhac;
-      inv.hapTangCong = num(nh.soHapTang) || 0;
-      c.hapTang += inv.hapTangCong;
+      const hapTruoc = num(c.hapTang), toiDa = num(nh.hapToiDa);
+      c.hapTang = hapTruoc + (num(nh.soHapTang) || 0);
+      if (toiDa > 0) c.hapTang = Math.max(hapTruoc, Math.min(c.hapTang, toiDa)); // 2.12: giữ tối đa N buổi (mặc định 2)
+      inv.hapTangCong = c.hapTang - hapTruoc;
       // bỏ lời nhắc cũ của lần làm trước (nếu còn treo)
       S.reminders.filter(r => r.phone === phone && ['cho', 'danhan', 'khonglienlac'].includes(r.status))
         .forEach(r => { r.status = 'huy'; r.capNhat = date; changedRems.push(r); });
       const dichvu = [...new Set(chemLines.map(l => l.tenTin || l.ten.toLowerCase()))].join(' + ');
-      if (inv.hapTangCong > 0) {
+      if (num(nh.soHapTang) > 0) {
         newRems.push({id: uid(), phone, invoiceId: inv.id, ngayLam: date, dichvu, lan: 1, due: addDays(date, num(nh.ngay1) || 3), status: 'cho', henNgay: '', capNhat: ''});
         if (nh.lan2) newRems.push({id: uid(), phone, invoiceId: inv.id, ngayLam: date, dichvu, lan: 2, due: addDays(date, num(nh.ngay2) || 5), status: 'cho', henNgay: '', capNhat: ''});
       }
@@ -1595,7 +3250,7 @@ async function thanhToan(print) {
   if (goc) { toast(`✏️ Đã sửa ${inv.id}: ${fmtD(goc.tong)} → ${fmtD(inv.tong)}`); if (tabDangMo() === 'hoadon') renderHoaDon(); }
   else toast(`Đã lưu ${inv.id} · ${fmtD(inv.tong)}` + (!phone && chemLines.length ? ' · Khách không có SĐT nên không nhắc hấp được' : ''), !phone && chemLines.length);
   refreshNhacBadge(); renderBanners();
-  autoBackup();
+  autoBackup(); dayKhachApp();
 }
 
 /* ---------- in bill ---------- */
@@ -1621,6 +3276,7 @@ function billHtml(inv) {
     ${inv.giamSticker ? `<tr><td>Sticker ${esc((inv.stickerDung || []).map(x => stkText(x)).join(', '))}${inv.maThe ? ' · thẻ ' + esc(inv.maThe) : ''}</td><td class="r">−${fmtD(inv.giamSticker)}</td></tr>` : ''}
     <tr class="tot"><td>TỔNG CỘNG</td><td class="r">${fmtD(inv.tong)}</td></tr>
     <tr><td class="sm">Thanh toán</td><td class="r sm">${TT[inv.tt]}</td></tr>
+    ${inv.tt === 'sodu' && inv.soDuCon != null ? `<tr><td class="sm">Số dư app còn</td><td class="r sm">${fmtD(inv.soDuCon)}</td></tr>` : ''}
     </table>
     ${inv.hapTangCong ? `<div class="gift"><b>Tặng ${inv.hapTangCong} buổi hấp phục hồi</b><br><span class="sm">${dx === 'chị' || dx === 'anh' ? cap(dx) : 'Bạn'} quay lại hấp sau 3 ngày, lúc tóc hồi tốt nhất ạ${inv.hapConLai != null ? `<br>Hiện còn: ${inv.hapConLai} buổi` : ''}</span></div>`
       : inv.hapTangDung ? `<div class="gift sm">Đã dùng ${inv.hapTangDung} buổi hấp tặng · còn ${inv.hapConLai} buổi</div>` : ''}
@@ -1769,7 +3425,7 @@ function renderKhachList() {
   $('#kh-sum').textContent = `${list.length} khách${q ? ' khớp' : ''}`;
   $('#kh-tbl').innerHTML = `<tr><th>Khách</th><th>SĐT</th><th>Thẻ</th>${th('n', 'Số lần', 1)}${th('last', 'Lần cuối')}${th('tong', 'Tổng chi', 1)}<th class="num">Hấp tặng</th></tr>` +
     list.slice(0, 300).map(c => { const s = stats[c.phone] || {};
-      return `<tr class="click" data-kh="${c.phone}"><td><b>${esc(c.ten)}</b></td><td>${esc(maskPhone(c.phone))}</td><td>${esc(c.maThe || '')}${(c.stickers || []).some(x => !x.dung) ? ' 🎟' : ''}</td><td class="num">${s.n || 0}</td><td>${s.last ? (s.last.endsWith('-00') ? thangText(s.last.slice(0, 7)) : dmy(s.last)) : ''}</td><td class="num">${fmtK(s.tong || 0)}</td><td class="num">${c.hapTang || ''}</td></tr>`; }).join('');
+      return `<tr class="click" data-kh="${c.phone}"><td><b>${esc(c.ten)}</b></td><td>${esc(maskPhone(c.phone))}</td><td>${esc(c.maThe || '')}${(c.stickers || []).some(x => !x.dung) ? ' 🎟' : ''}${c.app ? ' 📱' : ''}</td><td class="num">${s.n || 0}</td><td>${s.last ? (s.last.endsWith('-00') ? thangText(s.last.slice(0, 7)) : dmy(s.last)) : ''}</td><td class="num">${fmtK(s.tong || 0)}</td><td class="num">${c.hapTang || ''}</td></tr>`; }).join('');
 }
 function renderSoCu() {
   const q = bodau($('#kh-q').value.trim()), box = $('#kh-socu');
@@ -1795,6 +3451,7 @@ function renderKhachDetail(phone) {
     </div>
     <div class="row" style="margin-top:12px"><button class="pri" data-kh-save>Lưu thông tin</button><button data-kh-new>Tạo hoá đơn cho khách này</button></div>
   </div>
+  ${kaTheKhach(c)}
   <div class="card"><h3>Sticker trên thẻ</h3>
     ${(c.stickers || []).length ? (c.stickers || []).slice().reverse().map(x => `<div class="mini row" style="justify-content:space-between">
       <span><b>${esc(stkText(x))}</b> <span class="muted small">nhận ${dmy(x.ngayNhan)}${x.hdNhan ? ' · ' + esc(x.hdNhan) : ''}</span>
@@ -1831,7 +3488,7 @@ function renderHoaDon() {
   const sum = (f) => list.filter(f).reduce((s, i) => s + i.tong, 0);
   const khach = new Set(list.map(i => i.phone || i.id)).size;
   $('#hd-stats').innerHTML = [
-    ['Doanh thu', fmtK(sum(() => true))], ['Tiền mặt', fmtK(sum(i => i.tt === 'tienmat'))], ['Chuyển khoản', fmtK(sum(i => i.tt === 'ck'))],
+    ['Doanh thu', fmtK(sum(() => true))], ['Tiền mặt', fmtK(sum(i => i.tt === 'tienmat'))], ['Chuyển khoản', fmtK(sum(i => i.tt === 'ck'))], ...(list.some(i => i.tt === 'sodu') ? [['Số dư app', fmtK(sum(i => i.tt === 'sodu'))]] : []),
     ['Số hoá đơn', list.length], ['Số khách', khach], ['Đầu hoá chất', list.reduce((s, i) => s + i.lines.filter(l => l.loai === 'hoachat').length, 0)],
   ].map(([l, v]) => `<div class="stat"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
 
@@ -1885,16 +3542,17 @@ async function deleteInvoice(id) {
   if (HD.suaId === id) { toast('Hoá đơn này đang mở để sửa – huỷ sửa trước', true); return; }
   if (!await xinPin('Xoá hoá đơn ' + id)) return;
   const inv = S.invoices.find(i => i.id === id); if (!inv) return;
-  if (!await confirmBox(`Xoá hoá đơn <b>${id}</b> của ${esc(inv.ten)} (${fmtD(inv.tong)})?<br><span class="muted small">Buổi hấp tặng và lịch nhắc của hoá đơn này cũng được trả lại như cũ.</span>`, 'Xoá hoá đơn')) return;
+  if (!await confirmBox(`Xoá hoá đơn <b>${id}</b> của ${esc(inv.ten)} (${fmtD(inv.tong)})?<br><span class="muted small">Buổi hấp tặng và lịch nhắc của hoá đơn này cũng được trả lại như cũ.${num(inv.soDuTru) ? `<br><b>${fmtD(inv.soDuTru)} trả bằng số dư app sẽ được hoàn vào ví khách.</b>` : ''}</span>`, 'Xoá hoá đơn')) return;
   const c = inv.phone && S.customers.get(inv.phone);
   if (c) { c.hapTang = Math.max(0, (c.hapTang || 0) - (inv.hapTangCong || 0) + (inv.hapTangDung || 0));
     c.stickers = (c.stickers || []).filter(x => x.hdNhan !== id); c.stickers.forEach(x => { if (x.dung && x.dung.hd === id) x.dung = null; });
+    if (num(inv.soDuTru)) viGhi(c, {loai: 'hoan', tien: num(inv.soDuTru), hd: id, ghi: 'Xoá hoá đơn'});
     await DB.put('customers', c); }
   for (const r of S.reminders.filter(r => r.invoiceId === id)) await DB.del('reminders', r.id);
   S.reminders = S.reminders.filter(r => r.invoiceId !== id);
   await DB.del('invoices', id);
   S.invoices = S.invoices.filter(i => i.id !== id);
-  renderHoaDon(); refreshNhacBadge(); autoBackup();
+  renderHoaDon(); refreshNhacBadge(); autoBackup(); dayKhachApp();
   toast('Đã xoá ' + id);
 }
 
@@ -2004,7 +3662,7 @@ async function restoreFrom(file) {
    CÀI ĐẶT
    ========================================================= */
 function renderCaiDat() {
-  const st = S.settings;
+  const st = S.settings; renderCdApp();
   $('#cd-pin').innerHTML = `<h3>🔒 Mã PIN</h3>
     <p class="small gc">Cần mã PIN để: mở <b>Lương &amp; lãi lỗ</b>, <b>Tài khoản &amp; iPad</b>, <b>Cài đặt</b>; <b>xoá hoá đơn</b>; xuất Excel hoá đơn và tải file sao lưu (vì có SĐT khách). Rời nhóm đó hoặc để yên 3 phút là tự khoá lại.</p>
     <div class="row"><button class="pri" id="btn-doipin">${st.pin && st.pin.hash ? 'Đổi mã PIN' : 'Tạo mã PIN'}</button>${st.pin && st.pin.hash ? '<span class="tag ok">Đang bật</span>' : '<span class="tag warn">Chưa có mã PIN</span>'}</div>
@@ -2065,6 +3723,7 @@ function renderCaiDat() {
 
   $('#cd-nhac').innerHTML = `<h3>Nhắc hấp</h3><div class="form-grid">
     <label>Số buổi tặng</label><div class="row"><input type="number" data-s="nhac.soHapTang" data-num value="${st.nhac.soHapTang}" style="width:80px"> buổi / lần làm hoá chất</div>
+    <label>Giữ tối đa</label><div class="row"><input type="number" data-s="nhac.hapToiDa" data-num value="${st.nhac.hapToiDa ?? 2}" style="width:80px"> buổi <span class="muted small gc">(làm thêm hoá chất khi đang còn đủ thì không cộng thêm · 0 = không giới hạn)</span></div>
     <label>Ngày nhắc</label><div class="row">sau khi làm <input type="number" data-s="nhac.ngay1" data-num value="${st.nhac.ngay1}" style="width:70px"> ngày <span class="muted small gc">(2 = báo trước 1 hôm, mai tròn 3 ngày)</span></div>
     <label>Tin nhắc</label><textarea data-s="nhac.mau1" rows="6">${esc(st.nhac.mau1)}</textarea>
     <label>Tin gửi thêm</label><textarea data-s="nhac.mauThem" rows="5">${esc(st.nhac.mauThem)}</textarea>
@@ -2381,6 +4040,9 @@ function renderBanners() {
   const k = kmHienTai();
   if (k && k.den && today() > k.den) b.push(`<div class="banner"><span>Đang chọn chương trình "<b>${esc(k.ten)}</b>" nhưng chương trình đã kết thúc ${dmy(k.den)}. Đổi chương trình ở ô "KM" trên hoá đơn nếu cần.</span></div>`);
   if (!S.invoices.length && !S.customers.size && !localStorage.getItem('giang-welcome-off')) b.push(`<div class="banner"><span>Lần đầu dùng: vào <b>Cài đặt</b> thêm tên người làm và kiểm tra bảng giá. Nếu máy này đã từng có dữ liệu mà giờ trống, hãy mở app bằng file <b>"Mo app Giang.bat"</b>.</span><button class="sm" data-go="caidat" data-cdloc="nv">Mở Cài đặt</button><button class="sm ghost" data-welcome-off>Ẩn</button></div>`);
+  if (!IPAD) KA.napCho.forEach(x => { const c = kaKhachTheoT(x.t);
+    b.push(`<div class="banner nap"><span>📲 ${c ? `<b>${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)}</b> (thẻ ${esc(c.maThe || '')})` : '<b>Khách không rõ</b>'} báo đã chuyển <b>${fmtD(num(x.tien))}</b> nạp ví${thuongNap(num(x.tien)) ? ` · tặng thêm ${fmtD(thuongNap(num(x.tien)))}` : ''} · ${new Date(num(x.luc)).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})} ${dmy(ymd(new Date(num(x.luc))))}. Kiểm tra tài khoản ngân hàng rồi bấm:</span>
+      <span class="row" style="gap:6px"><button class="sm pri" data-nap-ok="${esc(x.id)}">Đã thấy tiền</button><button class="sm" data-nap-no="${esc(x.id)}">Không thấy</button></span></div>`); });
   $('#banners').innerHTML = b.join('');
 }
 
@@ -2593,7 +4255,10 @@ function bindEvents() {
   $('#kh-detail').addEventListener('click', async e => {
     const c = S.customers.get(khSel); if (!c) return;
     const h = e.target.closest('[data-hap]');
-    if (h) { c.hapTang = Math.max(0, (c.hapTang || 0) + +h.dataset.hap); await DB.put('customers', c); renderKhachDetail(khSel); refreshNhacBadge(); autoBackup(); }
+    if (h) { c.hapTang = Math.max(0, (c.hapTang || 0) + +h.dataset.hap); await DB.put('customers', c); renderKhachDetail(khSel); refreshNhacBadge(); autoBackup(); dayKhachApp(); }
+    if (e.target.closest('[data-ka-tao],[data-ka-moi]')) { await taoAppKhach(c); return; }
+    if (e.target.closest('[data-ka-link]')) { if (await xinPin('Hiện link app của khách')) hienLinkKhach(c); return; }
+    if (e.target.closest('[data-ka-tay]')) { await viTay(c); return; }
     if (e.target.closest('[data-kh-save]')) {
       $$('#kh-detail [data-kf]').forEach(i => c[i.dataset.kf] = i.value.trim());
       if (!c.ten) { toast('Tên không được trống', true); return; }
@@ -2795,6 +4460,8 @@ async function init() {
     delete S.settings.luong.congChuan; S.settings.mig12 = true;
   }
   if (S.settings.luong && S.settings.luong.hh && !S.settings.luong.hh.goicap) S.settings.luong.hh.goicap = {cP: 0, cK: 10, pP: 0, pK: 0}; // 2.9.6
+  if (S.settings.nhac && S.settings.nhac.hapToiDa === undefined) S.settings.nhac.hapToiDa = 2; // 2.12: hấp tặng tối đa 2 buổi
+  if (!S.settings.khachApp) S.settings.khachApp = {bat: true, muc: [{tien: 500, thuong: 50}, {tien: 1000, thuong: 100}, {tien: 2000, thuong: 300}]}; // 2.12: app khách
   if (S.settings.luong && S.settings.luong.hh && !S.settings.luong.hh.covai) S.settings.luong.hh.covai = {cP: 0, cK: 0, pP: 0, pK: 0}; // 2.11.8
   if (!S.settings.mig2118) { // 2.11.8: phụ thu dầu cặp / massage gắn với dòng cắt
     const goi = S.settings.dichvu.findIndex(d => d.loai === 'goi'), moi = dvGoc().filter(d => /^Thêm dầu cặp|^Massage cổ vai/.test(d.ten) && !S.settings.dichvu.some(x => x.ten === d.ten));
@@ -2989,7 +4656,7 @@ async function quayCloudBatDau() {
     if (laChu()) quayNghe();
     renderNhanVien(); renderBadgeNV();
   });
-  if (!quayCloudBatDau._t) quayCloudBatDau._t = setInterval(() => { if (laChu()) { dayLuongHet(); dayKhachChu(); dayThongKe(); dayBotLink(); dayChamCong(); } }, 60000);
+  if (!quayCloudBatDau._t) quayCloudBatDau._t = setInterval(() => { if (laChu()) { dayLuongHet(); dayKhachChu(); dayThongKe(); dayBotLink(); dayChamCong(); dayKhachApp(); } }, 60000);
 }
 let _kcCu = '', _kcSo = 0;
 async function dayKhachChu() { // chỉ tài khoản chủ đọc được (Firestore rules: khachchu)
@@ -3014,12 +4681,12 @@ let _tkCu = '';
 function thongKeNgay(soNgay) {
   const tu = addDays(today(), -(soNgay - 1)), ngay = {};
   S.invoices.filter(i => i.date >= tu).forEach(i => {
-    const n = ngay[i.date] = ngay[i.date] || {tong: 0, so: 0, tm: 0, ck: 0, loai: {}, hd: []};
-    n.tong += num(i.tong); n.so++; n[i.tt === 'ck' ? 'ck' : 'tm'] += num(i.tong);
+    const n = ngay[i.date] = ngay[i.date] || {tong: 0, so: 0, tm: 0, ck: 0, sd: 0, loai: {}, hd: []};
+    n.tong += num(i.tong); n.so++; n[i.tt === 'ck' ? 'ck' : i.tt === 'sodu' ? 'sd' : 'tm'] += num(i.tong);
     const ls = i.lines.reduce((a, l) => a + num(l.gia), 0) || 1, giam = num(i.giamThem) + num(i.giamSticker);
     i.lines.forEach(l => { const k = l.loai || 'khac'; n.loai[k] = Math.round(((n.loai[k] || 0) + num(l.gia) - (giam ? giam * num(l.gia) / ls : 0)) * 10) / 10; });
     n.hd.push([i.time || '', (i.ten && i.ten !== 'Khách lẻ' ? cap(i.danhxung || '') + ' ' + i.ten : 'Khách lẻ'), i.lines.map(l => l.ten + (l.hang ? ' ' + l.hang : '')).join(', '),
-      num(i.tong), i.tt === 'ck' ? 'CK' : 'TM', (i.lines[0] && i.lines[0].tho || []).map(t => (S.settings.nhanvien.find(n => n.id === t) || {}).ten || '').filter(Boolean).join('+')]);
+      num(i.tong), i.tt === 'ck' ? 'CK' : i.tt === 'sodu' ? 'Ví' : 'TM', (i.lines[0] && i.lines[0].tho || []).map(t => (S.settings.nhanvien.find(n => n.id === t) || {}).ten || '').filter(Boolean).join('+')]);
   });
   return ngay;
 }
@@ -3042,7 +4709,10 @@ function quayNghe() {
   Cloud.unsub.push(Cloud.db.collection('doncho').onSnapshot(sn => {
     sn.docChanges().forEach(c => { if (c.type === 'added') nhanDonIpad(c.doc); });
   }, loiCloud));
-  dayCauHinh(true); setTimeout(dayKhachChu, 5000); setTimeout(dayThongKe, 7000); setTimeout(dayChamCong, 9000);
+  Cloud.unsub.push(Cloud.db.collection('napapp').where('tt', '==', 'cho').onSnapshot(sn => {
+    KA.napCho = sn.docs.map(d => Object.assign({id: d.id}, d.data())).sort((a, b) => num(a.luc) - num(b.luc)); renderBanners();
+  }, e => console.warn('napapp', e.code || e)));
+  dayCauHinh(true); setTimeout(dayKhachChu, 5000); setTimeout(dayThongKe, 7000); setTimeout(dayChamCong, 9000); setTimeout(dayKhachApp, 3000);
 }
 const sachDong = l => ({key: l.key || uid(), dvId: l.dvId || '', ten: String(l.ten || ''), hang: String(l.hang || ''), loai: l.loai || 'khac',
   giaGoc: num(l.giaGoc), giamPct: num(l.giamPct), gia: num(l.gia), v: num(l.v), chinh: l.chinh || '', phu: Array.isArray(l.phu) ? l.phu.slice(0, 5) : [],
@@ -3055,6 +4725,8 @@ async function nhanDonIpad(doc) {
     const hd = Object.assign(blankHD(), {danhxung: r.danhxung || 'chị', ten: String(r.ten || '').slice(0, 60), phone: String(r.phone || '').slice(0, 20),
       ghichu: String(r.ghichu || '').slice(0, 3000), lines: (r.lines || []).slice(0, 30).map(sachDong), choId: id});
     if (r.quay && stickerById(String(r.quay.id))) { hd.quay = {id: String(r.quay.id), luc: num(r.quay.luc), nguoi: String(r.quay.nguoi || d.nguoi || 'iPad').slice(0, 40)}; hd.stkMoi = hd.quay.id; }
+    if (r.quet && r.quet.code) await kaGanQuet(hd, r, String(r.quet.code).slice(0, 40));
+    if (S.donCho.some(x => x.id === id)) { try { await doc.ref.delete(); } catch (e) {} return; }
     S.donCho.push({id, tao: num(d.tao) || Date.now(), luc: Date.now(), hd, tuIpad: String(d.nguoi || 'iPad')});
     await luuDonCho(); renderDonCho();
     toast(`📱 ${d.nguoi || 'iPad'} gửi đơn: ${hd.ten ? cap(hd.danhxung) + ' ' + hd.ten : 'khách chưa tên'} · ${fmtD(tongCua(hd))}`);
@@ -3185,6 +4857,234 @@ function renderNhanVien() {
   });
 }
 
+/* =========================================================
+   APP KHÁCH (2.12.0) – ví số dư + hấp tặng trên điện thoại khách (khach.html).
+   Lên mạng CHỈ có: mã thẻ, số dư, số lượt hấp, 10 giao dịch tiền gần nhất (không SĐT, không tên, không lịch sử làm tóc).
+   Khách mở link bí mật (24 ký tự) → tự đặt mã PIN 6 số → máy đó được nhớ. Máy quầy là nơi giữ số dư gốc.
+   ========================================================= */
+const KHACH_URL = IPAD_URL + 'khach.html';
+const KA = {napCho: [], cu: {}, cfgCu: ''};
+const kaMuc = () => ((S.settings.khachApp && S.settings.khachApp.muc) || []).filter(x => num(x.tien) > 0);
+const thuongNap = tien => { const m = kaMuc().find(x => num(x.tien) === num(tien)); return m ? num(m.thuong) : 0; };
+const kaKhachTheoT = t => [...S.customers.values()].find(k => k.app && k.app.t === t);
+const taoMa = n => { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789', b = crypto.getRandomValues(new Uint8Array(n)); return [...b].map(x => a[x % a.length]).join(''); };
+const maTheMoi = () => { let mx = 0; S.customers.forEach(c => { const n = parseInt(String(c.maThe || '').replace(/\D/g, ''), 10); if (n > mx && n < 1e6) mx = n; }); return String(mx + 1).padStart(4, '0'); };
+function qrSvg(text) { try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({cellSize: 4, margin: 2, scalable: true}); } catch (e) { return ''; } }
+const KA_LOAI = {nap: 'Nạp tiền', tra: 'Thanh toán', hoan: 'Hoàn tiền', tay: 'Điều chỉnh'};
+function viGhi(c, gd) { // gd: {loai: nap|tra|hoan|tay, tien (k, âm = trừ), thuong, hd, ghi}
+  c.vi = c.vi || []; const x = Object.assign({id: uid(), luc: Date.now(), thuong: 0, hd: '', ghi: ''}, gd);
+  x.tien = Math.round(num(x.tien)); x.thuong = Math.round(num(x.thuong)); c.vi.push(x);
+  c.soDu = Math.round(num(c.soDu) + x.tien + x.thuong); return x;
+}
+const kaDuLieu = c => ({maThe: c.maThe || '', soDu: Math.round(num(c.soDu)), hap: num(c.hapTang),
+  gd: (c.vi || []).slice(-10).reverse().map(x => ({luc: num(x.luc), loai: x.loai, tien: num(x.tien) + num(x.thuong), thuong: num(x.thuong)}))});
+async function dayKhachApp() { // đẩy ví những khách có app (chỉ khi đổi). Mất mạng thì lần sau đẩy lại.
+  if (IPAD || !laChu() || !Cloud.db) return;
+  if (dayKhachApp._dang) return; dayKhachApp._dang = true;
+  try {
+    for (const c of S.customers.values()) { if (!c.app || !c.app.t) continue;
+      const d = kaDuLieu(c), js = JSON.stringify(d); if (KA.cu[c.app.t] === js) continue;
+      try { await Cloud.db.collection('khachapp').doc(c.app.t).set(Object.assign(d, {luc: Date.now()})); KA.cu[c.app.t] = js; } catch (e) { console.warn('khachapp', e.code || e); } }
+    const b = S.settings.inbill, k = S.settings.khachApp || {};
+    const cfg = {bat: !!k.bat, muc: kaMuc().map(x => ({tien: num(x.tien), thuong: num(x.thuong)})), nganhang: b.nganhang || '', stk: b.stk || '', tentk: b.tentk || '', tenNH: b.tenNH || ''};
+    const js = JSON.stringify(cfg);
+    if (js !== KA.cfgCu) { try { await Cloud.db.collection('khachcfg').doc('chung').set(Object.assign(cfg, {luc: Date.now()})); KA.cfgCu = js; } catch (e) { console.warn('khachcfg', e.code || e); } }
+  } finally { dayKhachApp._dang = false; }
+}
+function kaTheKhach(c) {
+  const vi = (c.vi || []).slice(-30).reverse();
+  return `<div class="card"><h3>📱 App khách – ví &amp; hấp tặng</h3>
+    ${c.app ? `<div>Thẻ <b>${esc(c.maThe || '')}</b> · số dư <b>${fmtD(num(c.soDu))}</b> · hấp tặng còn <b>${num(c.hapTang)}</b> <span class="muted small">· link tạo ${dmy(ymd(new Date(num(c.app.tao))))}</span></div>
+      <div class="row" style="margin-top:10px;gap:6px;flex-wrap:wrap"><button class="sm" data-ka-link>Hiện QR link cho khách</button><button class="sm" data-ka-tay>Cộng / trừ tay</button><button class="sm ghost" data-ka-moi>Cấp link mới (quên PIN, đổi máy)</button></div>`
+    : `<p class="muted small gc">Khách chưa có app. Bấm tạo → khách quét QR bằng camera điện thoại → tự đặt mã PIN 6 số. Lên mạng chỉ có mã thẻ, số dư và số lượt hấp (không SĐT, không lịch sử làm tóc).</p>
+      <div class="row" style="gap:6px">${!laChu() ? '<span class="muted small">Cần máy quầy đăng nhập tài khoản chủ (tab Tài khoản &amp; iPad).</span>' : '<button class="pri sm" data-ka-tao>Tạo app cho khách</button>'}${num(c.soDu) || vi.length ? '<button class="sm" data-ka-tay>Cộng / trừ tay</button>' : ''}</div>`}
+    ${!c.app && num(c.soDu) ? `<div style="margin-top:6px">Số dư: <b>${fmtD(num(c.soDu))}</b></div>` : ''}
+    ${vi.length ? `<table class="ka-gd" style="margin-top:10px">${vi.map(x => `<tr><td>${dmy(ymd(new Date(num(x.luc))))} ${new Date(num(x.luc)).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}</td>
+      <td>${KA_LOAI[x.loai] || esc(x.loai)}${x.hd ? ' · ' + esc(x.hd) : ''}${x.ghi ? ` <span class="muted">${esc(x.ghi)}</span>` : ''}</td>
+      <td class="r ${num(x.tien) < 0 ? 'am' : 'duong'}">${num(x.tien) > 0 ? '+' : ''}${fmtD(num(x.tien))}${num(x.thuong) ? ` <span class="muted">+${fmtD(num(x.thuong))} thưởng</span>` : ''}</td></tr>`).join('')}</table>` : ''}
+  </div>`;
+}
+async function taoAppKhach(c) {
+  if (!laChu() || !Cloud.db || !navigator.onLine) { toast('Máy quầy cần có mạng và đăng nhập tài khoản chủ (tab Tài khoản & iPad)', true); return; }
+  const capLai = !!(c.app && c.app.t);
+  if (capLai && !await confirmBox(`Cấp link mới cho <b>${esc(c.ten)}</b>?<br><span class="muted small">Link cũ và mọi điện thoại đang đăng nhập bị khoá ngay. Khách quét link mới rồi đặt lại mã PIN. Số dư và lượt hấp giữ nguyên.</span>`, 'Cấp link mới')) return;
+  if (!await xinPin(capLai ? 'Cấp link app mới cho khách' : 'Tạo app cho khách')) return;
+  const daCoThe = !!c.maThe; if (!daCoThe) c.maThe = maTheMoi();
+  const t = taoMa(24), db = Cloud.db, b = db.batch();
+  if (capLai) ['khachmo', 'khachpin', 'khachapp'].forEach(col => b.delete(db.collection(col).doc(c.app.t)));
+  b.set(db.collection('khachpin').doc(t), {h: ''});
+  b.set(db.collection('khachmo').doc(t), {coPin: false, luc: Date.now()});
+  b.set(db.collection('khachapp').doc(t), Object.assign(kaDuLieu(c), {luc: Date.now()}));
+  try { await b.commit(); } catch (e) { if (!daCoThe) c.maThe = ''; toast('Chưa tạo được: ' + loiVN(e), true); return; }
+  if (capLai) delete KA.cu[c.app.t];
+  c.app = {t, tao: Date.now()}; c.soDu = num(c.soDu); KA.cu[t] = JSON.stringify(kaDuLieu(c));
+  await DB.put('customers', c); autoBackup(); renderKhachList(); renderKhachDetail(c.phone);
+  if (!daCoThe) toast('Khách chưa có mã thẻ → em cấp mã ' + c.maThe);
+  hienLinkKhach(c);
+}
+function hienLinkKhach(c) {
+  const link = KHACH_URL + '#k=' + c.app.t;
+  const d = dialog(`<h3 style="margin-top:0">App GIANG của ${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)} · thẻ ${esc(c.maThe || '')}</h3>
+    <div class="ka-qr">${qrSvg(link)}</div>
+    <ol class="small" style="margin:6px 0 10px;padding-left:20px"><li>Khách mở <b>camera</b> điện thoại, quét mã này.</li><li>Khách tự đặt <b>mã PIN 6 số</b> (chỉ khách biết).</li>
+      <li>iPhone: bấm nút Chia sẻ → <b>Thêm vào MH chính</b>. Android: ⋮ → <b>Thêm vào màn hình chính</b>.</li></ol>
+    <p class="small muted">Link này như chìa khoá ví của khách: chỉ đưa cho đúng khách, không gửi vào nhóm chat. Lỡ lộ thì bấm "Cấp link mới".</p>
+    <div class="row" style="gap:6px"><input class="ka-link" readonly value="${esc(link)}"><button class="sm" data-copy>Chép</button></div>
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="pri" data-close>Xong</button></div>`);
+  d.querySelector('[data-copy]').onclick = () => { navigator.clipboard.writeText(link).then(() => toast('Đã chép link'), () => toast('Không chép được', true)); };
+}
+function kaKiemTra(phone, tong) {
+  const c = phone && S.customers.get(phone);
+  if (!c) return 'Trả bằng số dư app: chọn khách (SĐT) trước';
+  if (!c.app) return `${c.ten} chưa có app GIANG – chọn cách trả khác`;
+  if (tong <= 0) return 'Hoá đơn 0đ thì không cần trừ số dư';
+  if (num(c.soDu) < tong) return `Số dư của ${c.ten} còn ${fmtD(num(c.soDu))}, không đủ ${fmtD(tong)}. Khách trả cách khác hoặc nạp thêm.`;
+  return '';
+}
+function kaHopTT() {
+  const c = hdCustomer(), t = hdTong();
+  if (!c) return '<div class="sodu-tt bad">Chọn khách (SĐT) trước – khách phải có app GIANG.</div>';
+  if (!c.app) return `<div class="sodu-tt bad">${esc(c.ten)} chưa có app. Tạo ở tab Khách hàng → mục App khách.</div>`;
+  const du = num(c.soDu) >= t;
+  return `<div class="sodu-tt ${du ? '' : 'bad'}">📱 Thẻ ${esc(c.maThe || '')} · số dư <b>${fmtD(num(c.soDu))}</b>${du ? ` → sau khi trả còn <b>${fmtD(num(c.soDu) - t)}</b>` : ` · <b>thiếu ${fmtD(t - num(c.soDu))}</b>`}
+    ${!laChu() || !navigator.onLine ? '<br>Máy quầy đang không có mạng: bấm thanh toán, nhập mã PIN để trừ luôn (khách không cần bấm).' : '<br>Bấm thanh toán → điện thoại khách hiện yêu cầu, khách bấm Đồng ý.'}</div>`;
+}
+async function xinTraSoDu(c, tong) { // true = khách đồng ý trên điện thoại, 'pin' = anh nhập PIN trừ luôn, false = huỷ
+  const truLuon = async ly => (await confirmBox(`${ly}<br>Trừ luôn <b>${fmtD(tong)}</b> vào ví của <b>${esc(c.ten)}</b> (thẻ ${esc(c.maThe || '')})?<br><span class="muted small">Dùng khi mất mạng hoặc khách không mở được app. Cần mã PIN.</span>`, 'Trừ luôn')
+    && await xinPin('Trừ ' + fmtD(tong) + ' vào số dư app của ' + c.ten)) ? 'pin' : false;
+  if (!laChu() || !Cloud.db || !navigator.onLine) return truLuon('Máy quầy đang không có mạng nên không gửi yêu cầu sang điện thoại khách được.');
+  const id = taoMa(16), ref = Cloud.db.collection('trasodu').doc(id), het = Date.now() + 180000;
+  try { await ref.set({t: c.app.t, tien: tong, tt: 'cho', het, luc: Date.now()}); }
+  catch (e) { return truLuon('Chưa gửi được yêu cầu (' + esc(loiVN(e)) + ').'); }
+  return new Promise(res => {
+    let xong = false, unsub = null, tm = null;
+    const d = dialog(`<h3 style="margin-top:0">Chờ khách đồng ý trả bằng số dư</h3>
+      <div class="sodu-cho"><div class="qr-link">${qrSvg(KHACH_URL + '#tra=' + id)}</div><div>
+        <div class="muted small">${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)} · thẻ ${esc(c.maThe || '')} · số dư ${fmtD(num(c.soDu))}</div>
+        <div style="font-size:28px;font-weight:700;margin:4px 0">${fmtD(tong)}</div>
+        <p class="small" style="margin:4px 0">Khách mở app GIANG trên điện thoại: yêu cầu tự hiện ra, khách bấm <b>Đồng ý trả</b>. (Hoặc quét mã bên cạnh.)</p>
+        <div class="small muted" id="sd-dem"></div></div></div>
+      <div class="row" style="justify-content:flex-end;margin-top:10px;gap:6px;flex-wrap:wrap"><button class="ghost" data-pin>Khách không mở được app → trừ luôn (PIN)</button><button data-huy>Huỷ</button></div>`);
+    const ket = v => { if (xong) return; xong = true; clearInterval(tm); try { unsub && unsub(); } catch (e) {} ref.delete().catch(() => {}); if (d.open) d.close(); res(v); };
+    d.querySelector('[data-huy]').onclick = () => ket(false);
+    d.querySelector('[data-pin]').onclick = async () => { ket(null); };
+    d.oncancel = e => { e.preventDefault(); ket(false); };
+    tm = setInterval(() => { const s = Math.round((het - Date.now()) / 1000), el = d.querySelector('#sd-dem'); if (el) el.textContent = s > 0 ? `Yêu cầu còn hiệu lực ${s} giây` : '';
+      if (s <= 0) { ket(false); toast('Hết thời gian chờ khách đồng ý', true); } }, 1000);
+    unsub = ref.onSnapshot(sn => { const x = sn.exists ? sn.data() : null; if (!x || xong) return;
+      if (x.tt === 'dongy') ket(true); else if (x.tt === 'tuchoi') { ket(false); toast('Khách bấm "Không" trên điện thoại', true); } }, e => { console.warn('trasodu', e.code || e); });
+  }).then(v => v === null ? truLuon('Khách không bấm được trên app.') : v);
+}
+async function duyetNap(id, ok) {
+  const x = KA.napCho.find(y => y.id === id); if (!x) return;
+  const c = kaKhachTheoT(x.t), tien = Math.round(num(x.tien)), thuong = thuongNap(tien);
+  if (!c) { if (await confirmBox('Không tìm thấy khách của yêu cầu này (có thể link đã cấp lại). Xoá yêu cầu?', 'Xoá')) { Cloud.db.collection('napapp').doc(id).delete().catch(() => {}); } return; }
+  if (ok) {
+    if (!await xinPin2(`Xác nhận đã nhận ${fmtD(tien)} chuyển khoản nạp ví của ${c.ten} (thẻ ${c.maThe})${thuong ? `, tặng thêm ${fmtD(thuong)}` : ''}`)) return;
+    if (!KA.napCho.some(y => y.id === id)) return;
+    try { await Cloud.db.collection('napapp').doc(id).delete(); } catch (e) { toast('Chưa xử lý được: ' + loiVN(e), true); return; }
+    viGhi(c, {loai: 'nap', tien, thuong, ghi: 'Chuyển khoản qua app'}); await DB.put('customers', c);
+    toast(`Đã cộng ${fmtD(tien + thuong)} vào ví ${c.ten} · số dư ${fmtD(c.soDu)}`);
+  } else {
+    if (!await confirmBox(`Chưa thấy ${fmtD(tien)} của <b>${esc(c.ten)}</b> về tài khoản?<br><span class="muted small">Điện thoại khách sẽ báo "Salon chưa nhận được tiền".</span>`, 'Báo khách')) return;
+    try { await Cloud.db.collection('napapp').doc(id).update({tt: 'tuchoi'}); } catch (e) { toast(loiVN(e), true); return; }
+  }
+  KA.napCho = KA.napCho.filter(y => y.id !== id); renderBanners(); dayKhachApp(); autoBackup(); if (khSel === c.phone) renderKhachDetail(c.phone);
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-nap-ok],[data-nap-no]'); if (!b) return; duyetNap(b.dataset.napOk || b.dataset.napNo, !!b.dataset.napOk); });
+async function viTay(c) {
+  const d = dialog(`<h3 style="margin-top:0">Cộng / trừ ví · ${esc(c.ten)} (số dư ${fmtD(num(c.soDu))})</h3>
+    <div class="seg" id="vt-loai"><button data-l="nap" class="on">Khách nạp tại quầy</button><button data-l="tru">Trừ (thanh toán lúc mất mạng)</button><button data-l="tay">Điều chỉnh khác</button></div>
+    <div class="form-grid" style="margin-top:10px"><label>Số tiền</label><div class="row"><input id="vt-tien" type="number" min="0" style="width:110px">k <span class="muted small" id="vt-goiy"></span></div>
+      <label>Tặng thêm</label><div class="row"><input id="vt-thuong" type="number" min="0" style="width:110px">k</div>
+      <label>Ghi chú</label><input id="vt-ghi" placeholder="VD: tiền mặt / mã hoá đơn / lý do"></div>
+    <div class="pin-loi" id="vt-loi"></div>
+    <div class="row" style="justify-content:flex-end"><button data-close>Huỷ</button><button class="pri" id="vt-ok">Ghi vào ví</button></div>`);
+  let loai = 'nap';
+  const goiY = () => { const t = num($('#vt-tien').value); $('#vt-thuong').closest('div').previousElementSibling.hidden = $('#vt-thuong').closest('div').hidden = loai !== 'nap';
+    if (loai === 'nap') { $('#vt-thuong').value = thuongNap(t) || ''; $('#vt-goiy').textContent = kaMuc().map(m => `${m.tien}k→+${m.thuong}k`).join(' · '); } else $('#vt-goiy').textContent = loai === 'tay' ? 'gõ số âm để trừ' : ''; };
+  d.querySelector('#vt-loai').onclick = e => { const b = e.target.closest('[data-l]'); if (!b) return; loai = b.dataset.l; d.querySelectorAll('#vt-loai button').forEach(x => x.classList.toggle('on', x === b)); goiY(); };
+  $('#vt-tien').oninput = goiY; goiY(); setTimeout(() => $('#vt-tien').focus(), 50);
+  const ok = await new Promise(r => { $('#vt-ok').onclick = () => r(true); d.oncancel = () => r(false); d.querySelector('[data-close]').onclick = () => { d.close(); r(false); }; });
+  if (!ok) return;
+  let tien = Math.round(num($('#vt-tien').value)), thuong = loai === 'nap' ? Math.round(num($('#vt-thuong').value)) : 0; const ghi = $('#vt-ghi').value.trim().slice(0, 80);
+  d.close();
+  if (!tien) { toast('Chưa nhập số tiền', true); return; }
+  if (loai === 'tru') tien = -Math.abs(tien);
+  if (loai === 'nap') tien = Math.abs(tien);
+  if (num(c.soDu) + tien + thuong < 0) { toast(`Số dư không đủ (còn ${fmtD(num(c.soDu))})`, true); return; }
+  if (!await xinPin2(`${tien < 0 ? 'Trừ' : 'Cộng'} ${fmtD(Math.abs(tien))}${thuong ? ` (+${fmtD(thuong)} thưởng)` : ''} vào ví của ${c.ten}`)) return;
+  viGhi(c, {loai: loai === 'tru' ? 'tra' : loai, tien, thuong, ghi: ghi || (loai === 'nap' ? 'Nạp tại quầy' : loai === 'tru' ? 'Trừ tay' : '')});
+  await DB.put('customers', c); autoBackup(); dayKhachApp(); renderKhachDetail(c.phone);
+  toast(`Đã ghi · số dư ${c.ten}: ${fmtD(c.soDu)}`);
+}
+function renderCdApp() {
+  const box = $('#cd-app'); if (!box) return; const k = S.settings.khachApp || {bat: true, muc: []};
+  box.innerHTML = `<h3>📱 App khách (ví số dư &amp; hấp tặng)</h3>
+    <p class="small muted gc">Khách nạp tiền vào ví, đến làm thì trả bằng số dư; hấp tặng quét QR trên app. Tạo app cho từng khách ở tab Khách hàng. Trang khách: <b>${esc(KHACH_URL)}</b></p>
+    <label><input type="checkbox" data-s="khachApp.bat" data-bool ${k.bat ? 'checked' : ''}> Cho khách tự nạp tiền trong app (chuyển khoản, anh duyệt)</label>
+    <div class="small" style="margin:10px 0 4px">Mức nạp → tặng thêm (khách chọn đúng mức mới được tặng):</div>
+    ${(k.muc || []).map((m, i) => `<div class="row" style="margin-bottom:6px;gap:6px">Nạp <input type="number" min="0" data-kamuc="${i}" data-kaf="tien" value="${num(m.tien)}" style="width:90px">k → tặng
+      <input type="number" min="0" data-kamuc="${i}" data-kaf="thuong" value="${num(m.thuong)}" style="width:80px">k <span class="muted small">${num(m.tien) ? Math.round(num(m.thuong) * 1000 / num(m.tien)) / 10 + '%' : ''}</span>
+      <button class="x" data-kamuc-xoa="${i}" title="Bỏ mức này">×</button></div>`).join('')}
+    <button class="sm" data-kamuc-them>+ Thêm mức</button>
+    <p class="small muted gc" style="margin-top:10px">Tài khoản nhận tiền: lấy ở mục In bill (${esc(S.settings.inbill.tenNH || '')} ${esc(S.settings.inbill.stk || '')}). Hấp tặng giữ tối đa: ở mục Nhắc hấp.</p>`;
+}
+document.addEventListener('change', async e => { const t = e.target.closest('#cd-app [data-kamuc]'); if (!t) return;
+  const m = S.settings.khachApp.muc[+t.dataset.kamuc]; if (!m) return; m[t.dataset.kaf] = Math.max(0, Math.round(num(t.value)));
+  S.settings.khachApp.muc.sort((a, b) => num(a.tien) - num(b.tien)); await saveSettings(); renderCdApp(); dayKhachApp(); toast('Đã lưu'); });
+document.addEventListener('click', async e => {
+  const x = e.target.closest('#cd-app [data-kamuc-xoa],#cd-app [data-kamuc-them]'); if (!x) return;
+  const k = S.settings.khachApp; k.muc = k.muc || [];
+  if (x.dataset.kamucXoa !== undefined) k.muc.splice(+x.dataset.kamucXoa, 1); else k.muc.push({tien: 0, thuong: 0});
+  await saveSettings(); renderCdApp(); dayKhachApp();
+});
+async function kaGanQuet(hd, r, code) { // đơn iPad có mã QR app khách → gắn đúng khách + buổi hấp tặng
+  try {
+    const sn = await Cloud.db.collection('quetkhach').doc(code).get(), x = sn.exists ? sn.data() : null, c = x && kaKhachTheoT(x.t);
+    if (!c) { hd.ghichu = (hd.ghichu ? hd.ghichu + '\n' : '') + `⚠ Mã QR app khách không khớp${r.quet.maThe ? ' (thẻ ' + String(r.quet.maThe).slice(0, 12) + ')' : ''} – kiểm tra lại khách`; return; }
+    Object.assign(hd, {phone: c.phone, ten: c.ten, danhxung: c.danhxung || 'chị', maThe: c.maThe || ''});
+    let con = num(c.hapTang);
+    (r.lines || []).slice(0, 30).forEach((l, i) => { const h = hd.lines[i]; if (l && l.dungTang && h && h.loai === 'hap' && con > 0) { h.dungTang = true; h.gia = 0; con--; } });
+    sn.ref.delete().catch(() => {});
+  } catch (e) { console.warn('quetkhach', e.code || e); }
+}
+/* iPad: quét QR trên app khách (hấp tặng) */
+let _jsqr = null;
+async function quetQR() {
+  if (!Cloud.db || !Cloud.user) { toast('Chưa đăng nhập', true); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Máy này không mở được camera trong trình duyệt', true); return; }
+  const d = dialog(`<div class="quet-hop"><h3 style="margin-top:0">Quét QR trên app của khách</h3><video playsinline muted></video>
+    <p class="small muted" id="q-tt">Đưa mã QR trên điện thoại khách vào khung hình…</p><div class="row" style="justify-content:flex-end"><button data-huy>Đóng</button></div></div>`);
+  const v = d.querySelector('video'); let stream = null, dung = false;
+  const tat = () => { dung = true; if (stream) stream.getTracks().forEach(t => t.stop()); if (d.open) d.close(); };
+  d.querySelector('[data-huy]').onclick = tat; d.oncancel = () => tat();
+  try { stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}, audio: false}); v.srcObject = stream; await v.play(); }
+  catch (e) { tat(); toast('Không mở được camera: cho phép trang dùng camera rồi thử lại', true); return; }
+  let doc = null;
+  if ('BarcodeDetector' in window) { try { const bd = new BarcodeDetector({formats: ['qr_code']}); doc = async () => { const r = await bd.detect(v); return r[0] && r[0].rawValue; }; } catch (e) { doc = null; } }
+  if (!doc) { try { if (!_jsqr) { await napScript('jsqr.js'); _jsqr = window.jsQR; } } catch (e) {}
+    if (!_jsqr) { tat(); toast('Không tải được bộ đọc QR', true); return; }
+    const cv = document.createElement('canvas'), cx = cv.getContext('2d', {willReadFrequently: true});
+    doc = async () => { const w = v.videoWidth, h = v.videoHeight; if (!w) return ''; const k = Math.min(1, 640 / w); cv.width = w * k; cv.height = h * k; cx.drawImage(v, 0, 0, cv.width, cv.height);
+      const im = cx.getImageData(0, 0, cv.width, cv.height), r = _jsqr(im.data, im.width, im.height, {inversionAttempts: 'dontInvert'}); return r && r.data; }; }
+  while (!dung) {
+    let txt = ''; try { txt = await doc(); } catch (e) {}
+    const m = /^GIANG-HAP:([A-Za-z0-9]{10,40})$/.exec(txt || '');
+    if (m) { $('#q-tt').textContent = 'Đang kiểm tra mã…';
+      try { const sn = await Cloud.db.collection('quetkhach').doc(m[1]).get(); const x = sn.exists ? sn.data() : null;
+        if (!x || num(x.het) < Date.now()) { $('#q-tt').textContent = 'Mã đã hết hạn – nhờ khách bấm lại "Mã QR của tôi"'; await new Promise(r => setTimeout(r, 1500)); continue; }
+        tat(); HD.quetKhach = {code: m[1], maThe: String(x.maThe || ''), hap: num(x.hap)};
+        if (num(x.hap) > 0 && !HD.lines.some(l => l.loai === 'hap')) { const dv = S.settings.dichvu.find(z => z.loai === 'hap'); if (dv) addLine(dv.id, 0); }
+        saveDraft(); renderLines(); renderQuet(); toast(`Thẻ ${x.maThe || ''} · còn ${num(x.hap)} buổi hấp tặng`); return;
+      } catch (e) { $('#q-tt').textContent = 'Lỗi: ' + loiVN(e); await new Promise(r => setTimeout(r, 1500)); continue; } }
+    await new Promise(r => setTimeout(r, 250));
+  }
+}
+function renderQuet() { const b = $('#hd-quet'); if (!b) return; const q = HD.quetKhach;
+  b.innerHTML = q ? `<span class="tag ok">📱 Thẻ ${esc(q.maThe)} · còn ${num(q.hap)} buổi hấp</span> <button class="x" data-bo-quet title="Bỏ">×</button>` : ''; }
+document.addEventListener('click', e => { if (!e.target.closest('[data-bo-quet]')) return; HD.quetKhach = null; HD.lines.forEach(l => { if (l.dungTang && !hdCustomer()) { l.dungTang = false; l.gia = num(l.giaGoc); } }); saveDraft(); renderLines(); renderQuet(); });
+
 /* ---------------- iPAD ---------------- */
 function ipadMan(html) { const m = $('#ipad-man'); if (html == null) { m.hidden = true; m.innerHTML = ''; return; } m.hidden = false;
   m.innerHTML = `<div class="hop"><img src="${BANG_LOGO}" alt="GIANG">${html}</div>`; }
@@ -3197,6 +5097,7 @@ async function ipadBatDau() {
   document.body.dataset.tab = 'thanhtoan';
   $('#hd-km').disabled = true;
   $('#btn-guiquay').onclick = guiVeQuay;
+  $('#btn-quet').onclick = quetQR;
   $('#kc-q').oninput = renderKhachChu;
   $('#dtc-lui').onclick = () => { DTC.ngay = addDays(DTC.ngay || today(), -1); renderDoanhThu(); };
   $('#dtc-toi').onclick = () => { if ((DTC.ngay || today()) < today()) { DTC.ngay = addDays(DTC.ngay, 1); renderDoanhThu(); } };
@@ -3820,7 +5721,8 @@ async function guiVeQuay() {
   if (!HD.lines.length) { toast('Chưa chọn dịch vụ nào', true); return; }
   if (!duNguoiLam('chưa gửi về quầy được')) return;
   const nd = Cloud.nd || {}, b = $('#btn-guiquay'), b2 = $('#ip-gui'); b.disabled = true; b.textContent = 'Đang gửi…'; if (b2) { b2.disabled = true; b2.textContent = 'Đang gửi…'; }
-  const hd = docSach({danhxung: HD.danhxung, ten: (HD.ten || '').trim(), phone: (HD.phone || '').trim(), ghichu: HD.ghichu || '', lines: HD.lines, quay: HD.quay || null});
+  const hd = docSach({danhxung: HD.danhxung, ten: (HD.ten || '').trim(), phone: (HD.phone || '').trim(), ghichu: HD.ghichu || '', lines: HD.lines, quay: HD.quay || null,
+    quet: HD.quetKhach ? {code: HD.quetKhach.code, maThe: HD.quetKhach.maThe || ''} : null});
   try {
     const gui = Cloud.db.collection('doncho').add({uid: Cloud.user.uid, nguoi: nd.tenNV || nd.ten || '', tao: Date.now(), hd});
     await Promise.race([gui, new Promise((_, loi) => setTimeout(() => loi({code: 'unavailable'}), 15000))]);
@@ -3879,6 +5781,7 @@ const CD_LOC = [
   {id: 'km', ten: 'Giá & khuyến mãi', the: ['cd-km', 'cd-gia']},
   {id: 'nv', ten: 'Người làm & lương', the: ['cd-nv', 'cd-luong']},
   {id: 'in', ten: 'In bill & nhắc hấp', the: ['cd-salon', 'cd-in', 'cd-nhac']},
+  {id: 'app', ten: 'App khách', the: ['cd-app']},
   {id: 'baomat', ten: 'Mã PIN & sao lưu', the: ['cd-pin', 'cd-backup']},
 ];
 const nhomCua = t => NHOM.find(g => g.tabs.includes(t));
