@@ -485,6 +485,9 @@ body.pc #nav button:hover{border-color:var(--brand-2)}
 body.pc #nav button.on,body.pc #nav button.chon{background:#1c1a17;border-color:#1c1a17;color:#f6dc95}
 body.pc #nav .badge{font-size:12px;line-height:18px;margin-left:6px}
 body.pc.nhom-don #nav{display:none}
+/* 2.11.7 */
+.lnv-chon{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}.lnv-chon button{border-radius:99px;padding:5px 14px;font-size:14px}.lnv-chon button.on{background:#1c1a17;color:#f6dc95;border-color:#1c1a17}
+#cd-luong input.rieng{border-color:var(--brand);background:#fff6ef;font-weight:700}
 /* 2.11.2: người làm bắt buộc chọn */
 .line select.thieu{border-color:#d9534f;background:#fff5f3;color:#b3261e;font-weight:600}
 @keyframes lac{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
@@ -712,7 +715,7 @@ body.pc.nhom-don #nav{display:none}
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.11.6 (13/11/2026)';
+const APP_VERSION = '2.11.7 (15/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -2058,8 +2061,11 @@ function renderCaiDat() {
     </div><div class="row" style="margin-top:10px"><button data-cd="testprint">In thử 1 bill mẫu</button></div>
     <p class="small muted gc">Mã QR cần máy có mạng lúc in. Mất mạng thì bill vẫn in, chỉ thiếu QR.</p>`;
 
-  const L = st.luong, hhIn = (k, f) => `<input type="number" data-s="luong.hh.${k}.${f}" data-num value="${(L.hh[k] || {})[f] || ''}" placeholder="0" style="width:64px;padding:5px 6px;text-align:right">`;
-  $('#cd-luong').innerHTML = `<h3>Cách tính lương &amp; chi phí</h3><div class="form-grid">
+  const L = st.luong, nvL = st.nhanvien.filter(n => n.tinhLuong && n.active && !n.xoa);
+  if (CD_LNV && !nvL.some(n => n.id === CD_LNV)) CD_LNV = '';
+  if (CD_LNV) { renderLuongRieng(nvL); } else {
+  const hhIn = (k, f) => `<input type="number" data-s="luong.hh.${k}.${f}" data-num value="${(L.hh[k] || {})[f] || ''}" placeholder="0" style="width:64px;padding:5px 6px;text-align:right">`;
+  $('#cd-luong').innerHTML = `<h3>Cách tính lương &amp; chi phí</h3>${chonLNV(nvL)}<div class="form-grid">
     <label>Nghỉ có lương</label><div class="row"><input type="number" data-s="luong.nghiCoLuong" data-num value="${L.nghiCoLuong}" style="width:60px"> ngày/tháng <span class="muted small gc">(tháng 30 ngày → 28 công, 31 ngày → 29 công)</span></div>
     <label>Giờ làm</label><div class="row"><input type="number" data-s="luong.gioNgay" data-num value="${L.gioNgay}" style="width:60px"> giờ/ngày</div>
     <label>Phạt đi muộn</label><div class="row"><input type="number" data-s="luong.phatMuon" data-num value="${L.phatMuon || ''}" placeholder="0" style="width:70px"> k/phút</div>
@@ -2075,7 +2081,7 @@ function renderCaiDat() {
     <label>Tiền nhà</label><div class="row"><input type="number" data-s="chiphi.nha" data-num value="${st.chiphi.nha}" style="width:100px"> k/tháng (cố định)</div>
     <label>Hoá chất</label><div class="row"><input type="number" data-s="chiphi.hoachatPct" data-num value="${st.chiphi.hoachatPct}" style="width:70px"> % doanh thu (ước)</div>
     <label>Quảng cáo</label><div class="row"><input type="number" data-s="chiphi.quangcao" data-num value="${st.chiphi.quangcao}" style="width:100px"> k/tháng (mặc định, sửa từng tháng được)</div>
-    </div>`;
+    </div>`; }
 
   $('#cd-gia').innerHTML = `<h3>Bảng giá (giá gốc, nghìn đồng)</h3>
     <p class="small muted gc">Cột giá 2 để trống nếu dịch vụ chỉ có 1 giá. <b>Nhóm KM</b> = dịch vụ thuộc nhóm nào khi có chương trình khuyến mãi. <b>Tặng hấp</b> = khách được tặng ${st.nhac.soHapTang} buổi hấp và app nhắc quay lại.</p>
@@ -2117,7 +2123,16 @@ const CC_COLS = [['cong', 'Ngày công'], ['ot', 'Phút làm thêm'], ['muon', '
 const thangData = t => (S.thang[t] = S.thang[t] || {cc: {}, cp: {}});
 const curThang = () => $('#l-thang').value || today().slice(0, 7);
 const ngayTrongThang = t => { const [y, m] = t.split('-').map(Number); return new Date(y, m, 0).getDate(); };
-const congChuanThang = t => ngayTrongThang(t) - num(S.settings.luong.nghiCoLuong);
+const LR_TRUONG = ['nghiCoLuong', 'gioNgay', 'phatMuon', 'anNgay', 'heSoLamThem'];
+function LNV(n) { // cách tính lương của 1 người = Mặc định, ô nào người đó đặt riêng thì lấy riêng
+  const L = S.settings.luong, r = (n && n.luongRieng) || {}, o = Object.assign({}, L, {hh: {}});
+  LR_TRUONG.forEach(k => { if (r[k] !== undefined && r[k] !== '') o[k] = r[k]; });
+  Object.keys(HH_LOAI).forEach(k => { o.hh[k] = Object.assign({}, L.hh[k] || (k === 'goicap' ? L.hh.goi : {}) || {});
+    const x = (r.hh || {})[k] || {}; ['cP', 'cK', 'pP', 'pK'].forEach(f => { if (x[f] !== undefined && x[f] !== '') o.hh[k][f] = x[f]; }); });
+  return o;
+}
+const coLuongRieng = n => { const r = (n && n.luongRieng) || {}; return LR_TRUONG.some(k => r[k] !== undefined && r[k] !== '') || Object.values(r.hh || {}).some(x => Object.values(x || {}).some(v => v !== undefined && v !== '')); };
+const congChuanThang = (t, n) => ngayTrongThang(t) - num(n ? LNV(n).nghiCoLuong : S.settings.luong.nghiCoLuong);
 const laDauHC = i => i.lines.some(l => l.loai === 'hoachat' && (l.lon ?? l.tangHap));
 
 function tinhLuong(thang) {
@@ -2126,10 +2141,10 @@ function tinhLuong(thang) {
   const staff = S.settings.nhanvien.filter(n => n.tinhLuong && (n.active || cc[n.id]));
   const res = {};
   staff.forEach(n => {
-    const c = cc[n.id] || {}, luongNgay = num(n.luongThang) / (congChuanThang(thang) || 28), luongGio = luongNgay / (num(L.gioNgay) || 11);
-    res[n.id] = {n, c, luongNgay, luongGio, cung: luongNgay * num(c.cong), hh: {}, ds: {}, dem: {}, hhTong: 0, goiHC: 0,
-      an: num(L.anNgay) * num(c.cong), phucap: num(c.phucap), lamThem: num(c.ot) * num(L.heSoLamThem) * luongGio / 60,
-      diMuon: num(c.muon) * num(L.phatMuon), phat: num(c.phat), ung: num(c.ung), giu: num(c.giu)};
+    const c = cc[n.id] || {}, Ln = LNV(n), luongNgay = num(n.luongThang) / (congChuanThang(thang, n) || 28), luongGio = luongNgay / (num(Ln.gioNgay) || 11);
+    res[n.id] = {n, c, Ln, luongNgay, luongGio, cung: luongNgay * num(c.cong), hh: {}, ds: {}, dem: {}, hhTong: 0, goiHC: 0,
+      an: num(Ln.anNgay) * num(c.cong), phucap: num(c.phucap), lamThem: num(c.ot) * num(Ln.heSoLamThem) * luongGio / 60,
+      diMuon: num(c.muon) * num(Ln.phatMuon), phat: num(c.phat), ung: num(c.ung), giu: num(c.giu)};
   });
   let dauHC = 0, doanhThu = 0;
   inv.forEach(i => {
@@ -2140,10 +2155,10 @@ function tinhLuong(thang) {
       const giamHD = (i.giamThem || 0) + (i.giamSticker || 0);
       const thuc = l.gia - (giamHD ? giamHD * l.gia / lineSum : 0);
       const base = l.loai === 'hap' && l.dungTang && L.hapTheoGiaGoc ? num(l.giaGoc) : thuc;
-      const lk = hhKey(l), r = L.hh[lk] || (lk === 'goicap' ? L.hh.goi : null) || {};
+      const lk = hhKey(l);
       l.tho.forEach((t, idx) => {
         const o = res[t]; if (!o) return;
-        const lam = idx === 0 || MOT_NGUOI.includes(l.loai), v = base * num(lam ? r.cP : r.pP) / 100 + num(lam ? r.cK : r.pK);
+        const r = o.Ln.hh[lk] || {}, lam = idx === 0 || MOT_NGUOI.includes(l.loai), v = base * num(lam ? r.cP : r.pP) / 100 + num(lam ? r.cK : r.pK);
         o.hh[lk] = (o.hh[lk] || 0) + v; o.hhTong += v;
         o.ds[lk] = (o.ds[lk] || 0) + thuc; o.dem[lk] = (o.dem[lk] || 0) + 1;
       });
@@ -2216,16 +2231,16 @@ function renderLuong() {
   const K = tinhLuong(t), L = S.settings.luong;
   $('#l-bang').innerHTML = Object.values(K.res).map(o => {
     const row = (l, v, note, neg) => `<tr><td>${l}${note ? `<div class="muted small">${note}</div>` : ''}</td><td class="num">${v ? (neg ? '−' : '') + fmtK(Math.round(v * 10) / 10) : '–'}</td></tr>`;
-    return `<div class="card"><h3>${esc(o.n.ten)}</h3><table>
-      ${row('Lương cứng', o.cung, `${num(o.c.cong)} công × ${fmtK(Math.round(o.luongNgay * 10) / 10)}/ngày (lương tháng ÷ ${congChuanThang(t)} công chuẩn)`)}
+    return `<div class="card"><h3>${esc(o.n.ten)}${coLuongRieng(o.n) ? ' <span class="tag" title="Có cách tính lương riêng">tính riêng</span>' : ''}</h3><table>
+      ${row('Lương cứng', o.cung, `${num(o.c.cong)} công × ${fmtK(Math.round(o.luongNgay * 10) / 10)}/ngày (lương tháng ÷ ${congChuanThang(t, o.n)} công chuẩn)`)}
       ${Object.keys(HH_LOAI).filter(k => o.dem[k]).map(k => { const r = L.hh[k] || {};
         return row('Hoa hồng ' + HH_LOAI[k].toLowerCase(), o.hh[k], `${o.dem[k]} lần · doanh số ${fmtK(Math.round(o.ds[k]))}`); }).join('')}
       ${row('Thưởng gội hoá chất', o.goiHC, o.n.chiaGoiHC ? `${K.dauHC} đầu hoá chất lớn × ${L.goiHC}k ÷ ${K.nhanGoi.length || 1} người` : 'không nhận')}
-      ${row('Tiền ăn', o.an, `${num(o.c.cong)} ngày × ${L.anNgay}k`)}
+      ${row('Tiền ăn', o.an, `${num(o.c.cong)} ngày × ${o.Ln.anNgay}k`)}
       ${row('Phụ cấp', o.phucap)}
-      ${row('Làm thêm', o.lamThem, num(o.c.ot) ? `${num(o.c.ot)} phút × ${L.heSoLamThem} × lương giờ` : '')}
+      ${row('Làm thêm', o.lamThem, num(o.c.ot) ? `${num(o.c.ot)} phút × ${o.Ln.heSoLamThem} × lương giờ` : '')}
       <tr><td><b>Tổng thu nhập</b></td><td class="num"><b>${fmtK(Math.round(o.thuNhap))}</b></td></tr>
-      ${row('Phạt đi muộn', o.diMuon, num(o.c.muon) ? `${num(o.c.muon)} phút × ${num(L.phatMuon)}k${num(L.phatMuon) ? '' : ' (chưa đặt mức phạt ở Cài đặt)'}` : '', 1)}
+      ${row('Phạt đi muộn', o.diMuon, num(o.c.muon) ? `${num(o.c.muon)} phút × ${num(o.Ln.phatMuon)}k${num(o.Ln.phatMuon) ? '' : ' (chưa đặt mức phạt ở Cài đặt)'}` : '', 1)}
       ${row('Phạt', o.phat, '', 1)}${row('Đã ứng', o.ung, '', 1)}${row('Giữ lương', o.giu, '', 1)}
       <tr><td><b style="font-size:18px">CÒN LẠI</b></td><td class="num"><b style="font-size:20px;color:var(--brand)">${fmtK(Math.round(o.conLai))}</b></td></tr>
     </table></div>`; }).join('');
@@ -3047,7 +3062,7 @@ function luongCuaNV(thang, nvId) {
       const idx = (l.tho || []).indexOf(nvId); if (idx < 0) return;
       const thuc = l.gia - (giamHD ? giamHD * l.gia / lineSum : 0);
       const base = l.loai === 'hap' && l.dungTang && L.hapTheoGiaGoc ? num(l.giaGoc) : thuc;
-      const lam = idx === 0 || MOT_NGUOI.includes(l.loai), lk = hhKey(l), r = L.hh[lk] || (lk === 'goicap' ? L.hh.goi : null) || {}, v = base * num(lam ? r.cP : r.pP) / 100 + num(lam ? r.cK : r.pK);
+      const lam = idx === 0 || MOT_NGUOI.includes(l.loai), lk = hhKey(l), r = o.Ln.hh[lk] || {}, v = base * num(lam ? r.cP : r.pP) / 100 + num(lam ? r.cK : r.pK);
       don.push({ngay: i.date, khach: i.ten || 'Khách lẻ', dv: l.ten + (l.hang ? ' · ' + l.hang : ''),
         vai: MOT_NGUOI.includes(l.loai) ? 'Làm' : idx === 0 ? (l.loai === 'hap' ? 'Làm' : 'Chính') : (l.loai === 'hap' ? 'Tư vấn' : 'Phụ'), tien: Math.round(thuc), hh: Math.round(v * 10) / 10});
     });
@@ -3055,7 +3070,7 @@ function luongCuaNV(thang, nvId) {
   don.sort((a, b) => b.ngay < a.ngay ? -1 : b.ngay > a.ngay ? 1 : 0);
   const hh = Object.entries(o.hh).map(([k, v]) => ({loai: HH_LOAI[k] || k, tien: Math.round(v), so: o.dem[k] || 0}));
   const R1 = x => Math.round(x);
-  return {thang, ten: o.n.ten, cong: num(o.c.cong), congChuan: congChuanThang(thang), luongThang: num(o.n.luongThang),
+  return {thang, ten: o.n.ten, cong: num(o.c.cong), congChuan: congChuanThang(thang, o.n), luongThang: num(o.n.luongThang),
     cung: R1(o.cung), an: R1(o.an), hh, hhTong: R1(o.hhTong), goiHC: R1(o.goiHC), phucap: R1(o.phucap), lamThem: R1(o.lamThem),
     diMuon: R1(o.diMuon), phat: R1(o.phat), ung: R1(o.ung), giu: R1(o.giu), thuNhap: R1(o.thuNhap), conLai: R1(o.conLai), don: don.slice(0, 400)};
 }
@@ -3528,6 +3543,46 @@ async function dkLayVanTay(ma, ngon, ten) {
   } catch (e) { dkXong(); toast(e.name === 'AbortError' ? 'Máy chấm công không trả lời. Kiểm tra máy còn bật và cùng mạng.' : 'Lỗi: ' + e.message, true); }
   return false;
 }
+/* 2.11.7: cách tính lương riêng từng người */
+let CD_LNV = '';
+const chonLNV = nvL => nvL.length ? `<div class="lnv-chon"><button data-lnv="" class="${CD_LNV ? '' : 'on'}">Mặc định (mọi người)</button>${nvL.map(n => `<button data-lnv="${n.id}" class="${CD_LNV === n.id ? 'on' : ''}">${esc(n.ten)}${coLuongRieng(n) ? ' ✎' : ''}</button>`).join('')}</div>` : '';
+function renderLuongRieng(nvL) {
+  const n = S.settings.nhanvien.find(x => x.id === CD_LNV), L = S.settings.luong, r = n.luongRieng || {};
+  const o = (k, don, w) => `<div class="row"><input type="number" data-ln="${k}" value="${r[k] ?? ''}" placeholder="${L[k] ?? 0}" class="${r[k] !== undefined ? 'rieng' : ''}" style="width:${w || 70}px"> ${don}</div>`;
+  const hhIn = (k, f) => { const x = ((r.hh || {})[k] || {})[f], m = (L.hh[k] || (k === 'goicap' ? L.hh.goi : {}) || {})[f];
+    return `<input type="number" data-ln="hh.${k}.${f}" value="${x ?? ''}" placeholder="${m || 0}" class="${x !== undefined && x !== '' ? 'rieng' : ''}" style="width:64px;padding:5px 6px;text-align:right">`; };
+  $('#cd-luong').innerHTML = `<h3>Cách tính lương &amp; chi phí</h3>${chonLNV(nvL)}
+    <p class="small muted" style="margin:6px 0 10px">Riêng cho <b>${esc(n.ten)}</b>. Ô để trống (chữ mờ) = theo Mặc định; gõ số vào là chỉ áp cho ${esc(n.ten)}.</p>
+    <div class="form-grid">
+    <label>Lương tháng</label><div class="row"><b>${fmtK(num(n.luongThang))}</b> <span class="muted small">(sửa ở thẻ Người làm)</span></div>
+    <label>Nghỉ có lương</label>${o('nghiCoLuong', 'ngày/tháng', 60)}
+    <label>Giờ làm</label>${o('gioNgay', 'giờ/ngày', 60)}
+    <label>Phạt đi muộn</label>${o('phatMuon', 'k/phút')}
+    <label>Tiền ăn</label>${o('anNgay', 'k/ngày công')}
+    <label>Làm thêm</label><div class="row">× <input type="number" data-ln="heSoLamThem" value="${r.heSoLamThem ?? ''}" class="${r.heSoLamThem !== undefined ? 'rieng' : ''}" placeholder="${L.heSoLamThem ?? 0}" style="width:60px"> lương giờ</div>
+    </div>
+    <table style="margin-top:10px"><tr><th>Loại</th><th class="num">Làm chính %</th><th class="num">+ k/lần</th><th class="num">Phụ / tư vấn %</th><th class="num">+ k/lần</th></tr>
+    ${Object.keys(HH_LOAI).map(k => `<tr><td>${HH_LOAI[k]}</td><td class="num">${hhIn(k, 'cP')}</td><td class="num">${hhIn(k, 'cK')}</td>${MOT_NGUOI.includes(k) || k === 'goicap' ? '<td class="num muted" colspan="2" style="text-align:center">chỉ người làm</td>' : `<td class="num">${hhIn(k, 'pP')}</td><td class="num">${hhIn(k, 'pK')}</td>`}</tr>`).join('')}</table>
+    <p class="small muted">Gội hoá chất, hấp tặng và chi phí salon dùng chung cho mọi người (sửa ở Mặc định).</p>
+    ${coLuongRieng(n) ? `<button class="sm ghost danger" data-lnv-xoa="${n.id}">Bỏ cách tính riêng, dùng lại Mặc định</button>` : ''}`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('#cd-luong [data-lnv]'); if (b) { CD_LNV = b.dataset.lnv; renderCaiDat(); return; }
+  const x = e.target.closest('#cd-luong [data-lnv-xoa]');
+  if (x) { const n = S.settings.nhanvien.find(v => v.id === x.dataset.lnvXoa); if (!n || !await confirmBox(`Bỏ cách tính lương riêng của <b>${esc(n.ten)}</b>, dùng lại Mặc định?`, 'Dùng Mặc định')) return;
+    delete n.luongRieng; await saveSettings(); autoBackup(); renderCaiDat(); toast(`${n.ten} dùng lại cách tính Mặc định`); }
+});
+document.addEventListener('change', async e => {
+  const i = e.target.closest('#cd-luong [data-ln]'); if (!i) return;
+  const n = S.settings.nhanvien.find(v => v.id === CD_LNV); if (!n) return;
+  const r = n.luongRieng || (n.luongRieng = {}), path = i.dataset.ln.split('.'), v = i.value.trim() === '' ? undefined : num(i.value);
+  if (path[0] === 'hh') { r.hh = r.hh || {}; const o = r.hh[path[1]] || (r.hh[path[1]] = {}); if (v === undefined) delete o[path[2]]; else o[path[2]] = v; if (!Object.keys(o).length) delete r.hh[path[1]]; }
+  else if (v === undefined) delete r[path[0]]; else r[path[0]] = v;
+  if (!coLuongRieng(n)) delete n.luongRieng;
+  i.classList.toggle('rieng', v !== undefined);
+  await saveSettings(); autoBackup();
+  const tb = $('#cd-luong .lnv-chon .on'); if (tb) tb.textContent = n.ten + (coLuongRieng(n) ? ' ✎' : '');
+});
 /* 2.11.4: xoá nhân viên. Có trong hoá đơn cũ → giữ tên cho hoá đơn/lương cũ (đánh dấu xoa), không thì xoá hẳn */
 async function xoaNV(id) {
   const st = S.settings, n = st.nhanvien.find(x => x.id === id); if (!n) return;
