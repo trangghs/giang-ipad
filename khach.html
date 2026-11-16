@@ -2068,9 +2068,9 @@ async function xinTraCK(ck) {
   ok.onclick = async () => { ok.disabled = true;
     let ref; try { ref = await db.collection('xintra').add({t: T, tien: ck.tien, nd: ck.nd, luc: Date.now()}); } catch (e) { ok.disabled = false; toast(loi(e)); return; }
     V.duTruoc = du;
-    L.innerHTML = `<div class="lop"><div class="tam"><div class="mo">Đã gửi tới quầy</div><div class="tien">${fmtD(ck.tien)}</div><div class="bao" style="margin-top:12px">Chờ lễ tân xác nhận trên máy quầy…</div><button class="b" style="margin-top:12px" id="xHuy">Huỷ</button></div></div>`;
-    let xong = false; const het = setTimeout(() => ket('Quầy chưa xác nhận. Bạn hỏi lễ tân giúp nhé.'), 180000);
-    const unsub = ref.onSnapshot(sn => { const x = sn.data(); if (!x) return; if (x.tt === 'xong') ket('Xong ✓ Đã thanh toán bằng số dư thẻ'); else if (x.tt === 'tuchoi') ket('Quầy chưa nhận được yêu cầu này. Bạn hỏi lễ tân giúp nhé.'); }, () => {});
+    L.innerHTML = `<div class="lop"><div class="tam"><div class="mo">Đã gửi tới quầy</div><div class="tien">${fmtD(ck.tien)}</div><div class="bao" style="margin-top:12px">Đang trừ tiền ở quầy…</div><button class="b" style="margin-top:12px" id="xHuy">Huỷ</button></div></div>`;
+    let xong = false; const het = setTimeout(() => ket('Quầy chưa nhận được. Bạn hỏi lễ tân giúp nhé.'), 30000);
+    const unsub = ref.onSnapshot(sn => { const x = sn.data(); if (!x) return; if (x.tt === 'xong') ket('Xong ✓ Đã thanh toán bằng số dư thẻ'); else if (x.tt === 'tuchoi') ket('Hoá đơn ở quầy chưa khớp số tiền này. Bạn hỏi lễ tân giúp nhé.'); }, () => {});
     function ket(msg) { if (xong) return; xong = true; clearTimeout(het); try { unsub(); } catch (e) {} ref.delete().catch(() => {}); dong(); toast(msg); }
     $('#xHuy').onclick = () => ket('Đã huỷ');
   };

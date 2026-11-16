@@ -2355,7 +2355,7 @@ return qrcode;
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.12.4 (16/11/2026)';
+const APP_VERSION = '2.12.5 (16/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -5008,19 +5008,20 @@ async function nhanXinTra(x) { // 2.12.4: khách quét mã chuyển khoản trê
   if (Date.now() - num(x.luc) > 300000) { ref.delete().catch(() => {}); return; }
   if (KA.xinDang) { KA.xinHang.push(x); return; } KA.xinDang = true;
   try {
-    for (let i = 0; i < 240 && $('#dlg').open; i++) await new Promise(r => setTimeout(r, 500)); // chờ hộp thoại khác đóng
+    for (let i = 0; i < 4 && $('#dlg').open; i++) await new Promise(r => setTimeout(r, 500)); // hộp thoại khác đang mở thì chờ tối đa 2 giây
     const c = kaKhachTheoT(x.t), tien = Math.round(num(x.tien));
     if (!c) { toast('Có yêu cầu trả bằng số dư thẻ nhưng không rõ khách (link cũ?)', true); tuChoi(); return; }
     const khop = HD.tt === 'ck' && hdTong() === tien && HD.lines.length > 0;
     if (!khop) { toast(`📲 ${c.ten} (thẻ ${c.maThe}) quét mã ${fmtD(tien)} để trả bằng số dư thẻ, nhưng hoá đơn đang mở không phải chuyển khoản ${fmtD(tien)}. Đã báo khách.`, true); tuChoi(); return; }
     const khac = normPhone(HD.phone) && normPhone(HD.phone) !== c.phone;
     if (num(c.soDu) < tien) { toast(`${c.ten} không đủ số dư (còn ${fmtD(num(c.soDu))})`, true); tuChoi(); return; }
-    if (!await confirmBox(`📲 <b>${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)}</b> (thẻ ${esc(c.maThe || '')}) vừa quét mã chuyển khoản trên trang thẻ, muốn <b>trả ${fmtD(tien)} bằng số dư thẻ</b> (số dư ${fmtD(num(c.soDu))} → còn ${fmtD(num(c.soDu) - tien)}).
-      ${khac ? `<br><span style="color:#a3401f">Hoá đơn đang ghi khách khác (${esc(maskPhone(normPhone(HD.phone)))}), sẽ đổi sang ${esc(c.ten)}.</span>` : ''}<br><span class="muted small">Bấm nhận: hoá đơn thanh toán bằng "Số dư thẻ" và in bill.</span>`, 'Nhận & in bill')) { tuChoi(); return; }
+    // 2.12.5: khách đã bấm Đồng ý trên điện thoại + số tiền khớp đúng hoá đơn chuyển khoản đang mở → tự trừ, không hỏi lễ tân
+    if (khac) toast(`Hoá đơn đang ghi khách khác (${maskPhone(normPhone(HD.phone))}), đổi sang ${c.ten} (thẻ ${c.maThe})`, true);
     if (khac || !normPhone(HD.phone)) { HD.phone = c.phone; HD.ten = c.ten; HD.danhxung = c.danhxung || 'chị'; HD.maThe = c.maThe || ''; }
     HD.tt = 'sodu'; KA.dongY = {id: x.id, t: x.t, tien}; saveDraft(); fillHDForm();
     await thanhToan(true);
     if (KA.dongY && KA.dongY.id === x.id) { KA.dongY = null; tuChoi(); if (HD.tt === 'sodu') { HD.tt = 'ck'; saveDraft(); fillHDForm(); } }
+    else toast(`📲 ${cap(c.danhxung || 'chị')} ${c.ten} đã trả ${fmtD(tien)} bằng số dư thẻ · còn ${fmtD(num(c.soDu))}`);
   } finally { KA.xinDang = false; const t = KA.xinHang.shift(); if (t) nhanXinTra(t); }
 }
 async function duyetNap(id, ok) {
