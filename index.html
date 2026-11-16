@@ -2355,7 +2355,7 @@ return qrcode;
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.12.1 (16/11/2026)';
+const APP_VERSION = '2.12.2 (16/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -4878,7 +4878,8 @@ const KHACH_URL = IPAD_URL + 'the.html';
 const KA = {napCho: [], cu: {}, cfgCu: ''};
 const kaMuc = () => ((S.settings.khachApp && S.settings.khachApp.muc) || []).filter(x => num(x.tien) > 0);
 const thuongNap = tien => { const m = kaMuc().find(x => num(x.tien) === num(tien)); return m ? num(m.thuong) : 0; };
-async function bamPin(t, pin) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t + ':' + pin)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+/* 2.12.2: đổi tên, bản 2.12.1 đặt trùng tên bamPin(pin, salt) làm hỏng mọi ô mã PIN ở quầy */
+async function bamPinThe(t, pin) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t + ':' + pin)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 const kaKhachTheoT = t => [...S.customers.values()].find(k => k.app && k.app.t === t);
 const taoMa = n => { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789', b = crypto.getRandomValues(new Uint8Array(n)); return [...b].map(x => a[x % a.length]).join(''); };
 const maTheMoi = () => { let mx = 0; S.customers.forEach(c => { const n = parseInt(String(c.maThe || '').replace(/\D/g, ''), 10); if (n > mx && n < 1e6) mx = n; }); return String(mx + 1).padStart(4, '0'); };
@@ -4926,7 +4927,7 @@ async function taoAppKhach(c) {
   if (!await xinPin(capLai ? 'Cấp link thẻ online mới cho khách' : 'Tạo thẻ online cho khách')) return;
   const daCoThe = !!c.maThe; if (!daCoThe) c.maThe = maTheMoi();
   const t = taoMa(24), db = Cloud.db, b = db.batch();
-  let h = ''; try { h = await bamPin(t, so4); } catch (e) { toast('Máy này không băm được mã PIN: ' + (e.message || e), true); return; }
+  let h = ''; try { h = await bamPinThe(t, so4); } catch (e) { toast('Máy này không băm được mã PIN: ' + (e.message || e), true); return; }
   if (capLai) ['khachmo', 'khachpin', 'khachapp'].forEach(col => b.delete(db.collection(col).doc(c.app.t)));
   b.set(db.collection('khachpin').doc(t), {h});
   b.set(db.collection('khachmo').doc(t), {coPin: true, luc: Date.now()});
