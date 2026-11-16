@@ -85,7 +85,7 @@ input.so{width:100%;font:600 20px Arial;padding:11px;border:1.5px solid var(--vi
 .lop{position:fixed;inset:0;background:rgba(28,26,23,.55);display:flex;align-items:flex-end;justify-content:center;z-index:9;animation:mo .18s ease-out}
 @keyframes mo{from{background:rgba(28,26,23,0)}}@keyframes len{from{transform:translateY(100%)}}
 .tam{animation:len .22s ease-out;touch-action:pan-y}.tam:before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:#d6c9bb;margin:-8px auto 12px}
-button,a,input{touch-action:manipulation}html,body{overscroll-behavior-y:none}
+button,a,input{touch-action:manipulation}html,body{overscroll-behavior-y:none;overflow-x:hidden}#man{will-change:transform}
 #keo{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:20;height:0;overflow:visible}
 #keo span{margin-top:calc(8px + env(safe-area-inset-top));background:#fff;border-radius:20px;padding:6px 14px;font-size:13px;color:var(--nau);box-shadow:0 3px 12px rgba(0,0,0,.15);opacity:0;transition:opacity .15s}
 .tam{background:var(--nen);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -6px 30px rgba(0,0,0,.25)}
@@ -1877,7 +1877,6 @@ function veKM(k) {
   if (k.freeCat) ds.push('<b>Free cắt</b> khi làm uốn / ép / nhuộm');
   return `<div class="km"><div class="mo">🎁 Ưu đãi đang có${k.den ? ` · đến hết ${ng(k.den)}` : ''}</div><div class="ten">${esc(k.ten)}</div>
     ${ds.length ? `<ul>${ds.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
-    ${num(k.bonusToiDa) ? `<div class="noi">💳 Bạn có thẻ thành viên: được <b>giảm thêm ${num(k.bonusToiDa)}%</b> trên giá đã giảm (cũng áp dụng khi đi nhóm 2 người).</div>` : ''}
     ${k.ghichu ? `<p class="mo" style="margin-top:8px">${esc(k.ghichu)}</p>` : ''}
     <p class="mo" style="margin-top:6px">Gói 699k học sinh – sinh viên không giảm thêm. <a href="tinh-tien.html" target="_blank" rel="noopener">Tự tính giá dịch vụ →</a></p></div>`;
 }
@@ -1892,19 +1891,23 @@ async function napUD() {
   try { const r = await fetch('uu-dai.json?v=' + homNayS(), {cache: 'no-cache'}); UD.d = await r.json(); UD.chon = UD.chon.filter(c => UD.d.dv[c.i] && UD.d.dv[c.i][2][c.v] != null); }
   catch (e) { UD.d = {loi: true}; } UD.dang = false; if (V.man === 'ud') ve(); else veDL();
 }
-const udOn = () => UD.d && UD.d.km && homNayS() >= UD.d.km.tu && homNayS() <= UD.d.km.den;
-function udTinh() { // giống app quầy / trang tự tính giá: giảm theo nhóm, free cắt khi có uốn/ép/nhuộm, thẻ thành viên giảm thêm có trần
-  const D = UD.d, K = D.km, on = udOn(), coUEN = UD.chon.some(c => ['lon', 'combo'].includes(D.dv[c.i][3]));
-  const bon = on ? (K.bonus.find(b => b.id === 'the') || {pct: 0}).pct : 0;
-  return UD.chon.map(c => { const d = D.dv[c.i], goc = d[2][c.v], nh = d[3];
-    let p = on ? (K.pct[nh] || 0) : 0, b = 0, ghi = '';
-    if (on && nh !== 'khong' && bon) b = Math.min(bon, nh === 'combo' ? K.comboToiDa : K.bonusToiDa);
-    if (on && d[6] === 'cat' && coUEN) { p = 100; b = 0; ghi = 'Free cắt'; } else ghi = [p ? `ưu đãi ${p}%` : '', b ? `thẻ −${b}%` : ''].filter(Boolean).join(' + ');
-    return {c, d, goc, gia: Math.max(0, Math.round(goc * (1 - p / 100) * (1 - b / 100))), ghi}; });
+// Giá trên trang thẻ = giá sau ưu đãi tháng theo ĐÚNG cài đặt máy quầy (khachcfg.km), KHÔNG tự trừ giảm thêm (đi nhóm / thẻ) – anh chốt 16/11: quầy tự giảm sau
+const kmQuay = () => { const k = V.cfg && V.cfg.km; return k && k.tu && homNayS() >= k.tu && (!k.den || homNayS() <= k.den) ? k : null; };
+const udOn = () => !!kmQuay() || !!(UD.d && UD.d.km && homNayS() >= UD.d.km.tu && homNayS() <= UD.d.km.den);
+function pctNhom(nh) { // % giảm theo nhóm KM (lon / nho / khac), thứ 7–CN lấy mức cuối tuần
+  if (!udOn() || nh === 'khong' || nh === 'combo') return 0;
+  const k = kmQuay(); if (k) { const g = k[nh] || {}, cn = [0, 6].includes(new Date().getDay()); return num(cn ? g.cuoituan : g.thuong); }
+  return num((UD.d.km.pct || {})[nh]);
 }
-function giaThe(d, v) { const D = UD.d, K = D.km, on = udOn(), nh = d[3]; if (!on) return d[2][v];
-  const p = K.pct[nh] || 0, b = nh === 'khong' ? 0 : Math.min((K.bonus.find(x => x.id === 'the') || {pct: 0}).pct, nh === 'combo' ? K.comboToiDa : K.bonusToiDa);
-  return Math.round(d[2][v] * (1 - p / 100) * (1 - b / 100)); }
+const freeCat = () => { const k = kmQuay(); return k ? !!k.freeCat : udOn(); };
+function udTinh() {
+  const D = UD.d, coUEN = UD.chon.some(c => ['lon', 'combo'].includes(D.dv[c.i][3]));
+  return UD.chon.map(c => { const d = D.dv[c.i], goc = d[2][c.v];
+    let p = pctNhom(d[3]), ghi = p ? `ưu đãi ${p}%` : '';
+    if (freeCat() && d[6] === 'cat' && coUEN) { p = 100; ghi = 'Free cắt'; }
+    return {c, d, goc, gia: Math.max(0, Math.round(goc * (1 - p / 100))), ghi}; });
+}
+function giaThe(d, v) { return Math.round(d[2][v] * (1 - pctNhom(d[3]) / 100)); }
 function veUD() {
   if (!UD.d) { man('<p class="mo giua" style="margin-top:30px">Đang tải ưu đãi…</p>'); napUD(); return; }
   if (UD.d.loi) { man(`<h2>Ưu đãi</h2><p>Chưa tải được ưu đãi. Kiểm tra mạng rồi thử lại nhé.</p><button class="b" onclick="UD.d=null;ve()">Thử lại</button>`); return; }
@@ -1915,7 +1918,7 @@ function veUD() {
       ${A.them ? `<div class="ap-them">${esc(A.them)}</div>` : ''}${A.chan ? `<div class="ap-chan">${esc(A.chan)}</div>` : ''}</div>`
     : `<div class="ap"><div class="ap-ten">Ưu đãi tháng mới sắp ra</div><div class="ap-chan">Salon đang chuẩn bị chương trình mới. Giá dưới đây là giá gốc.</div></div>`}
     <h3>Chọn dịch vụ, xem giá hôm nay</h3>
-    <p class="mo">${on ? 'Giá đã gồm ưu đãi tháng và <b>giảm thêm 5% cho thẻ thành viên</b>.' : 'Giá gốc.'} Chọn xong bấm Đặt lịch.</p>
+    <p class="mo">${on ? 'Giá đã gồm ưu đãi tháng.' : 'Giá gốc.'} Chọn xong bấm Đặt lịch.</p>
     <div class="bg">${nhom.map(n => `<h4>${esc(n)}</h4>${D.dv.map((d, i) => d[0] !== n ? '' : `<div class="dv"><div class="t">${esc(d[1])}${d[4] ? `<small>${esc(d[4])}</small>` : ''}</div>
       <div class="g">${d[2].map((g, v) => { const moi = giaThe(d, v), chon = UD.chon.some(c => c.i === i && c.v === v);
         return `<button data-ui="${i}" data-uv="${v}" class="${chon ? 'chon' : ''}">${fmtK(moi)}${moi !== g ? `<s>${fmtK(g)}</s>` : ''}${d[2].length > 1 ? `<i>${d[5] ? esc(d[5][v]) : (v ? 'Goldwell' : "L'Oréal")}</i>` : ''}</button>`; }).join('')}</div></div>`).join('')}`).join('')}</div>
@@ -2106,12 +2109,29 @@ $('#lop').addEventListener('click', e => { if (e.target.classList.contains('lop'
   document.addEventListener('touchend', () => { if (y0 == null) return; y0 = null;
     if (dy > 120) { k.textContent = 'Đang tải lại…'; setTimeout(() => location.reload(), 150); } else k.style.opacity = 0; });
 })();
-// 3. Vuốt ngang để đổi tab Thẻ ↔ Ưu đãi; bấm lại tab đang mở → cuộn lên đầu
-(() => { let x0 = null, y0 = 0;
-  document.addEventListener('touchstart', e => { x0 = (!$('#lop').innerHTML && ['vi', 'ud'].includes(V.man) && !e.target.closest('.g,.dl,input')) ? e.touches[0].clientX : null; y0 = e.touches[0].clientY; }, {passive: true});
-  document.addEventListener('touchend', e => { if (x0 == null || !V.the) return; const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
-    if (Math.abs(dx) > 90 && Math.abs(dy) < 50) { const moi = dx < 0 ? 'ud' : 'vi'; if (moi !== V.man) { V.man = moi; ve(); } } });
-  document.querySelectorAll('#tab [data-tab]').forEach(b => b.addEventListener('click', () => { if (b.dataset.tab === V.man) scrollTo({top: 0, behavior: 'smooth'}); }, true));
+// 3. Vuốt ngang để đổi tab Thẻ ↔ Ưu đãi: trang chạy theo ngón tay rồi trượt hẳn sang (kiểu iPhone); bấm tab cũng trượt
+const THU_TU = ['vi', 'ud'];
+function chuyenTab(moi) {
+  const cu = V.man, m = $('#man'); if (moi === cu || !THU_TU.includes(moi)) return;
+  if (cu === 'qr') boQuet();
+  const huong = THU_TU.indexOf(moi) > THU_TU.indexOf(cu) ? -1 : 1; // -1: nội dung cũ đi sang trái, mới vào từ phải
+  m.style.transition = 'transform .2s ease-in, opacity .2s'; m.style.transform = `translateX(${huong * 100}%)`; m.style.opacity = '.4';
+  setTimeout(() => { V.man = moi; ve(); m.style.transition = 'none'; m.style.transform = `translateX(${-huong * 100}%)`; m.style.opacity = '.4';
+    void m.offsetWidth; m.style.transition = 'transform .26s cubic-bezier(.2,.8,.2,1), opacity .26s'; m.style.transform = ''; m.style.opacity = ''; }, 190);
+}
+(() => { let x0 = null, y0 = 0, dx = 0, kieu = '', m = null;
+  document.addEventListener('touchstart', e => { x0 = (!$('#lop').innerHTML && THU_TU.includes(V.man) && V.the && !e.target.closest('.g,.dl,input,#tab')) ? e.touches[0].clientX : null;
+    y0 = e.touches[0].clientY; dx = 0; kieu = ''; m = $('#man'); }, {passive: true});
+  document.addEventListener('touchmove', e => { if (x0 == null) return; const t = e.touches[0]; dx = t.clientX - x0; const dy = t.clientY - y0;
+    if (!kieu) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) kieu = 'ngang'; else if (Math.abs(dy) > 10) kieu = 'doc'; }
+    if (kieu !== 'ngang') return;
+    const i = THU_TU.indexOf(V.man), coBen = dx < 0 ? i < THU_TU.length - 1 : i > 0; // hết tab bên đó thì kéo nặng tay (cao su)
+    m.style.transition = 'none'; m.style.transform = `translateX(${coBen ? dx : dx * 0.25}px)`; m.style.opacity = coBen ? String(1 - Math.min(Math.abs(dx) / innerWidth, 1) * 0.5) : ''; }, {passive: true});
+  document.addEventListener('touchend', () => { if (x0 == null) return; x0 = null; if (kieu !== 'ngang') return;
+    const i = THU_TU.indexOf(V.man), moi = THU_TU[dx < 0 ? i + 1 : i - 1];
+    if (moi && Math.abs(dx) > Math.min(90, innerWidth * 0.22)) chuyenTab(moi);
+    else { m.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s'; m.style.transform = ''; m.style.opacity = ''; } });
+  document.querySelectorAll('#tab [data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab === V.man) scrollTo({top: 0, behavior: 'smooth'}); else if (THU_TU.includes(V.man)) chuyenTab(b.dataset.tab); else { if (V.man === 'qr') boQuet(); V.man = b.dataset.tab; ve(); } });
 })();
 batDau();
 </script>
