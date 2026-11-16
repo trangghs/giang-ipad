@@ -552,7 +552,7 @@ body.pc.nhom-don #nav{display:none}
           <label>Sinh nhật<input id="hd-ns" type="date"></label>
           <label>Mã thẻ<input id="hd-mathe" placeholder="VD 0195" autocomplete="off" title="Mã khách hàng in trên thẻ thành viên"></label>
         </div>
-        <div class="row chi-ipad" style="margin-top:8px;gap:8px;align-items:center"><button type="button" class="sm" id="btn-quet">📷 Quét QR app khách</button><span id="hd-quet"></span></div>
+        <div class="row chi-ipad" style="margin-top:8px;gap:8px;align-items:center"><button type="button" class="sm" id="btn-quet">📷 Quét QR thẻ khách</button><span id="hd-quet"></span></div>
         <div id="hd-the-msg"></div>
         <div id="hd-khach"></div>
       </div>
@@ -586,7 +586,7 @@ body.pc.nhom-don #nav{display:none}
         <div class="seg" style="margin-top:12px" id="hd-tt">
           <button data-tt="tienmat" class="on">Tiền mặt</button>
           <button data-tt="ck">Chuyển khoản</button>
-          <button data-tt="sodu" title="Trừ vào số dư app GIANG của khách">Số dư app</button>
+          <button data-tt="sodu" title="Trừ vào số dư thẻ thành viên online của khách">Số dư thẻ</button>
         </div>
         <div id="hd-qr"></div>
         <div class="tong"><span class="muted">Khách trả</span><b id="hd-tong">0đ</b></div>
@@ -2355,7 +2355,7 @@ return qrcode;
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.12.0 (15/11/2026)';
+const APP_VERSION = '2.12.1 (16/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -2395,7 +2395,7 @@ const hhKey = l => { if (l.loai !== 'goi') return l.loai; if (/cặp/i.test(l.te
   let v = l.v; if (v == null) { const d = S.settings.dichvu.find(x => x.id === l.dvId) || {};
     v = (d.nhan && l.hang && d.nhan.indexOf(l.hang) > 0) || (l.hang && S.settings.hang && l.hang === S.settings.hang[1]) || /cặp/i.test(l.hang || '') ? 1 : 0; }
   return v === 1 ? 'goicap' : 'goi'; };
-const TT = {tienmat:'Tiền mặt', ck:'Chuyển khoản', sodu: 'Số dư app'};
+const TT = {tienmat:'Tiền mặt', ck:'Chuyển khoản', sodu: 'Số dư thẻ'};
 
 function toast(msg, bad) {
   const t = $('#toast'); t.textContent = msg; t.className = 'on' + (bad ? ' bad' : '');
@@ -2736,6 +2736,9 @@ function loadDraft() { try { const d = JSON.parse(localStorage.getItem('giang-dr
 function hdCustomer() { const p = normPhone(HD.phone); return p ? S.customers.get(p) : null; }
 function hapCo() { const c = hdCustomer(); return c ? num(c.hapTang) : (IPAD && HD.quetKhach ? num(HD.quetKhach.hap) : 0); }
 function hapConDung() { return hapCo() - HD.lines.filter(l => l.dungTang).length; }
+function phCo() { const c = hdCustomer(); return c ? num(c.phucHoiTang) : (IPAD && HD.quetKhach ? num(HD.quetKhach.ph) : 0); } // 2.12.1: phục hồi tặng
+function phConDung() { return phCo() - HD.lines.filter(l => l.dungPH).length; }
+const laTang = l => !!(l.dungTang || l.dungPH);
 const hdTamTinh = () => HD.lines.reduce((s, l) => s + num(l.gia), 0);
 const hdGiamThem = () => Math.round(hdTamTinh() * num(HD.giamPctHD) / 100) + num(HD.giamThem);
 const hdTruocSticker = () => Math.max(0, hdTamTinh() - hdGiamThem());
@@ -2894,7 +2897,7 @@ function apLaiKm() { // áp lại KM cho các dòng đang nhập (trừ dòng đ
   const k = kmHienTai(), bon = bonusDangChon(k).reduce((a, x) => a + num(x.pct), 0);
   const dvOf = l => S.settings.dichvu.find(x => x.id === l.dvId);
   const coUonEpNhuom = HD.lines.some(x => ['lon', 'combo'].includes((dvOf(x) || {}).kmNhom));
-  HD.lines.forEach(l => { if (l.dungTang || l.kmAuto === false) return;
+  HD.lines.forEach(l => { if (laTang(l) || l.kmAuto === false) return;
     const d = dvOf(l); let pct = kmPctDv(d), b = 0, ghi = '';
     if (k && d && d.kmNhom !== 'khong' && bon) b = Math.min(bon, num(d.bonusToiDa ?? k.bonusToiDa ?? 0));
     if (k && k.freeCat && l.loai === 'cat' && coUonEpNhuom) { pct = 100; b = 0; ghi = 'Free cắt'; }
@@ -2920,10 +2923,10 @@ function renderLines() {
     <div class="line" data-key="${l.key}">
       <div class="top">
         <div><div class="ten">${esc(l.ten)}${l.hang ? ` <span class="muted" style="font-weight:400">· ${esc(l.hang)}</span>` : ''}</div>
-          ${(l.giamPct || l.giamTayPct || l.giamTayK) && !l.dungTang ? `<div class="small"><span class="goc">${fmtK(l.giaGoc)}</span>${l.giamPct ? ` <span class="tag ok">${l.kmAuto !== false && l.kmGhi ? esc(l.kmGhi) : (l.kmAuto === false ? 'Giảm' : 'KM') + ' ' + l.giamPct + '%'}</span>` : ''}${l.giamTayPct || l.giamTayK ? ` <span class="tag warn">Giảm thêm ${[l.giamTayPct ? l.giamTayPct + '%' : '', l.giamTayK ? l.giamTayK + 'k' : ''].filter(Boolean).join(' + ')}</span>` : ''}</div>` : ''}
-          ${l.dungTang ? `<div class="small"><span class="goc">${fmtK(l.giaGoc)}</span> <span class="tag ok">Buổi hấp tặng</span></div>` : ''}
+          ${(l.giamPct || l.giamTayPct || l.giamTayK) && !laTang(l) ? `<div class="small"><span class="goc">${fmtK(l.giaGoc)}</span>${l.giamPct ? ` <span class="tag ok">${l.kmAuto !== false && l.kmGhi ? esc(l.kmGhi) : (l.kmAuto === false ? 'Giảm' : 'KM') + ' ' + l.giamPct + '%'}</span>` : ''}${l.giamTayPct || l.giamTayK ? ` <span class="tag warn">Giảm thêm ${[l.giamTayPct ? l.giamTayPct + '%' : '', l.giamTayK ? l.giamTayK + 'k' : ''].filter(Boolean).join(' + ')}</span>` : ''}</div>` : ''}
+          ${laTang(l) ? `<div class="small"><span class="goc">${fmtK(l.giaGoc)}</span> <span class="tag ok">${l.dungPH ? 'Buổi phục hồi tặng' : 'Buổi hấp tặng'}</span></div>` : ''}
         </div>
-        <div class="gia"><input type="number" min="0" data-f="gia" value="${l.gia}" ${l.dungTang ? 'disabled' : ''}><span class="muted">k</span><button class="x" data-del title="Bỏ dịch vụ này">×</button></div>
+        <div class="gia"><input type="number" min="0" data-f="gia" value="${l.gia}" ${laTang(l) ? 'disabled' : ''}><span class="muted">k</span><button class="x" data-del title="Bỏ dịch vụ này">×</button></div>
       </div>
       <div class="sub">
         <span class="muted">${MOT_NGUOI.includes(l.loai) ? 'Người làm' : 'Làm'}</span>
@@ -2933,12 +2936,13 @@ function renderLines() {
         ${(['cat', 'catnam', 'goi'].includes(l.loai) || (l.loai === 'hap' && l.dungTang)) && !/cặp|massage/i.test(l.ten) ? themNut(l) : ''}
         <button class="more ${moRong.has(l.key) || l.giamTayPct || l.giamTayK ? 'on' : ''}" data-more title="Giảm thêm, loại tính lương">Giảm thêm ⋯</button>
       </div>
-      ${(l.loai === 'hoachat' && (l.lon ?? l.tangHap)) || (l.loai === 'hap' && (l.dungTang || hapConDung() > 0)) ? `<div class="sub">
+      ${(l.loai === 'hoachat' && (l.lon ?? l.tangHap)) || (l.loai === 'hap' && (l.dungTang || hapConDung() > 0)) || (l.loai === 'phuchoi' && (l.dungPH || phConDung() > 0)) ? `<div class="sub">
         ${l.loai === 'hoachat' ? `<label class="tick ${l.tangHap ? '' : 'off'}"><input type="checkbox" data-f="tangHap" ${l.tangHap ? 'checked' : ''}> Tặng ${num(S.settings.nhac.soHapTang)} buổi hấp</label>` : ''}
         ${l.loai === 'hap' && (l.dungTang || hapConDung() > 0) ? `<label class="tick ${l.dungTang ? '' : 'off'}"><input type="checkbox" data-f="dungTang" ${l.dungTang ? 'checked' : ''}> Dùng buổi hấp tặng (còn ${hapCo()})</label>` : ''}
+        ${l.loai === 'phuchoi' && (l.dungPH || phConDung() > 0) ? `<label class="tick ${l.dungPH ? '' : 'off'}"><input type="checkbox" data-f="dungPH" ${l.dungPH ? 'checked' : ''}> Dùng buổi phục hồi tặng (còn ${phCo()})</label>` : ''}
       </div>` : ''}
       ${moRong.has(l.key) || l.giamTayPct || l.giamTayK ? `<div class="sub-more">
-        ${l.dungTang ? '' : `<span class="giamtay" title="Giảm thêm cho riêng dịch vụ này (sau khuyến mãi tháng)">Giảm thêm <input type="number" min="0" max="100" data-f="giamTayPct" value="${l.giamTayPct || ''}" placeholder="0">% <input type="number" min="0" data-f="giamTayK" value="${l.giamTayK || ''}" placeholder="0">k</span>`}
+        ${laTang(l) ? '' : `<span class="giamtay" title="Giảm thêm cho riêng dịch vụ này (sau khuyến mãi tháng)">Giảm thêm <input type="number" min="0" max="100" data-f="giamTayPct" value="${l.giamTayPct || ''}" placeholder="0">% <input type="number" min="0" data-f="giamTayK" value="${l.giamTayK || ''}" placeholder="0">k</span>`}
         <span class="muted">Tính lương theo</span><select data-f="loai">${Object.entries(LOAI).map(([k, v]) => `<option value="${k}" ${k === l.loai ? 'selected' : ''}>${v}</option>`).join('')}</select>
       </div>` : ''}
     </div>`).join('') : '<div class="empty">Chưa có dịch vụ. Bấm vào giá ở bảng bên trái để thêm.</div>';
@@ -3168,11 +3172,11 @@ async function thanhToan(print) {
     id: goc ? goc.id : nextInvoiceId(date), date, time: goc ? goc.time : `${pad(now.getHours())}:${pad(now.getMinutes())}`, ts: goc ? goc.ts : now.getTime(),
     phone, ten: ten || (phone ? S.customers.get(phone).ten : 'Khách lẻ'), danhxung: HD.danhxung,
     lines: HD.lines.map(l => ({dvId: l.dvId, ten: l.ten, hang: l.hang, loai: l.loai, giaGoc: num(l.giaGoc), giamPct: l.giamPct, gia: num(l.gia),
-      giamTayPct: num(l.giamTayPct), giamTayK: num(l.giamTayK), tho: [l.chinh, ...(MOT_NGUOI.includes(l.loai) ? [] : l.phu.filter(x => x && x !== l.chinh))], tangHap: !!l.tangHap, lon: l.lon ?? !!l.tangHap, kmTen: l.giamPct && l.kmAuto ? (l.kmTen || '') : '', tenTin: l.tenTin || '', dungTang: !!l.dungTang})),
+      giamTayPct: num(l.giamTayPct), giamTayK: num(l.giamTayK), tho: [l.chinh, ...(MOT_NGUOI.includes(l.loai) ? [] : l.phu.filter(x => x && x !== l.chinh))], tangHap: !!l.tangHap, lon: l.lon ?? !!l.tangHap, kmTen: l.giamPct && l.kmAuto ? (l.kmTen || '') : '', tenTin: l.tenTin || '', dungTang: !!l.dungTang, dungPH: !!l.dungPH})),
     giamThem: hdGiamThem(), giamPctHD: num(HD.giamPctHD), stickerDung: hdStickerDung(), giamSticker: hdGiamSticker(), maThe: HD.maThe || '',
     quay: HD.quay || null,
     stickerNhan: HD.stkMoi && stickerById(HD.stkMoi) ? {loai: HD.stkMoi, ten: stickerById(HD.stkMoi).ten, kieu: stickerById(HD.stkMoi).kieu || 'k', giaTri: num(stickerById(HD.stkMoi).giaTri), dungLuon: !!HD.stkMoiDungLuon} : null, lydo: HD.lydo.trim(), ghichu: HD.ghichu.trim(), tt: HD.tt,
-    hapTangDung: 0, hapTangCong: 0, hapConLai: null,
+    hapTangDung: 0, hapTangCong: 0, hapConLai: null, phTangDung: 0,
   };
   if (goc) { // giữ nguyên sticker / quay của HĐ gốc, ghi dấu đã sửa
     Object.assign(inv, {stickerDung: goc.stickerDung || [], stickerNhan: goc.stickerNhan || null, quay: goc.quay || null, suaLan: (goc.suaLan || 0) + 1, suaLuc: now.getTime(),
@@ -3182,7 +3186,7 @@ async function thanhToan(print) {
   inv.tong = Math.max(0, inv.lines.reduce((s, l) => s + l.gia, 0) - inv.giamThem - inv.giamSticker);
   if (inv.tt === 'sodu' || (goc && goc.tt === 'sodu')) { // 2.12: trả bằng số dư app khách
     if (goc) {
-      if (goc.tt !== inv.tt || num(goc.tong) !== inv.tong || (goc.phone || '') !== phone) { toast('Hoá đơn này trả bằng số dư app nên không đổi tiền, cách trả hay khách được. Muốn sửa: xoá hoá đơn (tiền tự hoàn vào ví khách) rồi nhập lại.', true); return; }
+      if (goc.tt !== inv.tt || num(goc.tong) !== inv.tong || (goc.phone || '') !== phone) { toast('Hoá đơn này trả bằng số dư thẻ nên không đổi tiền, cách trả hay khách được. Muốn sửa: xoá hoá đơn (tiền tự hoàn vào thẻ khách) rồi nhập lại.', true); return; }
       inv.soDuTru = num(goc.soDuTru); inv.soDuCon = goc.soDuCon;
     } else {
       const loi = kaKiemTra(phone, inv.tong); if (loi) { toast(loi, true); return; }
@@ -3192,7 +3196,7 @@ async function thanhToan(print) {
   }
   if (goc) { // trả lại buổi hấp tặng + bỏ lịch nhắc của HĐ gốc, lát nữa tính lại theo nội dung mới
     const cg = goc.phone && S.customers.get(goc.phone);
-    if (cg) { cg.hapTang = Math.max(0, (cg.hapTang || 0) - (goc.hapTangCong || 0) + (goc.hapTangDung || 0)); await DB.put('customers', cg); }
+    if (cg) { cg.hapTang = Math.max(0, (cg.hapTang || 0) - (goc.hapTangCong || 0) + (goc.hapTangDung || 0)); cg.phucHoiTang = num(cg.phucHoiTang) + num(goc.phTangDung); await DB.put('customers', cg); }
     for (const r of S.reminders.filter(r => r.invoiceId === goc.id)) await DB.del('reminders', r.id);
     S.reminders = S.reminders.filter(r => r.invoiceId !== goc.id);
   }
@@ -3211,6 +3215,8 @@ async function thanhToan(print) {
     if (inv.soDuTru && !goc) { viGhi(c, {loai: 'tra', tien: -inv.soDuTru, hd: inv.id}); inv.soDuCon = c.soDu; }
     inv.hapTangDung = inv.lines.filter(l => l.dungTang).length;
     c.hapTang = Math.max(0, (c.hapTang || 0) - inv.hapTangDung);
+    inv.phTangDung = inv.lines.filter(l => l.dungPH).length;
+    if (inv.phTangDung) { c.phucHoiTang = Math.max(0, num(c.phucHoiTang) - inv.phTangDung); inv.phConLai = c.phucHoiTang; }
     // khách quay lại hấp → đóng các lời nhắc đang mở
     if (inv.lines.some(l => l.loai === 'hap')) {
       S.reminders.filter(r => r.phone === phone && ['cho', 'danhan', 'khonglienlac', 'hen'].includes(r.status) && r.ngayLam <= date)
@@ -3270,16 +3276,17 @@ function billHtml(inv) {
     <hr>
     <table>
     ${inv.lines.map(l => `<tr><td>${esc(l.ten)}${l.hang ? ' (' + esc(l.hang) + ')' : ''}
-        <div class="sm">${esc(thoText(l))}${l.dungTang ? ' · buổi hấp tặng' : ''}${(l.giamPct || l.giamTayPct || l.giamTayK) && !l.dungTang ? ` · giá gốc ${fmtD(l.giaGoc)}` : ''}${l.giamPct && !l.dungTang ? `, giảm ${l.giamPct}%${l.kmTen ? ' (' + esc(l.kmTen) + ')' : ''}` : ''}${(l.giamTayPct || l.giamTayK) && !l.dungTang ? `, giảm thêm ${[l.giamTayPct ? l.giamTayPct + '%' : '', l.giamTayK ? fmtD(l.giamTayK) : ''].filter(Boolean).join(' + ')}` : ''}</div></td>
+        <div class="sm">${esc(thoText(l))}${l.dungTang ? ' · buổi hấp tặng' : ''}${l.dungPH ? ' · buổi phục hồi tặng' : ''}${(l.giamPct || l.giamTayPct || l.giamTayK) && !laTang(l) ? ` · giá gốc ${fmtD(l.giaGoc)}` : ''}${l.giamPct && !laTang(l) ? `, giảm ${l.giamPct}%${l.kmTen ? ' (' + esc(l.kmTen) + ')' : ''}` : ''}${(l.giamTayPct || l.giamTayK) && !l.dungTang ? `, giảm thêm ${[l.giamTayPct ? l.giamTayPct + '%' : '', l.giamTayK ? fmtD(l.giamTayK) : ''].filter(Boolean).join(' + ')}` : ''}</div></td>
         <td class="r">${fmtD(l.gia)}</td></tr>`).join('')}
     ${inv.giamThem ? `<tr><td>Giảm thêm${inv.giamPctHD ? ' ' + inv.giamPctHD + '%' : ''}${inv.lydo ? ' (' + esc(inv.lydo) + ')' : ''}</td><td class="r">−${fmtD(inv.giamThem)}</td></tr>` : ''}
     ${inv.giamSticker ? `<tr><td>Sticker ${esc((inv.stickerDung || []).map(x => stkText(x)).join(', '))}${inv.maThe ? ' · thẻ ' + esc(inv.maThe) : ''}</td><td class="r">−${fmtD(inv.giamSticker)}</td></tr>` : ''}
     <tr class="tot"><td>TỔNG CỘNG</td><td class="r">${fmtD(inv.tong)}</td></tr>
     <tr><td class="sm">Thanh toán</td><td class="r sm">${TT[inv.tt]}</td></tr>
-    ${inv.tt === 'sodu' && inv.soDuCon != null ? `<tr><td class="sm">Số dư app còn</td><td class="r sm">${fmtD(inv.soDuCon)}</td></tr>` : ''}
+    ${inv.tt === 'sodu' && inv.soDuCon != null ? `<tr><td class="sm">Số dư thẻ còn</td><td class="r sm">${fmtD(inv.soDuCon)}</td></tr>` : ''}
     </table>
     ${inv.hapTangCong ? `<div class="gift"><b>Tặng ${inv.hapTangCong} buổi hấp phục hồi</b><br><span class="sm">${dx === 'chị' || dx === 'anh' ? cap(dx) : 'Bạn'} quay lại hấp sau 3 ngày, lúc tóc hồi tốt nhất ạ${inv.hapConLai != null ? `<br>Hiện còn: ${inv.hapConLai} buổi` : ''}</span></div>`
       : inv.hapTangDung ? `<div class="gift sm">Đã dùng ${inv.hapTangDung} buổi hấp tặng · còn ${inv.hapConLai} buổi</div>` : ''}
+    ${inv.phTangDung ? `<div class="gift sm">Đã dùng ${inv.phTangDung} buổi phục hồi tặng · còn ${num(inv.phConLai)} buổi</div>` : ''}
     ${inv.stickerNhan && !inv.stickerNhan.dungLuon ? `<div class="gift"><b>🎁 Chúc mừng! Trúng sticker ${esc(stkText(inv.stickerNhan))}</b><br><span class="sm">Dán lên thẻ thành viên, trừ thẳng vào bill lần sau ạ${inv.stickerCon != null ? ` · thẻ đang có ${inv.stickerCon} sticker chờ dùng` : ''}</span></div>` : ''}
     ${qr ? `<img src="${esc(qr)}" alt=""" onerror="this.remove()"><div class="c sm">Quét mã để chuyển khoản<br>${esc(st.inbill.tenNH || '')} ${esc(st.inbill.stk)}<br>${esc(st.inbill.tentk)}</div>` : ''}
     <hr>
@@ -3448,6 +3455,7 @@ function renderKhachDetail(phone) {
       <label>Ngày sinh</label><input type="date" data-kf="ngaysinh" value="${esc(c.ngaysinh || '')}">
       <label>Ghi chú tóc</label><textarea data-kf="ghichu" rows="2" placeholder="Chất tóc, dị ứng, màu hay làm…">${esc(c.ghichu || '')}</textarea>
       <label>Buổi hấp tặng</label><div class="row"><button class="sm" data-hap="-1">−</button><b style="min-width:24px;text-align:center">${c.hapTang || 0}</b><button class="sm" data-hap="1">+</button></div>
+      <label>Phục hồi tặng</label><div class="row"><button class="sm" data-ph="-1">−</button><b style="min-width:24px;text-align:center">${num(c.phucHoiTang)}</b><button class="sm" data-ph="1">+</button> <span class="muted small">buổi (anh tặng tay)</span></div>
     </div>
     <div class="row" style="margin-top:12px"><button class="pri" data-kh-save>Lưu thông tin</button><button data-kh-new>Tạo hoá đơn cho khách này</button></div>
   </div>
@@ -3488,7 +3496,7 @@ function renderHoaDon() {
   const sum = (f) => list.filter(f).reduce((s, i) => s + i.tong, 0);
   const khach = new Set(list.map(i => i.phone || i.id)).size;
   $('#hd-stats').innerHTML = [
-    ['Doanh thu', fmtK(sum(() => true))], ['Tiền mặt', fmtK(sum(i => i.tt === 'tienmat'))], ['Chuyển khoản', fmtK(sum(i => i.tt === 'ck'))], ...(list.some(i => i.tt === 'sodu') ? [['Số dư app', fmtK(sum(i => i.tt === 'sodu'))]] : []),
+    ['Doanh thu', fmtK(sum(() => true))], ['Tiền mặt', fmtK(sum(i => i.tt === 'tienmat'))], ['Chuyển khoản', fmtK(sum(i => i.tt === 'ck'))], ...(list.some(i => i.tt === 'sodu') ? [['Số dư thẻ', fmtK(sum(i => i.tt === 'sodu'))]] : []),
     ['Số hoá đơn', list.length], ['Số khách', khach], ['Đầu hoá chất', list.reduce((s, i) => s + i.lines.filter(l => l.loai === 'hoachat').length, 0)],
   ].map(([l, v]) => `<div class="stat"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
 
@@ -3532,7 +3540,7 @@ async function suaHoaDon(id) {
     lines: g.lines.map(l => { const d = g1.find(x => x.id === l.dvId);
       return {key: uid(), dvId: l.dvId || '', ten: l.ten, hang: l.hang || '', loai: l.loai, giaGoc: num(l.giaGoc), giamPct: num(l.giamPct), gia: num(l.gia),
         v: d && l.hang ? Math.max(0, (d.nhan || S.settings.hang).indexOf(l.hang)) : 0, chinh: (l.tho || [])[0] || '', phu: (l.tho || []).slice(1),
-        tangHap: !!l.tangHap, lon: l.lon ?? !!l.tangHap, kmAuto: false, kmTen: l.kmTen || '', tenTin: l.tenTin || '', dungTang: !!l.dungTang,
+        tangHap: !!l.tangHap, lon: l.lon ?? !!l.tangHap, kmAuto: false, kmTen: l.kmTen || '', tenTin: l.tenTin || '', dungTang: !!l.dungTang, dungPH: !!l.dungPH,
         giamTayPct: num(l.giamTayPct), giamTayK: num(l.giamTayK)}; })});
   HD.giamThem = Math.max(0, HD.giamThem);
   saveDraft(); showTab('thanhtoan'); fillHDForm();
@@ -3542,9 +3550,9 @@ async function deleteInvoice(id) {
   if (HD.suaId === id) { toast('Hoá đơn này đang mở để sửa – huỷ sửa trước', true); return; }
   if (!await xinPin('Xoá hoá đơn ' + id)) return;
   const inv = S.invoices.find(i => i.id === id); if (!inv) return;
-  if (!await confirmBox(`Xoá hoá đơn <b>${id}</b> của ${esc(inv.ten)} (${fmtD(inv.tong)})?<br><span class="muted small">Buổi hấp tặng và lịch nhắc của hoá đơn này cũng được trả lại như cũ.${num(inv.soDuTru) ? `<br><b>${fmtD(inv.soDuTru)} trả bằng số dư app sẽ được hoàn vào ví khách.</b>` : ''}</span>`, 'Xoá hoá đơn')) return;
+  if (!await confirmBox(`Xoá hoá đơn <b>${id}</b> của ${esc(inv.ten)} (${fmtD(inv.tong)})?<br><span class="muted small">Buổi hấp / phục hồi tặng và lịch nhắc của hoá đơn này cũng được trả lại như cũ.${num(inv.soDuTru) ? `<br><b>${fmtD(inv.soDuTru)} trả bằng số dư thẻ sẽ được hoàn vào thẻ khách.</b>` : ''}</span>`, 'Xoá hoá đơn')) return;
   const c = inv.phone && S.customers.get(inv.phone);
-  if (c) { c.hapTang = Math.max(0, (c.hapTang || 0) - (inv.hapTangCong || 0) + (inv.hapTangDung || 0));
+  if (c) { c.hapTang = Math.max(0, (c.hapTang || 0) - (inv.hapTangCong || 0) + (inv.hapTangDung || 0)); c.phucHoiTang = num(c.phucHoiTang) + num(inv.phTangDung);
     c.stickers = (c.stickers || []).filter(x => x.hdNhan !== id); c.stickers.forEach(x => { if (x.dung && x.dung.hd === id) x.dung = null; });
     if (num(inv.soDuTru)) viGhi(c, {loai: 'hoan', tien: num(inv.soDuTru), hd: id, ghi: 'Xoá hoá đơn'});
     await DB.put('customers', c); }
@@ -4041,7 +4049,7 @@ function renderBanners() {
   if (k && k.den && today() > k.den) b.push(`<div class="banner"><span>Đang chọn chương trình "<b>${esc(k.ten)}</b>" nhưng chương trình đã kết thúc ${dmy(k.den)}. Đổi chương trình ở ô "KM" trên hoá đơn nếu cần.</span></div>`);
   if (!S.invoices.length && !S.customers.size && !localStorage.getItem('giang-welcome-off')) b.push(`<div class="banner"><span>Lần đầu dùng: vào <b>Cài đặt</b> thêm tên người làm và kiểm tra bảng giá. Nếu máy này đã từng có dữ liệu mà giờ trống, hãy mở app bằng file <b>"Mo app Giang.bat"</b>.</span><button class="sm" data-go="caidat" data-cdloc="nv">Mở Cài đặt</button><button class="sm ghost" data-welcome-off>Ẩn</button></div>`);
   if (!IPAD) KA.napCho.forEach(x => { const c = kaKhachTheoT(x.t);
-    b.push(`<div class="banner nap"><span>📲 ${c ? `<b>${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)}</b> (thẻ ${esc(c.maThe || '')})` : '<b>Khách không rõ</b>'} báo đã chuyển <b>${fmtD(num(x.tien))}</b> nạp ví${thuongNap(num(x.tien)) ? ` · tặng thêm ${fmtD(thuongNap(num(x.tien)))}` : ''} · ${new Date(num(x.luc)).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})} ${dmy(ymd(new Date(num(x.luc))))}. Kiểm tra tài khoản ngân hàng rồi bấm:</span>
+    b.push(`<div class="banner nap"><span>📲 ${c ? `<b>${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)}</b> (thẻ ${esc(c.maThe || '')})` : '<b>Khách không rõ</b>'} báo đã chuyển <b>${fmtD(num(x.tien))}</b> nạp thẻ${thuongNap(num(x.tien)) ? ` · tặng thêm ${fmtD(thuongNap(num(x.tien)))}` : ''} · ${new Date(num(x.luc)).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})} ${dmy(ymd(new Date(num(x.luc))))}. Kiểm tra tài khoản ngân hàng rồi bấm:</span>
       <span class="row" style="gap:6px"><button class="sm pri" data-nap-ok="${esc(x.id)}">Đã thấy tiền</button><button class="sm" data-nap-no="${esc(x.id)}">Không thấy</button></span></div>`); });
   $('#banners').innerHTML = b.join('');
 }
@@ -4196,6 +4204,7 @@ function bindEvents() {
     if (f === 'giamTayPct' || f === 'giamTayK') { l[f] = Math.max(0, num(e.target.value)); if (f === 'giamTayPct') l.giamTayPct = Math.min(100, l.giamTayPct); l.gia = giaDong(l); renderLines(); saveDraft(); return; }
     if (f === 'gia') { l.kmAuto = false; l.giamTayPct = 0; l.giamTayK = 0; l.gia = num(e.target.value); if (l.gia !== Math.round(l.giaGoc * (1 - l.giamPct / 100))) l.giamPct = 0; if (l.giamPct === 0 && l.gia !== l.giaGoc) l.giamPct = l.giaGoc ? Math.round((1 - l.gia / l.giaGoc) * 100) : 0; renderLines(); }
     else if (f === 'dungTang') { l.dungTang = e.target.checked; l.gia = l.dungTang ? 0 : giaDong(l); renderLines(); }
+    else if (f === 'dungPH') { l.dungPH = e.target.checked; l.gia = l.dungPH ? 0 : giaDong(l); renderLines(); }
     else if (f === 'tangHap') { l.tangHap = e.target.checked; renderLines(); }
     else { l[f] = e.target.value; if (f === 'chinh') l.phu = l.phu.filter(x => x !== l.chinh); renderLines(); }
     saveDraft();
@@ -4256,8 +4265,11 @@ function bindEvents() {
     const c = S.customers.get(khSel); if (!c) return;
     const h = e.target.closest('[data-hap]');
     if (h) { c.hapTang = Math.max(0, (c.hapTang || 0) + +h.dataset.hap); await DB.put('customers', c); renderKhachDetail(khSel); refreshNhacBadge(); autoBackup(); dayKhachApp(); }
+    const ph = e.target.closest('[data-ph]');
+    if (ph) { if (+ph.dataset.ph > 0 && !await xinPin('Tặng 1 buổi phục hồi cho ' + c.ten)) return;
+      c.phucHoiTang = Math.max(0, num(c.phucHoiTang) + +ph.dataset.ph); await DB.put('customers', c); renderKhachDetail(khSel); autoBackup(); dayKhachApp(); }
     if (e.target.closest('[data-ka-tao],[data-ka-moi]')) { await taoAppKhach(c); return; }
-    if (e.target.closest('[data-ka-link]')) { if (await xinPin('Hiện link app của khách')) hienLinkKhach(c); return; }
+    if (e.target.closest('[data-ka-link]')) { if (await xinPin('Hiện link thẻ online của khách')) hienLinkKhach(c); return; }
     if (e.target.closest('[data-ka-tay]')) { await viTay(c); return; }
     if (e.target.closest('[data-kh-save]')) {
       $$('#kh-detail [data-kf]').forEach(i => c[i.dataset.kf] = i.value.trim());
@@ -4686,7 +4698,7 @@ function thongKeNgay(soNgay) {
     const ls = i.lines.reduce((a, l) => a + num(l.gia), 0) || 1, giam = num(i.giamThem) + num(i.giamSticker);
     i.lines.forEach(l => { const k = l.loai || 'khac'; n.loai[k] = Math.round(((n.loai[k] || 0) + num(l.gia) - (giam ? giam * num(l.gia) / ls : 0)) * 10) / 10; });
     n.hd.push([i.time || '', (i.ten && i.ten !== 'Khách lẻ' ? cap(i.danhxung || '') + ' ' + i.ten : 'Khách lẻ'), i.lines.map(l => l.ten + (l.hang ? ' ' + l.hang : '')).join(', '),
-      num(i.tong), i.tt === 'ck' ? 'CK' : i.tt === 'sodu' ? 'Ví' : 'TM', (i.lines[0] && i.lines[0].tho || []).map(t => (S.settings.nhanvien.find(n => n.id === t) || {}).ten || '').filter(Boolean).join('+')]);
+      num(i.tong), i.tt === 'ck' ? 'CK' : i.tt === 'sodu' ? 'Thẻ' : 'TM', (i.lines[0] && i.lines[0].tho || []).map(t => (S.settings.nhanvien.find(n => n.id === t) || {}).ten || '').filter(Boolean).join('+')]);
   });
   return ngay;
 }
@@ -4716,7 +4728,7 @@ function quayNghe() {
 }
 const sachDong = l => ({key: l.key || uid(), dvId: l.dvId || '', ten: String(l.ten || ''), hang: String(l.hang || ''), loai: l.loai || 'khac',
   giaGoc: num(l.giaGoc), giamPct: num(l.giamPct), gia: num(l.gia), v: num(l.v), chinh: l.chinh || '', phu: Array.isArray(l.phu) ? l.phu.slice(0, 5) : [],
-  tangHap: !!l.tangHap, lon: !!(l.lon ?? l.tangHap), kmAuto: l.kmAuto !== false, kmTen: String(l.kmTen || ''), tenTin: String(l.tenTin || ''), dungTang: false,
+  tangHap: !!l.tangHap, lon: !!(l.lon ?? l.tangHap), kmAuto: l.kmAuto !== false, kmTen: String(l.kmTen || ''), tenTin: String(l.tenTin || ''), dungTang: false, dungPH: false,
   giamTayPct: 0, giamTayK: 0});
 async function nhanDonIpad(doc) {
   const d = doc.data() || {}, id = 'ipad-' + doc.id;
@@ -4858,14 +4870,15 @@ function renderNhanVien() {
 }
 
 /* =========================================================
-   APP KHÁCH (2.12.0) – ví số dư + hấp tặng trên điện thoại khách (khach.html).
+   THẺ ONLINE (2.12) – số dư + quà tặng (hấp, phục hồi) trên điện thoại khách (the.html). PIN = 4 số cuối SĐT (2.12.1).
    Lên mạng CHỈ có: mã thẻ, số dư, số lượt hấp, 10 giao dịch tiền gần nhất (không SĐT, không tên, không lịch sử làm tóc).
    Khách mở link bí mật (24 ký tự) → tự đặt mã PIN 6 số → máy đó được nhớ. Máy quầy là nơi giữ số dư gốc.
    ========================================================= */
-const KHACH_URL = IPAD_URL + 'khach.html';
+const KHACH_URL = IPAD_URL + 'the.html';
 const KA = {napCho: [], cu: {}, cfgCu: ''};
 const kaMuc = () => ((S.settings.khachApp && S.settings.khachApp.muc) || []).filter(x => num(x.tien) > 0);
 const thuongNap = tien => { const m = kaMuc().find(x => num(x.tien) === num(tien)); return m ? num(m.thuong) : 0; };
+async function bamPin(t, pin) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t + ':' + pin)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 const kaKhachTheoT = t => [...S.customers.values()].find(k => k.app && k.app.t === t);
 const taoMa = n => { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789', b = crypto.getRandomValues(new Uint8Array(n)); return [...b].map(x => a[x % a.length]).join(''); };
 const maTheMoi = () => { let mx = 0; S.customers.forEach(c => { const n = parseInt(String(c.maThe || '').replace(/\D/g, ''), 10); if (n > mx && n < 1e6) mx = n; }); return String(mx + 1).padStart(4, '0'); };
@@ -4876,7 +4889,7 @@ function viGhi(c, gd) { // gd: {loai: nap|tra|hoan|tay, tien (k, âm = trừ), t
   x.tien = Math.round(num(x.tien)); x.thuong = Math.round(num(x.thuong)); c.vi.push(x);
   c.soDu = Math.round(num(c.soDu) + x.tien + x.thuong); return x;
 }
-const kaDuLieu = c => ({maThe: c.maThe || '', soDu: Math.round(num(c.soDu)), hap: num(c.hapTang),
+const kaDuLieu = c => ({maThe: c.maThe || '', soDu: Math.round(num(c.soDu)), hap: num(c.hapTang), ph: num(c.phucHoiTang),
   gd: (c.vi || []).slice(-10).reverse().map(x => ({luc: num(x.luc), loai: x.loai, tien: num(x.tien) + num(x.thuong), thuong: num(x.thuong)}))});
 async function dayKhachApp() { // đẩy ví những khách có app (chỉ khi đổi). Mất mạng thì lần sau đẩy lại.
   if (IPAD || !laChu() || !Cloud.db) return;
@@ -4893,11 +4906,11 @@ async function dayKhachApp() { // đẩy ví những khách có app (chỉ khi �
 }
 function kaTheKhach(c) {
   const vi = (c.vi || []).slice(-30).reverse();
-  return `<div class="card"><h3>📱 App khách – ví &amp; hấp tặng</h3>
-    ${c.app ? `<div>Thẻ <b>${esc(c.maThe || '')}</b> · số dư <b>${fmtD(num(c.soDu))}</b> · hấp tặng còn <b>${num(c.hapTang)}</b> <span class="muted small">· link tạo ${dmy(ymd(new Date(num(c.app.tao))))}</span></div>
-      <div class="row" style="margin-top:10px;gap:6px;flex-wrap:wrap"><button class="sm" data-ka-link>Hiện QR link cho khách</button><button class="sm" data-ka-tay>Cộng / trừ tay</button><button class="sm ghost" data-ka-moi>Cấp link mới (quên PIN, đổi máy)</button></div>`
-    : `<p class="muted small gc">Khách chưa có app. Bấm tạo → khách quét QR bằng camera điện thoại → tự đặt mã PIN 6 số. Lên mạng chỉ có mã thẻ, số dư và số lượt hấp (không SĐT, không lịch sử làm tóc).</p>
-      <div class="row" style="gap:6px">${!laChu() ? '<span class="muted small">Cần máy quầy đăng nhập tài khoản chủ (tab Tài khoản &amp; iPad).</span>' : '<button class="pri sm" data-ka-tao>Tạo app cho khách</button>'}${num(c.soDu) || vi.length ? '<button class="sm" data-ka-tay>Cộng / trừ tay</button>' : ''}</div>`}
+  return `<div class="card"><h3>💳 Thẻ online – số dư &amp; quà tặng</h3>
+    ${c.app ? `<div>Thẻ <b>${esc(c.maThe || '')}</b> · số dư <b>${fmtD(num(c.soDu))}</b> · hấp tặng còn <b>${num(c.hapTang)}</b> · phục hồi tặng còn <b>${num(c.phucHoiTang)}</b> <span class="muted small">· link tạo ${dmy(ymd(new Date(num(c.app.tao))))}${c.app.pin4 ? ' · PIN = 4 số cuối SĐT' : ''}</span></div>
+      <div class="row" style="margin-top:10px;gap:6px;flex-wrap:wrap"><button class="sm" data-ka-link>Hiện QR link cho khách</button><button class="sm" data-ka-tay>Cộng / trừ tay</button><button class="sm ghost" data-ka-moi>Cấp link mới (lộ link, đổi SĐT)</button></div>`
+    : `<p class="muted small gc">Khách chưa có thẻ online. Bấm tạo → khách quét QR bằng camera điện thoại → nhập mã PIN = 4 số cuối SĐT là xem được thẻ. Lên mạng chỉ có mã thẻ, số dư và quà tặng (không SĐT, không lịch sử làm tóc).</p>
+      <div class="row" style="gap:6px">${!laChu() ? '<span class="muted small">Cần máy quầy đăng nhập tài khoản chủ (tab Tài khoản &amp; iPad).</span>' : '<button class="pri sm" data-ka-tao>Tạo thẻ online</button>'}${num(c.soDu) || vi.length ? '<button class="sm" data-ka-tay>Cộng / trừ tay</button>' : ''}</div>`}
     ${!c.app && num(c.soDu) ? `<div style="margin-top:6px">Số dư: <b>${fmtD(num(c.soDu))}</b></div>` : ''}
     ${vi.length ? `<table class="ka-gd" style="margin-top:10px">${vi.map(x => `<tr><td>${dmy(ymd(new Date(num(x.luc))))} ${new Date(num(x.luc)).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}</td>
       <td>${KA_LOAI[x.loai] || esc(x.loai)}${x.hd ? ' · ' + esc(x.hd) : ''}${x.ghi ? ` <span class="muted">${esc(x.ghi)}</span>` : ''}</td>
@@ -4906,52 +4919,56 @@ function kaTheKhach(c) {
 }
 async function taoAppKhach(c) {
   if (!laChu() || !Cloud.db || !navigator.onLine) { toast('Máy quầy cần có mạng và đăng nhập tài khoản chủ (tab Tài khoản & iPad)', true); return; }
+  const so4 = normPhone(c.phone).slice(-4);
+  if (!/^\d{4}$/.test(so4)) { toast('Khách chưa có SĐT đúng nên chưa đặt được mã PIN (4 số cuối SĐT)', true); return; }
   const capLai = !!(c.app && c.app.t);
-  if (capLai && !await confirmBox(`Cấp link mới cho <b>${esc(c.ten)}</b>?<br><span class="muted small">Link cũ và mọi điện thoại đang đăng nhập bị khoá ngay. Khách quét link mới rồi đặt lại mã PIN. Số dư và lượt hấp giữ nguyên.</span>`, 'Cấp link mới')) return;
-  if (!await xinPin(capLai ? 'Cấp link app mới cho khách' : 'Tạo app cho khách')) return;
+  if (capLai && !await confirmBox(`Cấp link mới cho <b>${esc(c.ten)}</b>?<br><span class="muted small">Link cũ và mọi điện thoại đang mở thẻ bị khoá ngay. Khách quét link mới, nhập 4 số cuối SĐT. Số dư và quà tặng giữ nguyên.</span>`, 'Cấp link mới')) return;
+  if (!await xinPin(capLai ? 'Cấp link thẻ online mới cho khách' : 'Tạo thẻ online cho khách')) return;
   const daCoThe = !!c.maThe; if (!daCoThe) c.maThe = maTheMoi();
   const t = taoMa(24), db = Cloud.db, b = db.batch();
+  let h = ''; try { h = await bamPin(t, so4); } catch (e) { toast('Máy này không băm được mã PIN: ' + (e.message || e), true); return; }
   if (capLai) ['khachmo', 'khachpin', 'khachapp'].forEach(col => b.delete(db.collection(col).doc(c.app.t)));
-  b.set(db.collection('khachpin').doc(t), {h: ''});
-  b.set(db.collection('khachmo').doc(t), {coPin: false, luc: Date.now()});
+  b.set(db.collection('khachpin').doc(t), {h});
+  b.set(db.collection('khachmo').doc(t), {coPin: true, luc: Date.now()});
   b.set(db.collection('khachapp').doc(t), Object.assign(kaDuLieu(c), {luc: Date.now()}));
   try { await b.commit(); } catch (e) { if (!daCoThe) c.maThe = ''; toast('Chưa tạo được: ' + loiVN(e), true); return; }
   if (capLai) delete KA.cu[c.app.t];
-  c.app = {t, tao: Date.now()}; c.soDu = num(c.soDu); KA.cu[t] = JSON.stringify(kaDuLieu(c));
+  c.app = {t, tao: Date.now(), pin4: true}; c.soDu = num(c.soDu); KA.cu[t] = JSON.stringify(kaDuLieu(c));
   await DB.put('customers', c); autoBackup(); renderKhachList(); renderKhachDetail(c.phone);
   if (!daCoThe) toast('Khách chưa có mã thẻ → em cấp mã ' + c.maThe);
   hienLinkKhach(c);
 }
 function hienLinkKhach(c) {
   const link = KHACH_URL + '#k=' + c.app.t;
-  const d = dialog(`<h3 style="margin-top:0">App GIANG của ${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)} · thẻ ${esc(c.maThe || '')}</h3>
+  const d = dialog(`<h3 style="margin-top:0">Thẻ thành viên online · ${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)} · thẻ ${esc(c.maThe || '')}</h3>
     <div class="ka-qr">${qrSvg(link)}</div>
-    <ol class="small" style="margin:6px 0 10px;padding-left:20px"><li>Khách mở <b>camera</b> điện thoại, quét mã này.</li><li>Khách tự đặt <b>mã PIN 6 số</b> (chỉ khách biết).</li>
-      <li>iPhone: bấm nút Chia sẻ → <b>Thêm vào MH chính</b>. Android: ⋮ → <b>Thêm vào màn hình chính</b>.</li></ol>
-    <p class="small muted">Link này như chìa khoá ví của khách: chỉ đưa cho đúng khách, không gửi vào nhóm chat. Lỡ lộ thì bấm "Cấp link mới".</p>
+    <ol class="small" style="margin:6px 0 10px;padding-left:20px"><li>Khách mở <b>camera</b> điện thoại, quét mã này.</li><li>Khách nhập <b>mã PIN = 4 số cuối SĐT</b>${c.app.pin4 ? '' : ' (thẻ tạo trước 16/11: PIN khách tự đặt)'}.</li>
+      <li>Nhắc khách lưu trang lại (iPhone: Chia sẻ → <b>Thêm vào MH chính</b> · Android: ⋮ → <b>Thêm vào màn hình chính</b>) để lần sau xem số dư, quà tặng.</li></ol>
+    <p class="small muted">Câu gợi ý: "${esc(cap(c.danhxung || 'chị'))} ơi, bên em có trang để mình xem trong thẻ có gì. Thỉnh thoảng bọn em tặng hấp hoặc phục hồi, ${esc(c.danhxung || 'chị')} chỉ cần mở trang này, nhập 4 số cuối SĐT là kiểm tra được ạ."</p>
+    <p class="small muted">Link chỉ đưa cho đúng khách, không gửi vào nhóm chat. Lỡ lộ thì bấm "Cấp link mới".</p>
     <div class="row" style="gap:6px"><input class="ka-link" readonly value="${esc(link)}"><button class="sm" data-copy>Chép</button></div>
     <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="pri" data-close>Xong</button></div>`);
   d.querySelector('[data-copy]').onclick = () => { navigator.clipboard.writeText(link).then(() => toast('Đã chép link'), () => toast('Không chép được', true)); };
 }
 function kaKiemTra(phone, tong) {
   const c = phone && S.customers.get(phone);
-  if (!c) return 'Trả bằng số dư app: chọn khách (SĐT) trước';
-  if (!c.app) return `${c.ten} chưa có app GIANG – chọn cách trả khác`;
+  if (!c) return 'Trả bằng số dư thẻ: chọn khách (SĐT) trước';
+  if (!c.app) return `${c.ten} chưa có thẻ online – chọn cách trả khác`;
   if (tong <= 0) return 'Hoá đơn 0đ thì không cần trừ số dư';
   if (num(c.soDu) < tong) return `Số dư của ${c.ten} còn ${fmtD(num(c.soDu))}, không đủ ${fmtD(tong)}. Khách trả cách khác hoặc nạp thêm.`;
   return '';
 }
 function kaHopTT() {
   const c = hdCustomer(), t = hdTong();
-  if (!c) return '<div class="sodu-tt bad">Chọn khách (SĐT) trước – khách phải có app GIANG.</div>';
-  if (!c.app) return `<div class="sodu-tt bad">${esc(c.ten)} chưa có app. Tạo ở tab Khách hàng → mục App khách.</div>`;
+  if (!c) return '<div class="sodu-tt bad">Chọn khách (SĐT) trước – khách phải có thẻ online.</div>';
+  if (!c.app) return `<div class="sodu-tt bad">${esc(c.ten)} chưa có thẻ online. Tạo ở tab Khách hàng → mục Thẻ online.</div>`;
   const du = num(c.soDu) >= t;
-  return `<div class="sodu-tt ${du ? '' : 'bad'}">📱 Thẻ ${esc(c.maThe || '')} · số dư <b>${fmtD(num(c.soDu))}</b>${du ? ` → sau khi trả còn <b>${fmtD(num(c.soDu) - t)}</b>` : ` · <b>thiếu ${fmtD(t - num(c.soDu))}</b>`}
-    ${!laChu() || !navigator.onLine ? '<br>Máy quầy đang không có mạng: bấm thanh toán, nhập mã PIN để trừ luôn (khách không cần bấm).' : '<br>Bấm thanh toán → điện thoại khách hiện yêu cầu, khách bấm Đồng ý.'}</div>`;
+  return `<div class="sodu-tt ${du ? '' : 'bad'}">💳 Thẻ ${esc(c.maThe || '')} · số dư <b>${fmtD(num(c.soDu))}</b>${du ? ` → sau khi trả còn <b>${fmtD(num(c.soDu) - t)}</b>` : ` · <b>thiếu ${fmtD(t - num(c.soDu))}</b>`}
+    ${!laChu() || !navigator.onLine ? '<br>Máy quầy đang không có mạng: bấm thanh toán, nhập mã PIN để trừ luôn (khách không cần bấm).' : '<br>Bấm thanh toán → trang thẻ trên điện thoại khách hiện yêu cầu, khách bấm Đồng ý.'}</div>`;
 }
 async function xinTraSoDu(c, tong) { // true = khách đồng ý trên điện thoại, 'pin' = anh nhập PIN trừ luôn, false = huỷ
-  const truLuon = async ly => (await confirmBox(`${ly}<br>Trừ luôn <b>${fmtD(tong)}</b> vào ví của <b>${esc(c.ten)}</b> (thẻ ${esc(c.maThe || '')})?<br><span class="muted small">Dùng khi mất mạng hoặc khách không mở được app. Cần mã PIN.</span>`, 'Trừ luôn')
-    && await xinPin('Trừ ' + fmtD(tong) + ' vào số dư app của ' + c.ten)) ? 'pin' : false;
+  const truLuon = async ly => (await confirmBox(`${ly}<br>Trừ luôn <b>${fmtD(tong)}</b> vào số dư thẻ của <b>${esc(c.ten)}</b> (thẻ ${esc(c.maThe || '')})?<br><span class="muted small">Dùng khi mất mạng hoặc khách không mở được trang thẻ. Cần mã PIN.</span>`, 'Trừ luôn')
+    && await xinPin('Trừ ' + fmtD(tong) + ' vào số dư thẻ của ' + c.ten)) ? 'pin' : false;
   if (!laChu() || !Cloud.db || !navigator.onLine) return truLuon('Máy quầy đang không có mạng nên không gửi yêu cầu sang điện thoại khách được.');
   const id = taoMa(16), ref = Cloud.db.collection('trasodu').doc(id), het = Date.now() + 180000;
   try { await ref.set({t: c.app.t, tien: tong, tt: 'cho', het, luc: Date.now()}); }
@@ -4962,9 +4979,9 @@ async function xinTraSoDu(c, tong) { // true = khách đồng ý trên điện t
       <div class="sodu-cho"><div class="qr-link">${qrSvg(KHACH_URL + '#tra=' + id)}</div><div>
         <div class="muted small">${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)} · thẻ ${esc(c.maThe || '')} · số dư ${fmtD(num(c.soDu))}</div>
         <div style="font-size:28px;font-weight:700;margin:4px 0">${fmtD(tong)}</div>
-        <p class="small" style="margin:4px 0">Khách mở app GIANG trên điện thoại: yêu cầu tự hiện ra, khách bấm <b>Đồng ý trả</b>. (Hoặc quét mã bên cạnh.)</p>
+        <p class="small" style="margin:4px 0">Khách mở trang thẻ GIANG trên điện thoại: yêu cầu tự hiện ra, khách bấm <b>Đồng ý trả</b>. (Hoặc quét mã bên cạnh.)</p>
         <div class="small muted" id="sd-dem"></div></div></div>
-      <div class="row" style="justify-content:flex-end;margin-top:10px;gap:6px;flex-wrap:wrap"><button class="ghost" data-pin>Khách không mở được app → trừ luôn (PIN)</button><button data-huy>Huỷ</button></div>`);
+      <div class="row" style="justify-content:flex-end;margin-top:10px;gap:6px;flex-wrap:wrap"><button class="ghost" data-pin>Khách không mở được trang thẻ → trừ luôn (PIN)</button><button data-huy>Huỷ</button></div>`);
     const ket = v => { if (xong) return; xong = true; clearInterval(tm); try { unsub && unsub(); } catch (e) {} ref.delete().catch(() => {}); if (d.open) d.close(); res(v); };
     d.querySelector('[data-huy]').onclick = () => ket(false);
     d.querySelector('[data-pin]').onclick = async () => { ket(null); };
@@ -4973,18 +4990,18 @@ async function xinTraSoDu(c, tong) { // true = khách đồng ý trên điện t
       if (s <= 0) { ket(false); toast('Hết thời gian chờ khách đồng ý', true); } }, 1000);
     unsub = ref.onSnapshot(sn => { const x = sn.exists ? sn.data() : null; if (!x || xong) return;
       if (x.tt === 'dongy') ket(true); else if (x.tt === 'tuchoi') { ket(false); toast('Khách bấm "Không" trên điện thoại', true); } }, e => { console.warn('trasodu', e.code || e); });
-  }).then(v => v === null ? truLuon('Khách không bấm được trên app.') : v);
+  }).then(v => v === null ? truLuon('Khách không bấm được trên trang thẻ.') : v);
 }
 async function duyetNap(id, ok) {
   const x = KA.napCho.find(y => y.id === id); if (!x) return;
   const c = kaKhachTheoT(x.t), tien = Math.round(num(x.tien)), thuong = thuongNap(tien);
   if (!c) { if (await confirmBox('Không tìm thấy khách của yêu cầu này (có thể link đã cấp lại). Xoá yêu cầu?', 'Xoá')) { Cloud.db.collection('napapp').doc(id).delete().catch(() => {}); } return; }
   if (ok) {
-    if (!await xinPin2(`Xác nhận đã nhận ${fmtD(tien)} chuyển khoản nạp ví của ${c.ten} (thẻ ${c.maThe})${thuong ? `, tặng thêm ${fmtD(thuong)}` : ''}`)) return;
+    if (!await xinPin2(`Xác nhận đã nhận ${fmtD(tien)} chuyển khoản nạp thẻ của ${c.ten} (thẻ ${c.maThe})${thuong ? `, tặng thêm ${fmtD(thuong)}` : ''}`)) return;
     if (!KA.napCho.some(y => y.id === id)) return;
     try { await Cloud.db.collection('napapp').doc(id).delete(); } catch (e) { toast('Chưa xử lý được: ' + loiVN(e), true); return; }
     viGhi(c, {loai: 'nap', tien, thuong, ghi: 'Chuyển khoản qua app'}); await DB.put('customers', c);
-    toast(`Đã cộng ${fmtD(tien + thuong)} vào ví ${c.ten} · số dư ${fmtD(c.soDu)}`);
+    toast(`Đã cộng ${fmtD(tien + thuong)} vào thẻ ${c.ten} · số dư ${fmtD(c.soDu)}`);
   } else {
     if (!await confirmBox(`Chưa thấy ${fmtD(tien)} của <b>${esc(c.ten)}</b> về tài khoản?<br><span class="muted small">Điện thoại khách sẽ báo "Salon chưa nhận được tiền".</span>`, 'Báo khách')) return;
     try { await Cloud.db.collection('napapp').doc(id).update({tt: 'tuchoi'}); } catch (e) { toast(loiVN(e), true); return; }
@@ -4993,13 +5010,13 @@ async function duyetNap(id, ok) {
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-nap-ok],[data-nap-no]'); if (!b) return; duyetNap(b.dataset.napOk || b.dataset.napNo, !!b.dataset.napOk); });
 async function viTay(c) {
-  const d = dialog(`<h3 style="margin-top:0">Cộng / trừ ví · ${esc(c.ten)} (số dư ${fmtD(num(c.soDu))})</h3>
+  const d = dialog(`<h3 style="margin-top:0">Cộng / trừ số dư thẻ · ${esc(c.ten)} (số dư ${fmtD(num(c.soDu))})</h3>
     <div class="seg" id="vt-loai"><button data-l="nap" class="on">Khách nạp tại quầy</button><button data-l="tru">Trừ (thanh toán lúc mất mạng)</button><button data-l="tay">Điều chỉnh khác</button></div>
     <div class="form-grid" style="margin-top:10px"><label>Số tiền</label><div class="row"><input id="vt-tien" type="number" min="0" style="width:110px">k <span class="muted small" id="vt-goiy"></span></div>
       <label>Tặng thêm</label><div class="row"><input id="vt-thuong" type="number" min="0" style="width:110px">k</div>
       <label>Ghi chú</label><input id="vt-ghi" placeholder="VD: tiền mặt / mã hoá đơn / lý do"></div>
     <div class="pin-loi" id="vt-loi"></div>
-    <div class="row" style="justify-content:flex-end"><button data-close>Huỷ</button><button class="pri" id="vt-ok">Ghi vào ví</button></div>`);
+    <div class="row" style="justify-content:flex-end"><button data-close>Huỷ</button><button class="pri" id="vt-ok">Ghi vào thẻ</button></div>`);
   let loai = 'nap';
   const goiY = () => { const t = num($('#vt-tien').value); $('#vt-thuong').closest('div').previousElementSibling.hidden = $('#vt-thuong').closest('div').hidden = loai !== 'nap';
     if (loai === 'nap') { $('#vt-thuong').value = thuongNap(t) || ''; $('#vt-goiy').textContent = kaMuc().map(m => `${m.tien}k→+${m.thuong}k`).join(' · '); } else $('#vt-goiy').textContent = loai === 'tay' ? 'gõ số âm để trừ' : ''; };
@@ -5013,16 +5030,16 @@ async function viTay(c) {
   if (loai === 'tru') tien = -Math.abs(tien);
   if (loai === 'nap') tien = Math.abs(tien);
   if (num(c.soDu) + tien + thuong < 0) { toast(`Số dư không đủ (còn ${fmtD(num(c.soDu))})`, true); return; }
-  if (!await xinPin2(`${tien < 0 ? 'Trừ' : 'Cộng'} ${fmtD(Math.abs(tien))}${thuong ? ` (+${fmtD(thuong)} thưởng)` : ''} vào ví của ${c.ten}`)) return;
+  if (!await xinPin2(`${tien < 0 ? 'Trừ' : 'Cộng'} ${fmtD(Math.abs(tien))}${thuong ? ` (+${fmtD(thuong)} thưởng)` : ''} vào thẻ của ${c.ten}`)) return;
   viGhi(c, {loai: loai === 'tru' ? 'tra' : loai, tien, thuong, ghi: ghi || (loai === 'nap' ? 'Nạp tại quầy' : loai === 'tru' ? 'Trừ tay' : '')});
   await DB.put('customers', c); autoBackup(); dayKhachApp(); renderKhachDetail(c.phone);
   toast(`Đã ghi · số dư ${c.ten}: ${fmtD(c.soDu)}`);
 }
 function renderCdApp() {
   const box = $('#cd-app'); if (!box) return; const k = S.settings.khachApp || {bat: true, muc: []};
-  box.innerHTML = `<h3>📱 App khách (ví số dư &amp; hấp tặng)</h3>
-    <p class="small muted gc">Khách nạp tiền vào ví, đến làm thì trả bằng số dư; hấp tặng quét QR trên app. Tạo app cho từng khách ở tab Khách hàng. Trang khách: <b>${esc(KHACH_URL)}</b></p>
-    <label><input type="checkbox" data-s="khachApp.bat" data-bool ${k.bat ? 'checked' : ''}> Cho khách tự nạp tiền trong app (chuyển khoản, anh duyệt)</label>
+  box.innerHTML = `<h3>💳 Thẻ online (số dư &amp; quà tặng)</h3>
+    <p class="small muted gc">Khách mở trang thẻ trên điện thoại (PIN = 4 số cuối SĐT) để xem số dư, hấp tặng, phục hồi tặng; nạp tiền vào thẻ, đến làm thì trả bằng số dư; dùng quà tặng thì nhân viên quét QR. Tạo thẻ online cho từng khách ở tab Khách hàng. Trang khách: <b>${esc(KHACH_URL)}</b></p>
+    <label><input type="checkbox" data-s="khachApp.bat" data-bool ${k.bat ? 'checked' : ''}> Cho khách tự nạp tiền trên trang thẻ (chuyển khoản, anh duyệt)</label>
     <div class="small" style="margin:10px 0 4px">Mức nạp → tặng thêm (khách chọn đúng mức mới được tặng):</div>
     ${(k.muc || []).map((m, i) => `<div class="row" style="margin-bottom:6px;gap:6px">Nạp <input type="number" min="0" data-kamuc="${i}" data-kaf="tien" value="${num(m.tien)}" style="width:90px">k → tặng
       <input type="number" min="0" data-kamuc="${i}" data-kaf="thuong" value="${num(m.thuong)}" style="width:80px">k <span class="muted small">${num(m.tien) ? Math.round(num(m.thuong) * 1000 / num(m.tien)) / 10 + '%' : ''}</span>
@@ -5042,10 +5059,12 @@ document.addEventListener('click', async e => {
 async function kaGanQuet(hd, r, code) { // đơn iPad có mã QR app khách → gắn đúng khách + buổi hấp tặng
   try {
     const sn = await Cloud.db.collection('quetkhach').doc(code).get(), x = sn.exists ? sn.data() : null, c = x && kaKhachTheoT(x.t);
-    if (!c) { hd.ghichu = (hd.ghichu ? hd.ghichu + '\n' : '') + `⚠ Mã QR app khách không khớp${r.quet.maThe ? ' (thẻ ' + String(r.quet.maThe).slice(0, 12) + ')' : ''} – kiểm tra lại khách`; return; }
+    if (!c) { hd.ghichu = (hd.ghichu ? hd.ghichu + '\n' : '') + `⚠ Mã QR thẻ khách không khớp${r.quet.maThe ? ' (thẻ ' + String(r.quet.maThe).slice(0, 12) + ')' : ''} – kiểm tra lại khách`; return; }
     Object.assign(hd, {phone: c.phone, ten: c.ten, danhxung: c.danhxung || 'chị', maThe: c.maThe || ''});
-    let con = num(c.hapTang);
-    (r.lines || []).slice(0, 30).forEach((l, i) => { const h = hd.lines[i]; if (l && l.dungTang && h && h.loai === 'hap' && con > 0) { h.dungTang = true; h.gia = 0; con--; } });
+    let con = num(c.hapTang), conPH = num(c.phucHoiTang);
+    (r.lines || []).slice(0, 30).forEach((l, i) => { const h = hd.lines[i]; if (!l || !h) return;
+      if (l.dungTang && h.loai === 'hap' && con > 0) { h.dungTang = true; h.gia = 0; con--; }
+      if (l.dungPH && h.loai === 'phuchoi' && conPH > 0) { h.dungPH = true; h.gia = 0; conPH--; } });
     sn.ref.delete().catch(() => {});
   } catch (e) { console.warn('quetkhach', e.code || e); }
 }
@@ -5054,7 +5073,7 @@ let _jsqr = null;
 async function quetQR() {
   if (!Cloud.db || !Cloud.user) { toast('Chưa đăng nhập', true); return; }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Máy này không mở được camera trong trình duyệt', true); return; }
-  const d = dialog(`<div class="quet-hop"><h3 style="margin-top:0">Quét QR trên app của khách</h3><video playsinline muted></video>
+  const d = dialog(`<div class="quet-hop"><h3 style="margin-top:0">Quét QR trên thẻ của khách</h3><video playsinline muted></video>
     <p class="small muted" id="q-tt">Đưa mã QR trên điện thoại khách vào khung hình…</p><div class="row" style="justify-content:flex-end"><button data-huy>Đóng</button></div></div>`);
   const v = d.querySelector('video'); let stream = null, dung = false;
   const tat = () => { dung = true; if (stream) stream.getTracks().forEach(t => t.stop()); if (d.open) d.close(); };
@@ -5074,16 +5093,16 @@ async function quetQR() {
     if (m) { $('#q-tt').textContent = 'Đang kiểm tra mã…';
       try { const sn = await Cloud.db.collection('quetkhach').doc(m[1]).get(); const x = sn.exists ? sn.data() : null;
         if (!x || num(x.het) < Date.now()) { $('#q-tt').textContent = 'Mã đã hết hạn – nhờ khách bấm lại "Mã QR của tôi"'; await new Promise(r => setTimeout(r, 1500)); continue; }
-        tat(); HD.quetKhach = {code: m[1], maThe: String(x.maThe || ''), hap: num(x.hap)};
+        tat(); HD.quetKhach = {code: m[1], maThe: String(x.maThe || ''), hap: num(x.hap), ph: num(x.ph)};
         if (num(x.hap) > 0 && !HD.lines.some(l => l.loai === 'hap')) { const dv = S.settings.dichvu.find(z => z.loai === 'hap'); if (dv) addLine(dv.id, 0); }
-        saveDraft(); renderLines(); renderQuet(); toast(`Thẻ ${x.maThe || ''} · còn ${num(x.hap)} buổi hấp tặng`); return;
+        saveDraft(); renderLines(); renderQuet(); toast(`Thẻ ${x.maThe || ''} · hấp tặng còn ${num(x.hap)}${num(x.ph) ? ` · phục hồi tặng còn ${num(x.ph)}` : ''}`); return;
       } catch (e) { $('#q-tt').textContent = 'Lỗi: ' + loiVN(e); await new Promise(r => setTimeout(r, 1500)); continue; } }
     await new Promise(r => setTimeout(r, 250));
   }
 }
 function renderQuet() { const b = $('#hd-quet'); if (!b) return; const q = HD.quetKhach;
-  b.innerHTML = q ? `<span class="tag ok">📱 Thẻ ${esc(q.maThe)} · còn ${num(q.hap)} buổi hấp</span> <button class="x" data-bo-quet title="Bỏ">×</button>` : ''; }
-document.addEventListener('click', e => { if (!e.target.closest('[data-bo-quet]')) return; HD.quetKhach = null; HD.lines.forEach(l => { if (l.dungTang && !hdCustomer()) { l.dungTang = false; l.gia = num(l.giaGoc); } }); saveDraft(); renderLines(); renderQuet(); });
+  b.innerHTML = q ? `<span class="tag ok">💳 Thẻ ${esc(q.maThe)} · hấp còn ${num(q.hap)}${num(q.ph) ? ` · phục hồi còn ${num(q.ph)}` : ''}</span> <button class="x" data-bo-quet title="Bỏ">×</button>` : ''; }
+document.addEventListener('click', e => { if (!e.target.closest('[data-bo-quet]')) return; HD.quetKhach = null; HD.lines.forEach(l => { if (laTang(l) && !hdCustomer()) { l.dungTang = false; l.dungPH = false; l.gia = num(l.giaGoc); } }); saveDraft(); renderLines(); renderQuet(); });
 
 /* ---------------- iPAD ---------------- */
 function ipadMan(html) { const m = $('#ipad-man'); if (html == null) { m.hidden = true; m.innerHTML = ''; return; } m.hidden = false;
@@ -5781,7 +5800,7 @@ const CD_LOC = [
   {id: 'km', ten: 'Giá & khuyến mãi', the: ['cd-km', 'cd-gia']},
   {id: 'nv', ten: 'Người làm & lương', the: ['cd-nv', 'cd-luong']},
   {id: 'in', ten: 'In bill & nhắc hấp', the: ['cd-salon', 'cd-in', 'cd-nhac']},
-  {id: 'app', ten: 'App khách', the: ['cd-app']},
+  {id: 'app', ten: 'Thẻ online', the: ['cd-app']},
   {id: 'baomat', ten: 'Mã PIN & sao lưu', the: ['cd-pin', 'cd-backup']},
 ];
 const nhomCua = t => NHOM.find(g => g.tabs.includes(t));
