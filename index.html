@@ -2355,7 +2355,7 @@ return qrcode;
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.12.2 (16/11/2026)';
+const APP_VERSION = '2.12.3 (16/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -4900,10 +4900,14 @@ async function dayKhachApp() { // đẩy ví những khách có app (chỉ khi �
       const d = kaDuLieu(c), js = JSON.stringify(d); if (KA.cu[c.app.t] === js) continue;
       try { await Cloud.db.collection('khachapp').doc(c.app.t).set(Object.assign(d, {luc: Date.now()})); KA.cu[c.app.t] = js; } catch (e) { console.warn('khachapp', e.code || e); } }
     const b = S.settings.inbill, k = S.settings.khachApp || {};
-    const cfg = {bat: !!k.bat, muc: kaMuc().map(x => ({tien: num(x.tien), thuong: num(x.thuong)})), nganhang: b.nganhang || '', stk: b.stk || '', tentk: b.tentk || '', tenNH: b.tenNH || ''};
+    const cfg = {bat: !!k.bat, muc: kaMuc().map(x => ({tien: num(x.tien), thuong: num(x.thuong)})), nganhang: b.nganhang || '', stk: b.stk || '', tentk: b.tentk || '', tenNH: b.tenNH || '', km: kmChoKhach()};
     const js = JSON.stringify(cfg);
     if (js !== KA.cfgCu) { try { await Cloud.db.collection('khachcfg').doc('chung').set(Object.assign(cfg, {luc: Date.now()})); KA.cfgCu = js; } catch (e) { console.warn('khachcfg', e.code || e); } }
   } finally { dayKhachApp._dang = false; }
+}
+function kmChoKhach() { // 2.12.3: chương trình KM đang dùng → trang thẻ khách (chỉ số %, tên, ngày, ghi chú)
+  const k = kmHienTai(); if (!k) return null; const g = x => ({thuong: num((k[x] || {}).thuong), cuoituan: num((k[x] || {}).cuoituan)});
+  return {ten: String(k.ten || ''), tu: k.tu || '', den: k.den || '', ghichu: String(k.ghichu || '').slice(0, 400), lon: g('lon'), nho: g('nho'), khac: g('khac'), bonusToiDa: num(k.bonusToiDa), freeCat: !!k.freeCat};
 }
 function kaTheKhach(c) {
   const vi = (c.vi || []).slice(-30).reverse();

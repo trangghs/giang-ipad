@@ -67,6 +67,10 @@ input.so{width:100%;font:600 20px Arial;padding:11px;border:1.5px solid var(--vi
 .tam .tien{font:700 34px/1.2 -apple-system,Roboto,Arial;margin:4px 0}
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1c1a17;color:#fff;padding:10px 16px;border-radius:12px;font-size:14.5px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90%;text-align:center;z-index:20}
 #toast.hien{opacity:1}
+.km{margin-top:14px;border-radius:16px;padding:14px 16px;background:#fbefe6;border:1px solid #f0d3bf}
+.km .ten{font:600 17px Georgia,serif;color:var(--nau)}.km ul{margin:8px 0 4px;padding-left:20px}.km li{margin:3px 0}
+.km .noi{background:#fff;border-radius:10px;padding:8px 10px;margin-top:8px;font-size:14.5px}
+.km a{color:var(--nau);font-weight:600}
 .chan{margin-top:24px;text-align:center;font-size:13px;color:var(--mo)}
 </style>
 </head>
@@ -1726,7 +1730,7 @@ try { if (T) localStorage.setItem('giang-vi', T); else T = localStorage.getItem(
 if (TRA && T) { try { history.replaceState(null, '', location.pathname + '#k=' + T); } catch (e) {} }
 
 let app = null, auth = null, db = null, U = null;
-const V = {the: null, cfg: null, tra: [], nap: [], unsub: [], man: 'vi', quet: null, chon: null, dangTra: ''};
+const V = {the: null, cfg: null, tra: [], traMot: {}, nap: [], unsub: [], man: 'vi', quet: null, chon: null, dangTra: ''};
 function nap(src) { return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('mạng')); document.head.appendChild(s); }); }
 async function napFB() {
   const g = `https://www.gstatic.com/firebasejs/${FB_VER}/`;
@@ -1794,7 +1798,8 @@ function vaoVi() {
   huyNghe(); V.man = 'vi'; man('<p class="mo giua" style="margin-top:30px">Đang tải thẻ…</p>');
   V.unsub.push(db.collection('khachapp').doc(T).onSnapshot(sn => { if (!sn.exists) { hetPhien(); return; } V.the = sn.data(); ve(); },
     e => { if (e && e.code === 'permission-denied') hetPhien(); else toast(loi(e)); }));
-  V.unsub.push(db.collection('trasodu').where('t', '==', T).onSnapshot(sn => { V.tra = sn.docs.map(d => Object.assign({id: d.id}, d.data())); veTra(); }, () => {}));
+  V.unsub.push(db.collection('trasodu').where('t', '==', T).onSnapshot(sn => { V.tra = sn.docs.map(d => Object.assign({id: d.id}, d.data())); veTra(); }, e => console.warn('trasodu', e && e.code)));
+  if (TRA) ngheTra(TRA);
   V.unsub.push(db.collection('napapp').where('t', '==', T).onSnapshot(sn => { V.nap = sn.docs.map(d => Object.assign({id: d.id}, d.data())).sort((a, b) => b.luc - a.luc); if (V.man === 'vi') ve(); }, () => {}));
   db.collection('khachcfg').doc('chung').get().then(d => { V.cfg = d.exists ? d.data() : null; if (V.man === 'vi') ve(); }).catch(() => {});
   clearInterval(vaoVi._t); vaoVi._t = setInterval(veTra, 5000);
@@ -1812,23 +1817,51 @@ function ve() {
     <div class="hap"><span>Phục hồi tặng: <b>${ph}</b> lượt</span><span>${ph ? Array.from({length: ph}, () => '<i class="cham on"></i>').join('') : '<span class="mo">chưa có</span>'}</span></div>
     ${napCho.map(x => `<div class="bao">⏳ Đang chờ salon xác nhận khoản nạp <b>${fmtD(x.tien)}</b> (báo lúc ${ngayGio(x.luc)}). Salon kiểm tra tài khoản xong là tiền vào thẻ.<br><button class="lk" data-huynap="${esc(x.id)}">Huỷ báo nạp này</button></div>`).join('')}
     ${napXau.map(x => `<div class="bao xau">Salon chưa nhận được khoản nạp <b>${fmtD(x.tien)}</b> (${ngayGio(x.luc)}). Bạn kiểm tra lại giao dịch hoặc hỏi lễ tân nhé.<br><button class="lk" data-huynap="${esc(x.id)}">Đã hiểu</button></div>`).join('')}
+    <button class="b xanh" id="bquet" style="margin-top:12px">📷 Quét mã thanh toán ở quầy</button>
     <div class="nut2"><button class="b chinh" id="bqr">Mã QR dùng quà</button><button class="b" id="bnap">Nạp tiền vào thẻ</button></div>
+    ${veKM(V.cfg && V.cfg.km)}
     <h3>Giao dịch gần đây</h3>
     ${(t.gd || []).length ? `<div class="gd">${t.gd.map(x => `<div><span>${LOAI[x.loai] || 'Giao dịch'}<small>${ngayGio(x.luc)}${num(x.thuong) ? ` · gồm ${fmtD(x.thuong)} tặng thêm` : ''}</small></span><span class="${num(x.tien) < 0 ? 'am' : 'duong'}">${num(x.tien) > 0 ? '+' : ''}${fmtD(x.tien)}</span></div>`).join('')}</div>` : '<p class="mo">Chưa có giao dịch nào.</p>'}
     <div class="chan">${dungMay ? '' : '<p>Lưu trang này lại để lần sau xem nhanh:<br>iPhone: nút Chia sẻ → <b>Thêm vào MH chính</b> · Android: ⋮ → <b>Thêm vào màn hình chính</b></p>'}
       <p>Trang chỉ có mã thẻ, số dư và quà tặng. Mọi khoản trừ tiền đều cần bạn bấm Đồng ý.</p>
       <button class="lk" id="bthoat">Thoát thẻ trên máy này</button></div>`);
   $('#bqr').onclick = () => { V.man = 'qr'; ve(); };
+  $('#bquet').onclick = quetTra;
   $('#bnap').onclick = () => { V.man = 'nap'; V.chon = null; ve(); };
   $('#bthoat').onclick = async () => { if (!confirm('Thoát thẻ trên máy này? Lần sau phải nhập lại 4 số cuối SĐT.')) return; huyNghe(); try { await db.collection('phienkhach').doc(U.uid).delete(); } catch (e) {} kiemPhien(); };
   document.querySelectorAll('[data-huynap]').forEach(b => b.onclick = () => db.collection('napapp').doc(b.dataset.huynap).delete().catch(e => toast(loi(e))));
 }
 
+// ---- chương trình khuyến mãi đang có (máy quầy đẩy lên khachcfg/chung.km)
+function veKM(k) {
+  if (!k || !k.ten) return '';
+  const d = new Date(), hn = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  if ((k.tu && hn < k.tu) || (k.den && hn > k.den)) return '';
+  const p = g => { g = g || {}; const a = num(g.thuong), b = num(g.cuoituan); if (!a && !b) return ''; return a === b ? `giảm <b>${a}%</b>` : `T2–T6 giảm <b>${a}%</b>, T7–CN giảm <b>${b}%</b>`; };
+  const ng = s => s ? s.split('-').reverse().slice(0, 2).join('/') : '', ds = [];
+  if (p(k.lon) && p(k.lon) === p(k.nho)) ds.push(`Uốn / ép / nhuộm (cả đầu và chấm chân, phồng chân, mái…): ${p(k.lon)}`);
+  else { if (p(k.lon)) ds.push(`Uốn / ép / nhuộm cả đầu: ${p(k.lon)}`); if (p(k.nho)) ds.push(`Chấm chân, phồng chân, uốn nam, mái…: ${p(k.nho)}`); }
+  if (p(k.khac)) ds.push(`Dịch vụ khác (cắt, gội, hấp, phục hồi…): ${p(k.khac)}`);
+  if (k.freeCat) ds.push('<b>Free cắt</b> khi làm uốn / ép / nhuộm');
+  return `<div class="km"><div class="mo">🎁 Ưu đãi đang có${k.den ? ` · đến hết ${ng(k.den)}` : ''}</div><div class="ten">${esc(k.ten)}</div>
+    ${ds.length ? `<ul>${ds.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
+    ${num(k.bonusToiDa) ? `<div class="noi">💳 Bạn có thẻ thành viên: được <b>giảm thêm ${num(k.bonusToiDa)}%</b> trên giá đã giảm (cũng áp dụng khi đi nhóm 2 người).</div>` : ''}
+    ${k.ghichu ? `<p class="mo" style="margin-top:8px">${esc(k.ghichu)}</p>` : ''}
+    <p class="mo" style="margin-top:6px">Gói 699k học sinh – sinh viên không giảm thêm. <a href="tinh-tien.html" target="_blank" rel="noopener">Tự tính giá dịch vụ →</a></p></div>`;
+}
+
 // ---- yêu cầu trả tiền từ quầy (hiện đè lên mọi màn hình)
+function ngheTra(id) { // nghe riêng 1 yêu cầu trả tiền (mã quét được / link #tra=)
+  if (!/^[A-Za-z0-9]{10,40}$/.test(id) || V.traMot[id]) return;
+  V.traMot[id] = {};
+  V.unsub.push(db.collection('trasodu').doc(id).onSnapshot(sn => { V.traMot[id] = sn.exists ? Object.assign({id}, sn.data()) : null; veTra(); },
+    e => { V.traMot[id] = null; toast(e && e.code === 'permission-denied' ? 'Mã thanh toán này không phải của thẻ bạn' : loi(e)); }));
+}
+const dsTra = () => { const m = {}; V.tra.forEach(r => m[r.id] = r); Object.values(V.traMot).forEach(r => { if (r && r.id) m[r.id] = r; }); return Object.values(m); };
 function veTra() {
   const L = $('#lop'), now = Date.now();
-  const x = V.tra.filter(r => (r.tt === 'cho' && num(r.het) > now) || r.id === V.dangTra).sort((a, b) => (a.id === TRA ? -1 : 0) || num(b.luc) - num(a.luc))[0];
-  if (!x) { if (V.dangTra && !V.tra.some(r => r.id === V.dangTra)) { const truoc = V.duTruoc; V.dangTra = '';
+  const x = dsTra().filter(r => (r.tt === 'cho' && num(r.het) > now) || r.id === V.dangTra).sort((a, b) => (a.id === TRA ? -1 : 0) || num(b.luc) - num(a.luc))[0];
+  if (!x) { if (V.dangTra && !dsTra().some(r => r.id === V.dangTra)) { const truoc = V.duTruoc; V.dangTra = '';
       setTimeout(() => toast(num(V.the && V.the.soDu) < truoc ? 'Xong ✓ Đã thanh toán bằng số dư' : 'Quầy đã đóng yêu cầu, chưa trừ tiền'), 3000); }
     L.innerHTML = ''; return; }
   const ky = x.id + x.tt; if (L.dataset.ky === ky && L.innerHTML) return; L.dataset.ky = ky;
@@ -1892,6 +1925,34 @@ function veNap() {
   };
 }
 window.addEventListener('hashchange', () => { if (/k=/.test(location.hash) && new URLSearchParams(location.hash.slice(1)).get('k') !== T) location.reload(); });
+// ---- quét mã thanh toán trên màn hình quầy (bằng camera, ngay trong trang)
+let _jsqr = null;
+async function quetTra() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Máy không mở được camera trong trang. Hãy dùng app Camera quét mã.'); return; }
+  const L = $('#lop'); let stream = null, dung = false;
+  L.innerHTML = `<div class="lop"><div class="tam"><div class="mo giua">Đưa mã QR trên màn hình quầy vào khung</div>
+    <video playsinline muted style="width:100%;max-height:55vh;border-radius:14px;background:#000;display:block;margin:10px 0"></video>
+    <div class="loi" id="qtt"></div><button class="b" id="qdong">Đóng</button></div></div>`; L.dataset.ky = 'quet';
+  const v = L.querySelector('video'), tat = () => { dung = true; if (stream) stream.getTracks().forEach(t => t.stop()); if (L.dataset.ky === 'quet') { L.innerHTML = ''; L.dataset.ky = ''; } };
+  $('#qdong').onclick = tat;
+  try { stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}, audio: false}); v.srcObject = stream; await v.play(); }
+  catch (e) { tat(); toast('Chưa được phép dùng camera. Cho phép camera rồi thử lại, hoặc dùng app Camera quét mã.'); return; }
+  let doc = null;
+  if ('BarcodeDetector' in window) { try { const bd = new BarcodeDetector({formats: ['qr_code']}); doc = async () => { const r = await bd.detect(v); return r[0] && r[0].rawValue; }; } catch (e) { doc = null; } }
+  if (!doc) { try { if (!_jsqr) { await nap('jsqr.js'); _jsqr = window.jsQR; } } catch (e) {}
+    if (!_jsqr) { tat(); toast('Không tải được bộ đọc mã. Hãy dùng app Camera quét mã.'); return; }
+    const cv = document.createElement('canvas'), cx = cv.getContext('2d', {willReadFrequently: true});
+    doc = async () => { const w = v.videoWidth, h = v.videoHeight; if (!w) return ''; const k = Math.min(1, 640 / w); cv.width = w * k; cv.height = h * k; cx.drawImage(v, 0, 0, cv.width, cv.height);
+      const im = cx.getImageData(0, 0, cv.width, cv.height), r = _jsqr(im.data, im.width, im.height, {inversionAttempts: 'dontInvert'}); return r && r.data; }; }
+  while (!dung) {
+    let txt = ''; try { txt = await doc(); } catch (e) {}
+    const m = /[#&?]tra=([A-Za-z0-9]{10,40})/.exec(txt || '');
+    if (m) { tat(); TRA = m[1]; ngheTra(m[1]); toast('Đã đọc mã, đang mở yêu cầu…'); return; }
+    if (txt) { const el = $('#qtt'); if (el) el.textContent = 'Đây không phải mã thanh toán của GIANG'; }
+    await new Promise(r => setTimeout(r, 250));
+  }
+}
+window.addEventListener('hashchange', () => { const t = new URLSearchParams(location.hash.slice(1)).get('tra'); if (t && db && U) { TRA = t; ngheTra(t); } });
 document.addEventListener('visibilitychange', () => { if (document.hidden) boQuet(); else if (V.man === 'qr' && V.the) veQR(); });
 batDau();
 </script>
