@@ -2355,7 +2355,7 @@ return qrcode;
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.12.3 (16/11/2026)';
+const APP_VERSION = '2.12.4 (16/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -3040,6 +3040,7 @@ function qrUrl(amountK, info) {
 function renderQRScreen() {
   const box = $('#hd-qr');
   if (HD.tt === 'sodu') { box.dataset.url = ''; box.innerHTML = kaHopTT(); return; }
+  setTimeout(() => { const g = $('#ck-the'); if (g) g.remove(); if (HD.tt === 'ck' && hdTong() > 0 && box.querySelector('img')) box.insertAdjacentHTML('beforeend', '<div class="small muted" id="ck-the" style="margin-top:4px">💳 Khách có thẻ online: mở trang thẻ, bấm biểu tượng quét ở góc phải để trả bằng số dư thẻ</div>'); }, 0);
   const url = HD.tt === 'ck' && hdTong() > 0 ? qrUrl(hdTong(), 'GIANG ' + (normPhone(HD.phone).slice(-4) || '')) : '';
   if (!url) { box.innerHTML = HD.tt === 'ck' && !S.settings.inbill.qr ? '<div class="muted small" style="margin-top:8px">Muốn hiện mã QR chuyển khoản: vào Cài đặt → In bill.</div>' : ''; return; }
   if (box.dataset.url === url) return;
@@ -3190,8 +3191,10 @@ async function thanhToan(print) {
       inv.soDuTru = num(goc.soDuTru); inv.soDuCon = goc.soDuCon;
     } else {
       const loi = kaKiemTra(phone, inv.tong); if (loi) { toast(loi, true); return; }
-      const kq = await xinTraSoDu(S.customers.get(phone), inv.tong); if (!kq) return;
+      const c0 = S.customers.get(phone), dy = KA.dongY && c0 && c0.app && KA.dongY.t === c0.app.t && KA.dongY.tien === inv.tong ? KA.dongY : null;
+      const kq = dy ? true : await xinTraSoDu(c0, inv.tong); if (!kq) return;
       inv.soDuTru = inv.tong; if (kq === 'pin') inv.soDuKhongHoi = true;
+      if (dy) { inv.soDuQuetCK = true; KA.dongY = null; Cloud.db.collection('xintra').doc(dy.id).update({tt: 'xong'}).catch(() => {}); }
     }
   }
   if (goc) { // trả lại buổi hấp tặng + bỏ lịch nhắc của HĐ gốc, lát nữa tính lại theo nội dung mới
@@ -4721,6 +4724,8 @@ function quayNghe() {
   Cloud.unsub.push(Cloud.db.collection('doncho').onSnapshot(sn => {
     sn.docChanges().forEach(c => { if (c.type === 'added') nhanDonIpad(c.doc); });
   }, loiCloud));
+  Cloud.unsub.push(Cloud.db.collection('xintra').onSnapshot(sn => sn.docChanges().forEach(ch => { if (ch.type === 'added') nhanXinTra(Object.assign({id: ch.doc.id}, ch.doc.data())); }),
+    e => console.warn('xintra', e.code || e)));
   Cloud.unsub.push(Cloud.db.collection('napapp').where('tt', '==', 'cho').onSnapshot(sn => {
     KA.napCho = sn.docs.map(d => Object.assign({id: d.id}, d.data())).sort((a, b) => num(a.luc) - num(b.luc)); renderBanners();
   }, e => console.warn('napapp', e.code || e)));
@@ -4875,7 +4880,7 @@ function renderNhanVien() {
    Khách mở link bí mật (24 ký tự) → tự đặt mã PIN 6 số → máy đó được nhớ. Máy quầy là nơi giữ số dư gốc.
    ========================================================= */
 const KHACH_URL = IPAD_URL + 'the.html';
-const KA = {napCho: [], cu: {}, cfgCu: ''};
+const KA = {napCho: [], cu: {}, cfgCu: '', dongY: null, xinDang: false, xinHang: []};
 const kaMuc = () => ((S.settings.khachApp && S.settings.khachApp.muc) || []).filter(x => num(x.tien) > 0);
 const thuongNap = tien => { const m = kaMuc().find(x => num(x.tien) === num(tien)); return m ? num(m.thuong) : 0; };
 /* 2.12.2: đổi tên, bản 2.12.1 đặt trùng tên bamPin(pin, salt) làm hỏng mọi ô mã PIN ở quầy */
@@ -4996,6 +5001,27 @@ async function xinTraSoDu(c, tong) { // true = khách đồng ý trên điện t
     unsub = ref.onSnapshot(sn => { const x = sn.exists ? sn.data() : null; if (!x || xong) return;
       if (x.tt === 'dongy') ket(true); else if (x.tt === 'tuchoi') { ket(false); toast('Khách bấm "Không" trên điện thoại', true); } }, e => { console.warn('trasodu', e.code || e); });
   }).then(v => v === null ? truLuon('Khách không bấm được trên trang thẻ.') : v);
+}
+async function nhanXinTra(x) { // 2.12.4: khách quét mã chuyển khoản trên màn quầy, muốn trả bằng số dư thẻ
+  if (IPAD || !x || x.tt) return;
+  const ref = Cloud.db.collection('xintra').doc(x.id), tuChoi = () => ref.update({tt: 'tuchoi'}).catch(() => {});
+  if (Date.now() - num(x.luc) > 300000) { ref.delete().catch(() => {}); return; }
+  if (KA.xinDang) { KA.xinHang.push(x); return; } KA.xinDang = true;
+  try {
+    for (let i = 0; i < 240 && $('#dlg').open; i++) await new Promise(r => setTimeout(r, 500)); // chờ hộp thoại khác đóng
+    const c = kaKhachTheoT(x.t), tien = Math.round(num(x.tien));
+    if (!c) { toast('Có yêu cầu trả bằng số dư thẻ nhưng không rõ khách (link cũ?)', true); tuChoi(); return; }
+    const khop = HD.tt === 'ck' && hdTong() === tien && HD.lines.length > 0;
+    if (!khop) { toast(`📲 ${c.ten} (thẻ ${c.maThe}) quét mã ${fmtD(tien)} để trả bằng số dư thẻ, nhưng hoá đơn đang mở không phải chuyển khoản ${fmtD(tien)}. Đã báo khách.`, true); tuChoi(); return; }
+    const khac = normPhone(HD.phone) && normPhone(HD.phone) !== c.phone;
+    if (num(c.soDu) < tien) { toast(`${c.ten} không đủ số dư (còn ${fmtD(num(c.soDu))})`, true); tuChoi(); return; }
+    if (!await confirmBox(`📲 <b>${esc(cap(c.danhxung || 'chị') + ' ' + c.ten)}</b> (thẻ ${esc(c.maThe || '')}) vừa quét mã chuyển khoản trên trang thẻ, muốn <b>trả ${fmtD(tien)} bằng số dư thẻ</b> (số dư ${fmtD(num(c.soDu))} → còn ${fmtD(num(c.soDu) - tien)}).
+      ${khac ? `<br><span style="color:#a3401f">Hoá đơn đang ghi khách khác (${esc(maskPhone(normPhone(HD.phone)))}), sẽ đổi sang ${esc(c.ten)}.</span>` : ''}<br><span class="muted small">Bấm nhận: hoá đơn thanh toán bằng "Số dư thẻ" và in bill.</span>`, 'Nhận & in bill')) { tuChoi(); return; }
+    if (khac || !normPhone(HD.phone)) { HD.phone = c.phone; HD.ten = c.ten; HD.danhxung = c.danhxung || 'chị'; HD.maThe = c.maThe || ''; }
+    HD.tt = 'sodu'; KA.dongY = {id: x.id, t: x.t, tien}; saveDraft(); fillHDForm();
+    await thanhToan(true);
+    if (KA.dongY && KA.dongY.id === x.id) { KA.dongY = null; tuChoi(); if (HD.tt === 'sodu') { HD.tt = 'ck'; saveDraft(); fillHDForm(); } }
+  } finally { KA.xinDang = false; const t = KA.xinHang.shift(); if (t) nhanXinTra(t); }
 }
 async function duyetNap(id, ok) {
   const x = KA.napCho.find(y => y.id === id); if (!x) return;
