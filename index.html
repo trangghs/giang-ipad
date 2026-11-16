@@ -2355,7 +2355,7 @@ return qrcode;
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.12.5 (16/11/2026)';
+const APP_VERSION = '2.12.6 (16/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -4476,6 +4476,8 @@ async function init() {
   }
   if (S.settings.luong && S.settings.luong.hh && !S.settings.luong.hh.goicap) S.settings.luong.hh.goicap = {cP: 0, cK: 10, pP: 0, pK: 0}; // 2.9.6
   if (S.settings.nhac && S.settings.nhac.hapToiDa === undefined) S.settings.nhac.hapToiDa = 2; // 2.12: hấp tặng tối đa 2 buổi
+  if (!S.settings.mig2126) { S.settings.mig2126 = true; // 2.12.6: KM tháng 11 – dịch vụ nhỏ giảm 10% (anh chốt 16/11)
+    (S.settings.kmList || []).filter(k => k.id === 'km-2026-11' || (k.tu === '2026-11-01' && /chào Đông/i.test(k.ten || ''))).forEach(k => { k.nho = {thuong: 10, cuoituan: 10}; }); }
   if (!S.settings.khachApp) S.settings.khachApp = {bat: true, muc: [{tien: 500, thuong: 50}, {tien: 1000, thuong: 100}, {tien: 2000, thuong: 300}]}; // 2.12: app khách
   if (S.settings.luong && S.settings.luong.hh && !S.settings.luong.hh.covai) S.settings.luong.hh.covai = {cP: 0, cK: 0, pP: 0, pK: 0}; // 2.11.8
   if (!S.settings.mig2118) { // 2.11.8: phụ thu dầu cặp / massage gắn với dòng cắt
