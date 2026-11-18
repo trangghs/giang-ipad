@@ -2355,7 +2355,7 @@ return qrcode;
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.12.6 (16/11/2026)';
+const APP_VERSION = '2.12.7 (18/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -3871,7 +3871,7 @@ function tinhLuong(thang) {
 
 /* ---------- Máy chấm công (ZKTeco, đọc file cham-cong/du-lieu.json) ---------- */
 const MCC = {data: null, loi: '', mo: {}};
-const mccCfg = () => (S.settings.chamCong = Object.assign({gioVao: '09:30', gioVe: '20:00', anHan: 5, otSau: 30, tinhOT: false, map: {}}, S.settings.chamCong || {}));
+const mccCfg = () => (S.settings.chamCong = Object.assign({gioVao: '09:00', gioVe: '20:00', anHan: 15, otSau: 30, tinhOT: false, map: {}}, S.settings.chamCong || {}));
 const phut = hm => { const [h, m] = String(hm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
 const hmTu = mi => `${String(Math.floor(mi / 60)).padStart(2, '0')}:${String(mi % 60).padStart(2, '0')}`;
 async function taiMCC() {
@@ -3885,6 +3885,7 @@ function mccThang(ma, thang) { // từng ngày: giờ vào, giờ ra, phút mu�
   const c = mccCfg(), ngay = {};
   ((MCC.data && MCC.data.luot) || []).forEach(([m, t]) => { if (m !== ma || !t.startsWith(thang)) return; (ngay[t.slice(0, 10)] = ngay[t.slice(0, 10)] || []).push(phut(t.slice(11, 16))); });
   return Object.keys(ngay).sort().map(d => { const x = ngay[d].sort((a, b) => a - b), vao = x[0], ra = x.length > 1 && x[x.length - 1] - vao >= 60 ? x[x.length - 1] : null;
+    // muộn trong ân hạn (≤ 15') không phạt; quá ân hạn thì phạt cả số phút tính từ giờ vào (9:00), không trừ 15'
     const tre = vao - phut(c.gioVao), muon = tre > num(c.anHan) ? tre : 0;
     const them = ra != null ? ra - phut(c.gioVe) : 0, ot = them >= num(c.otSau) ? them : 0;
     return {d, vao, ra, muon, ot}; });
@@ -3898,7 +3899,7 @@ function renderMCC() {
   const inp = (k, v, w, type = 'text') => `<input data-mcf="${k}" type="${type}" value="${esc(v)}" style="width:${w}px;padding:5px 6px">`;
   box.innerHTML = `<div class="row" style="justify-content:space-between"><h3 style="margin:0">Máy chấm công <span class="muted small" style="font-weight:400">ZKTeco ${esc(D.ip || '')}</span></h3>
     <span class="tag ${cu > 20 ? 'warn' : 'ok'}">Cập nhật ${esc(D.capNhat.slice(11, 16))} ${D.capNhat.slice(8, 10)}/${D.capNhat.slice(5, 7)}${cu > 20 ? ' – đã lâu, kiểm tra chương trình đồng bộ' : ''}</span></div>
-    <div class="row small" style="gap:10px;margin:8px 0;flex-wrap:wrap">Giờ vào ${inp('gioVao', c.gioVao, 110, 'time')} · Ân hạn ${inp('anHan', c.anHan, 50, 'number')} phút · Giờ về ${inp('gioVe', c.gioVe, 110, 'time')} · Làm thêm khi ở lại quá ${inp('otSau', c.otSau, 50, 'number')} phút
+    <div class="row small" style="gap:10px;margin:8px 0;flex-wrap:wrap">Giờ vào ${inp('gioVao', c.gioVao, 110, 'time')} · Ân hạn ${inp('anHan', c.anHan, 50, 'number')} phút <span class="muted">(muộn quá ân hạn thì phạt tính từ giờ vào)</span> · Giờ về ${inp('gioVe', c.gioVe, 110, 'time')} · Làm thêm khi ở lại quá ${inp('otSau', c.otSau, 50, 'number')} phút
       <label class="tick"><input type="checkbox" data-mcf="tinhOT" ${c.tinhOT ? 'checked' : ''}> Điền cả phút làm thêm vào bảng công</label></div>
     ${staff.map(n => { const ma = c.map[n.id] || '', ds = ma ? mccThang(ma, t) : [];
       const muon = ds.filter(x => x.muon), thieu = ds.filter(x => x.ra == null && x.d !== today()), ot = ds.reduce((a, x) => a + x.ot, 0), sm = muon.reduce((a, x) => a + x.muon, 0);
@@ -4476,6 +4477,8 @@ async function init() {
   }
   if (S.settings.luong && S.settings.luong.hh && !S.settings.luong.hh.goicap) S.settings.luong.hh.goicap = {cP: 0, cK: 10, pP: 0, pK: 0}; // 2.9.6
   if (S.settings.nhac && S.settings.nhac.hapToiDa === undefined) S.settings.nhac.hapToiDa = 2; // 2.12: hấp tặng tối đa 2 buổi
+  if (!S.settings.mig2127) { S.settings.mig2127 = true; // 2.12.7: anh chốt 18/11 – vào 9:00, muộn ≤ 15' không phạt, quá 15' phạt tính từ 9:00
+    Object.assign(mccCfg(), {gioVao: '09:00', anHan: 15}); }
   if (!S.settings.mig2126) { S.settings.mig2126 = true; // 2.12.6: KM tháng 11 – dịch vụ nhỏ giảm 10% (anh chốt 16/11)
     (S.settings.kmList || []).filter(k => k.id === 'km-2026-11' || (k.tu === '2026-11-01' && /chào Đông/i.test(k.ten || ''))).forEach(k => { k.nho = {thuong: 10, cuoituan: 10}; }); }
   if (!S.settings.khachApp) S.settings.khachApp = {bat: true, muc: [{tien: 500, thuong: 50}, {tien: 1000, thuong: 100}, {tien: 2000, thuong: 300}]}; // 2.12: app khách
