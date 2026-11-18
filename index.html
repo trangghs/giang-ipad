@@ -191,7 +191,8 @@ body.ipad .pb-o button{min-height:44px}
 .bg-thanh{display:none}
 #bg-card.to{position:fixed;inset:0;z-index:40;margin:0;border-radius:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 env(safe-area-inset-right) calc(30px + env(safe-area-inset-bottom)) env(safe-area-inset-left);background:#efe6f3;overscroll-behavior:contain}
 #bg-card.to .bg-thanh{padding-top:max(12px, env(safe-area-inset-top))}
-#bg-card.to #bg-mo{display:none}
+#bg-card.to #bg-mo,#bg-card.to #bg-link{display:none}
+#bg-link{gap:6px;margin:-4px 0 10px;align-items:center;flex-wrap:wrap}#bg-link a{text-decoration:none}
 #bg-card.to .bg-thanh{display:flex;position:sticky;top:0;z-index:2;align-items:center;gap:14px;padding:12px 20px;background:#1c1a17;color:#f3ebe0}
 .bg-thanh .ds{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px;color:#d9d2ca}
 .bg-thanh .tg{font-size:24px;font-weight:800;color:#f0c987;white-space:nowrap}
@@ -558,6 +559,7 @@ body.pc.nhom-don #nav{display:none}
       </div>
       <div class="card" id="bg-card">
         <h3 id="bg-mo" title="Bấm để phóng to bảng giá">2. Bảng giá <span class="muted small gc" style="font-weight:400">– bấm vào số tiền để chọn, bấm lại để bỏ, bấm <b style="color:#2f7d4f">+</b> để thêm lần nữa</span> <span class="bg-nut">⛶ Phóng to</span></h3>
+        <div class="row" id="bg-link"><button type="button" class="sm" id="btn-bglink" title="Chép link trang bảng giá online để dán vào tin nhắn cho khách">🔗 Chép link bảng giá online</button><a class="sm muted" href="https://trangghs.github.io/giang-ipad/tinh-tien.html" target="_blank" rel="noopener">Mở xem ↗</a></div>
         <div class="bg-thanh" id="bg-thanh"></div>
         <div id="dv-picker"></div>
       </div>
@@ -2355,7 +2357,7 @@ return qrcode;
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.12.7 (18/11/2026)';
+const APP_VERSION = '2.12.8 (18/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -3411,6 +3413,9 @@ function hoiNgayHen(r) {
     <div class="row" style="justify-content:flex-end;margin-top:14px"><button data-close>Huỷ</button><button class="pri" id="hen-ok">Lưu</button></div>`);
   d.querySelector('#hen-ok').onclick = async () => { const v = d.querySelector('#hen-date').value; if (!v) return; d.close(); await setRemStatus(r, 'hen', v); };
 }
+const LINK_BANGGIA = 'https://trangghs.github.io/giang-ipad/tinh-tien.html'; // 2.12.8: link bảng giá online ở tab Thanh toán
+document.addEventListener('click', async e => { if (!e.target.closest('#btn-bglink')) return;
+  toast(await copyText(LINK_BANGGIA) ? 'Đã chép link bảng giá online – dán vào tin nhắn gửi khách' : 'Không chép được, bấm "Mở xem" rồi chép link trên trình duyệt'); });
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch (e) {
     const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
