@@ -2357,7 +2357,7 @@ return qrcode;
    Dữ liệu lưu trong trình duyệt (IndexedDB) trên máy quầy.
    Đơn vị tiền trong app: nghìn đồng (k).
    ========================================================= */
-const APP_VERSION = '2.12.8 (18/11/2026)';
+const APP_VERSION = '2.12.9 (20/11/2026)';
 // ---- iPad nhân viên: cùng file này, mở qua https (GitHub Pages) là chế độ iPad
 const IPAD = /^https?:$/.test(location.protocol);
 const FB_CFG = {apiKey: 'AIzaSyB-oRtfQQ4u0BmoRCxgjgIIfdAjh5fm2r8', authDomain: 'giang-hair.firebaseapp.com', projectId: 'giang-hair',
@@ -2586,6 +2586,7 @@ const DV_GOC = [
   ['Combo HS–SV','Combo 699k Obsidian (Uốn/Ép/Nhuộm + Cắt)','hoachat',[699],0,1,'tóc','Đã giảm tối đa, không áp thêm KM'],
   ['Cắt & chăm sóc','Cắt (anh chủ)','cat',[250],0,0,'cắt'],
   ['Cắt & chăm sóc','Cắt (thợ chính)','cat',[200],0,0,'cắt'],
+  ['Cắt & chăm sóc','Tạo kiểu','cat',[70],0,0,'tạo kiểu'],
   ['Cắt & chăm sóc','Phục hồi Olaplex','phuchoi',[600],0,0,'phục hồi'],
   ['Cắt & chăm sóc','Phục hồi Napla','phuchoi',[400],0,0,'phục hồi'],
   ['Cắt & chăm sóc','Hấp nóng/lạnh','hap',[200],0,0,'hấp'],
@@ -2902,7 +2903,7 @@ function apLaiKm() { // áp lại KM cho các dòng đang nhập (trừ dòng đ
   HD.lines.forEach(l => { if (laTang(l) || l.kmAuto === false) return;
     const d = dvOf(l); let pct = kmPctDv(d), b = 0, ghi = '';
     if (k && d && d.kmNhom !== 'khong' && bon) b = Math.min(bon, num(d.bonusToiDa ?? k.bonusToiDa ?? 0));
-    if (k && k.freeCat && l.loai === 'cat' && coUonEpNhuom) { pct = 100; b = 0; ghi = 'Free cắt'; }
+    if (k && k.freeCat && l.loai === 'cat' && !/^Tạo kiểu/i.test(l.ten || '') && coUonEpNhuom) { pct = 100; b = 0; ghi = 'Free cắt'; }
     else { ghi = [pct ? `KM ${pct}%` : '', b ? `thêm ${b}%` : ''].filter(Boolean).join(' + '); }
     l.giamPct = Math.round((1 - (1 - pct / 100) * (1 - b / 100)) * 1000) / 10;
     l.kmGhi = ghi; l.gia = giaDong(l);
@@ -4488,6 +4489,9 @@ async function init() {
     (S.settings.kmList || []).filter(k => k.id === 'km-2026-11' || (k.tu === '2026-11-01' && /chào Đông/i.test(k.ten || ''))).forEach(k => { k.nho = {thuong: 10, cuoituan: 10}; }); }
   if (!S.settings.khachApp) S.settings.khachApp = {bat: true, muc: [{tien: 500, thuong: 50}, {tien: 1000, thuong: 100}, {tien: 2000, thuong: 300}]}; // 2.12: app khách
   if (S.settings.luong && S.settings.luong.hh && !S.settings.luong.hh.covai) S.settings.luong.hh.covai = {cP: 0, cK: 0, pP: 0, pK: 0}; // 2.11.8
+  if (!S.settings.mig2129) { S.settings.mig2129 = true; // 2.12.9: thêm Tạo kiểu 70k (anh yêu cầu 20/11), đặt sau dòng cắt cuối
+    if (!S.settings.dichvu.some(d => /^Tạo kiểu/i.test(d.ten))) { const dv = S.settings.dichvu, moi = dvGoc().find(d => d.ten === 'Tạo kiểu');
+      let i = -1; dv.forEach((d, k) => { if (d.loai === 'cat' || d.loai === 'catnam') i = k; }); dv.splice(i >= 0 ? i + 1 : dv.length, 0, moi); } }
   if (!S.settings.mig2118) { // 2.11.8: phụ thu dầu cặp / massage gắn với dòng cắt
     const goi = S.settings.dichvu.findIndex(d => d.loai === 'goi'), moi = dvGoc().filter(d => /^Thêm dầu cặp|^Massage cổ vai/.test(d.ten) && !S.settings.dichvu.some(x => x.ten === d.ten));
     S.settings.dichvu.splice(goi >= 0 ? goi + 1 : S.settings.dichvu.length, 0, ...moi); S.settings.mig2118 = true; }
